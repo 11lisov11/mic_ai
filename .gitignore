@@ -1,4 +1,3 @@
-@"
 __pycache__/
 *.py[cod]
 *.pyo
@@ -8,4 +7,4 @@ out/
 reports/
 outputs/figures/
 outputs/results/
-"@" | Set-Content -Encoding ASCII .gitignore
+
