@@ -1,0 +1,54 @@
+{
+  "motor_name": "env_demo_true_motor1",
+  "source": "simulation",
+  "timestamp": "2025-12-06T21:36:19.944831Z",
+  "tests": {
+    "rs_leq_test": {
+      "u_d_step": 200.0,
+      "total_time": 2.0,
+      "rs_fit_error": 9.905980486668938e-05,
+      "leq_fit_error": 0.37405939281859596
+    },
+    "locked_rotor_q_test": {
+      "u_q_step": 260.0,
+      "total_time": 2.5
+    },
+    "mech_runup_coast_test": {
+      "torque_ref": 2.0,
+      "runup_time": 0.8,
+      "coast_time": 0.8
+    },
+    "refinement": {
+      "enabled": true,
+      "method": "multi_test_least_squares",
+      "status": "ok"
+    }
+  },
+  "estimated_params": {
+    "Rs": 3.1999992945507136,
+    "Rr": 2.799938402413164,
+    "Ls": 0.3300014840729036,
+    "Lr": 0.3300014840729036,
+    "Lm": 0.2500008893737088,
+    "J": 0.012,
+    "B": 0.002
+  },
+  "true_params_if_available": {
+    "Rs": 3.2,
+    "Rr": 2.8,
+    "Ls": 0.33,
+    "Lr": 0.33,
+    "Lm": 0.25,
+    "J": 0.012,
+    "B": 0.002
+  },
+  "relative_error_percent": {
+    "Rs": 2.2045290204442125e-05,
+    "Rr": 0.0021999138155592846,
+    "Ls": 0.0004497190616873067,
+    "Lr": 0.0004497190616873067,
+    "Lm": 0.0003557494835160213,
+    "J": 0.0,
+    "B": 0.0
+  }
+}

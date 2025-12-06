@@ -230,7 +230,7 @@ def run_auto_identification(
             try:
                 estimated = refine_params_with_model(data, estimated, env_factory, use_rr=use_rr)
                 refinement_meta["status"] = "ok"
-        except Exception as exc:  # pragma: no cover - зависит от scipy/окружения
+            except Exception as exc:  # pragma: no cover - зависит от scipy/окружения
                 refinement_meta["status"] = "failed"
                 refinement_meta["error"] = str(exc)
     elif refine and env is None:

@@ -63,6 +63,7 @@ class MotorParams:
     J: float
     B: float
     p: int
+    I_n: float = NAMEPLATE_I_N
 
 
 @dataclass(frozen=True)
@@ -202,6 +203,7 @@ def estimate_motor_params_from_nameplate(nameplate: dict) -> MotorParams:
         J=J,
         B=B,
         p=p,
+        I_n=I_n,
     )
 
 
