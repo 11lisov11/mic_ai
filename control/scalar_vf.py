@@ -1,5 +1,5 @@
 """
-Open-loop scalar V/f controller with ramps, slip clamp, and voltage limits.
+Скалярный регулятор V/f с разомкнутым контуром, ограничением нарастания частоты, зажимом по скольжению и ограничением напряжения.
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ class ScalarVfController:
         self.te_filt = 0.0
         self.Te = 0.0
 
-        # ramp rates
-        self.df_max = 200.0  # Hz/s
+        # максимальная скорость изменения частоты
+        self.df_max = 200.0  # Гц/с
 
     def reset(self) -> None:
         self.theta_e = 0.0
@@ -56,12 +56,12 @@ class ScalarVfController:
         direction = 1.0 if omega_ref >= 0 else -1.0
         f_ref = abs(omega_ref) * self.p / (2.0 * math.pi)  # Hz (electrical)
 
-        # ramp frequency with df_max
+        # наращивание частоты с ограничением df_max
         df = f_ref - self.f_cmd
         df = max(-self.df_max * self.dt, min(self.df_max * self.dt, df))
         self.f_cmd += df
 
-        # enforce min/max frequency
+        # ограничение по минимальной/максимальной частоте
         if self.f_cmd < self.params.f_min:
             self.f_cmd = self.params.f_min
         if self.f_cmd > self.params.f_max:
@@ -69,20 +69,20 @@ class ScalarVfController:
 
         f_e = self.f_cmd
 
-        # V/f law
+        # закон V/f
         if f_e > 0:
             u_phase = self.params.k_vf * f_e + self.params.u_boost
         else:
             u_phase = 0.0
 
-        # limit by nominal phase voltage
+        # ограничение по номинальному фазному напряжению
         u_phase = max(-self.U_ph_nom, min(self.U_ph_nom, u_phase))
 
-        # electrical angle update
+        # обновление электрического угла
         self.omega_e = direction * 2.0 * math.pi * f_e
         self.theta_e += self.omega_e * self.dt
 
-        # filtered torque (monitoring)
+        # фильтрация момента (для мониторинга)
         alpha = 0.98
         self.Te = alpha * self.Te + (1.0 - alpha) * torque_e
         self.te_filt = self.Te

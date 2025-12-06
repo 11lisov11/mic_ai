@@ -1,11 +1,12 @@
 """
-Self-check helper to validate full identification on a known motor.
+Помощник для самопроверки полной идентификации на известном двигателе.
 """
 
 from __future__ import annotations
 
-import numpy as np
 from typing import Callable, Dict, List, Tuple
+
+import numpy as np
 
 from .auto_id import run_full_identification
 from .ident_result import IdentificationResult
@@ -17,7 +18,7 @@ MECH_KEYS = ["J", "B"]
 
 
 def _jitter_estimate(est: MotorParamsEstimated, scale: float = 0.1) -> MotorParamsEstimated:
-    """Perturb previous estimate to escape local minima between attempts."""
+    """Возбудить предыдущую оценку, чтобы выйти из локальных минимумов между попытками."""
 
     def jitter(val: float | None, fallback: float) -> float:
         base = fallback if val is None else float(val)
@@ -43,8 +44,8 @@ def _relative_error(true_val: float, est_val: float) -> float:
 
 def _build_report(result: IdentificationResult) -> List[Tuple[str, float, float, float]]:
     """
-    Return list of tuples (name, true, est, err%).
-    Only includes parameters present in both estimated and true values.
+    Вернуть список кортежей (имя, true, est, err%).
+    Берём только параметры, присутствующие и в оценке, и в истинном наборе.
     """
     report: List[Tuple[str, float, float, float]] = []
     est_dict = result.estimated.as_dict()
@@ -62,7 +63,7 @@ def _build_report(result: IdentificationResult) -> List[Tuple[str, float, float,
         true_val = true_dict[key]
         if true_val is None:
             continue
-        # Prefer existing relative error; otherwise compute manually
+        # Предпочитаем уже посчитанную относительную ошибку; иначе считаем вручную
         err = rel_err.get(key)
         if err is None:
             err = _relative_error(float(true_val), float(est_val))
@@ -77,11 +78,11 @@ def self_check_full_identification(
     tol_percent_mech: float = 15.0,
 ) -> None:
     """
-    Автоматическая проверка алгоритма полной идентификации двигателя.
+    Самопроверка: выполняет полную идентификацию на среде с известными параметрами.
 
     Пример:
         # make_env_from_config("config/env_demo_true.yaml")
-        # (конфиг должен содержать ENV с истинными параметрами)
+        # (нужен модуль с ENV, содержащим true_params)
     """
     prev_est: MotorParamsEstimated | None = None
     last_report: List[Tuple[str, float, float, float]] = []

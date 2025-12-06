@@ -3,11 +3,11 @@ from typing import Protocol, Tuple
 
 class BaseController(Protocol):
     """
-    Protocol for motor controllers.
+    Протокол для контроллеров двигателя.
     """
     
     def reset(self) -> None:
-        """Reset internal state."""
+        """Сбросить внутреннее состояние."""
         ...
 
     def step(
@@ -20,20 +20,20 @@ class BaseController(Protocol):
         theta_mech: float
     ) -> Tuple[float, float, float, float]:
         """
-        Compute dq voltage commands.
+        Вычислить команды напряжений в dq.
 
         Args:
-            t: current simulation time.
-            omega_ref: mechanical speed reference (rad/s).
-            omega_m: measured mechanical speed (rad/s).
-            i_abc: measured phase currents (A).
-            torque_e: measured/estimated torque (Nm).
-            theta_mech: mechanical angle (rad).
+            t: текущее время симуляции.
+            omega_ref: заданная механическая скорость (рад/с).
+            omega_m: измеренная механическая скорость (рад/с).
+            i_abc: измеренные фазные токи (А).
+            torque_e: измеренный/оценённый момент (Нм).
+            theta_mech: механический угол (рад).
 
         Returns:
-            v_d: d-axis voltage command (V).
-            v_q: q-axis voltage command (V).
-            theta_e: electrical angle for coordinate transformation (rad).
-            omega_syn: synchronous electrical speed (rad/s).
+            v_d: команда напряжения по d-оси (В).
+            v_q: команда напряжения по q-оси (В).
+            theta_e: электрический угол для преобразования координат (рад).
+            omega_syn: синхронная электрическая скорость (рад/с).
         """
         ...

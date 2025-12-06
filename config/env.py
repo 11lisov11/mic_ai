@@ -1,7 +1,7 @@
 """
-Configuration for the VFD AI project.
+Конфигурация проекта MIC AI.
 
-All adjustable parameters are grouped at the top with Russian comments.
+Все настраиваемые параметры собраны сверху с русскими комментариями.
 """
 
 from __future__ import annotations

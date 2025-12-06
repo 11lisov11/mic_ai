@@ -1,5 +1,5 @@
 """
-Estimators for motor parameters based on voltage step response.
+Оценки параметров двигателя по отклику на ступенчатое воздействие.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from .motor_params import MotorParamsEstimated
 
 try:
     from scipy.optimize import least_squares
-except Exception as exc:  # pragma: no cover - optional dependency
+except Exception as exc:  # pragma: no cover - необязательная зависимость
     least_squares = None
     _SCIPY_IMPORT_ERROR = exc
 
@@ -42,7 +42,7 @@ def _step_mask(u_d: np.ndarray) -> np.ndarray:
 
 def estimate_rs_from_pulse(data: dict) -> Tuple[float, float]:
     """
-    Estimate Rs using steady-state current during the voltage step.
+    Оценить Rs по установившемуся току во время ступеньки напряжения.
     """
     _validate_arrays(data, ("t", "u_d", "i_d"))
     t = np.asarray(data["t"], dtype=float)
@@ -68,7 +68,7 @@ def estimate_rs_from_pulse(data: dict) -> Tuple[float, float]:
 
 def estimate_leq_from_dynamics(data: dict, Rs_est: float) -> Tuple[float, float]:
     """
-    Estimate equivalent inductance from transient response.
+    Оценить эквивалентную индуктивность по переходному процессу.
     """
     if Rs_est == 0:
         raise ValueError("Rs_est must be non-zero for Leq estimation")
@@ -120,7 +120,7 @@ def estimate_leq_from_dynamics(data: dict, Rs_est: float) -> Tuple[float, float]
 
 def estimate_lm(data: dict, Rs_est: float, Leq_est: float) -> float:
     """
-    Crude magnetizing inductance estimate based on equivalent inductance.
+    Грубая оценка намагничивающей индуктивности на основе эквивалентной.
     """
     if Leq_est <= 0:
         raise ValueError("Leq_est must be positive to estimate Lm")
@@ -134,7 +134,7 @@ def refine_params_with_model(
     use_rr: bool = False,
 ) -> MotorParamsEstimated:
     """
-    Refine Rs/Ls/Lr/Lm (and optionally Rr) using a world model + least squares fit to i_d(t).
+    Уточнить Rs/Ls/Lr/Lm (и при необходимости Rr) через мировую модель и МНК по i_d(t).
     """
     if least_squares is None:
         raise ImportError(
@@ -183,7 +183,7 @@ def refine_params_with_model(
         if hasattr(env_model, "motor") and hasattr(env_model.motor, "_currents") and hasattr(env_model.motor, "state"):
             i_d_val, _, _, _ = env_model.motor._currents(env_model.motor.state)  # type: ignore[attr-defined]
             return float(i_d_val)
-        # TODO: adapt to real env_model API for i_d extraction
+        # TODO: адаптировать под реальный API env_model для получения i_d
         raise ValueError("Cannot extract i_d from env_model; expose .i_d or motor currents.")
 
     def _apply_voltage(env_model, u_d_val: float, u_q_val: float = 0.0) -> None:
@@ -192,7 +192,7 @@ def refine_params_with_model(
         elif hasattr(env_model, "base_controller") and hasattr(env_model.base_controller, "set_voltage_dq"):
             env_model.base_controller.set_voltage_dq(u_d_val, u_q_val)
         else:
-            # TODO: adapt to real env_model voltage setter
+            # TODO: адаптировать под реальный setter напряжения env_model
             pass
 
         if hasattr(env_model, "step"):
@@ -246,7 +246,7 @@ def _apply_voltage_generic(env_model, u_d: float, u_q: float = 0.0) -> None:
         env_model.set_voltage_dq(u_d, u_q)
     elif hasattr(env_model, "base_controller") and hasattr(env_model.base_controller, "set_voltage_dq"):
         env_model.base_controller.set_voltage_dq(u_d, u_q)
-    # TODO: adapt to project-specific API if voltage setter differs
+    # TODO: адаптировать под проектный API, если установка напряжений отличается
 
 
 def _step_env_generic(env_model, u_d: float, u_q: float = 0.0) -> None:
@@ -319,7 +319,7 @@ def _simulate_rs_leq(env_model, data: dict) -> dict:
     for idx, u in enumerate(u_d):
         _step_env_generic(env_model, float(u), 0.0)
         i_d_model[idx] = _extract_i_d(env_model)
-        # Optional flux linkage if available
+        # Дополнительно сохраняем поток, если доступен
         if hasattr(env_model, "psi_d"):
             psi_d_model[idx] = float(env_model.psi_d)
         elif hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "psi_ds"):
@@ -340,7 +340,7 @@ def _simulate_locked_rotor_q(env_model, data: dict) -> dict:
 
     if hasattr(env_model, "reset"):
         env_model.reset()
-    # Try to emulate locked rotor by forcing mechanical speed to zero each step
+    # Пытаемся эмулировать закреплённый ротор, принудительно обнуляя скорость на каждом шаге
     def _lock_rotor():
         if hasattr(env_model, "motor") and hasattr(env_model.motor, "state"):
             env_model.motor.state.omega_m = 0.0  # type: ignore[attr-defined]
@@ -371,7 +371,7 @@ def _simulate_mech_runup_coast(env_model, data: dict) -> dict:
         env_model.reset()
 
     for idx, tq in enumerate(torque_cmd):
-        # TODO: adapt torque command to real API; here we use q-axis excitation.
+        # TODO: адаптировать команду момента под реальный API; здесь используем возбуждение по q-оси.
         _step_env_generic(env_model, 0.0, float(tq))
         omega_model[idx] = _extract_omega(env_model)
 
@@ -385,7 +385,7 @@ def refine_params_multi_test(
     use_rr: bool = True,
 ) -> MotorParamsEstimated:
     """
-    Multi-test optimization of motor parameters (Rs, Rr?, Ls, Lr, Lm, J, B).
+    Многотестовая оптимизация параметров двигателя (Rs, Rr?, Ls, Lr, Lm, J, B).
     """
     if least_squares is None:
         raise ImportError(
@@ -403,7 +403,7 @@ def refine_params_multi_test(
     start_ls, low_ls, up_ls = _param_bounds(initial_est.Ls, 0.1)
     start_lr, low_lr, up_lr = _param_bounds(initial_est.Lr, 0.1)
     start_lm, low_lm, up_lm = _param_bounds(initial_est.Lm, 0.1)
-    # For Rr start near twice Rs if available; otherwise fallback 5.0
+    # Для Rr стартуем примерно вдвое выше Rs, если есть; иначе берём 5.0
     rr_fallback = 5.0
     if initial_est.Rs is not None and initial_est.Rs > 0:
         rr_fallback = max(2.0 * float(initial_est.Rs), 1.0)
@@ -412,7 +412,7 @@ def refine_params_multi_test(
     start_b, low_b, up_b = _param_bounds(initial_est.B, 1e-3)
 
     if use_rr:
-        # Tie Lr to Ls (symmetry assumption) to stabilize fit
+        # Связываем Lr с Ls (симметрия) для стабилизации оценки
         x0 = np.array([start_rs, start_rr, start_ls, start_lm, start_j, start_b], dtype=float)
         lower = np.array([low_rs, low_rr, low_ls, low_lm, low_j, low_b], dtype=float)
         upper = np.array([up_rs, up_rr, up_ls, up_lm, up_j, up_b], dtype=float)
@@ -424,10 +424,10 @@ def refine_params_multi_test(
     def _build_estimated(theta: np.ndarray) -> MotorParamsEstimated:
         if use_rr:
             Rs, Rr, Ls, Lm, J, B = theta
-            Lr = Ls  # enforce symmetry
+            Lr = Ls  # фиксируем симметрию
         else:
             Rs, Ls, Lm, J, B = theta
-            Lr = Ls  # enforce symmetry
+            Lr = Ls  # фиксируем симметрию
             Rr = initial_est.Rr
         return MotorParamsEstimated(
             Rs=float(Rs),
@@ -443,7 +443,7 @@ def refine_params_multi_test(
         est_params = _build_estimated(theta)
         residuals_list: list[np.ndarray] = []
 
-        # RS/LEQ test residuals
+        # Остатки для теста RS/LEQ
         if data_rs is not None:
             env_model = env_model_factory(est_params)
             sim = _simulate_rs_leq(env_model, data_rs)
@@ -458,7 +458,7 @@ def refine_params_multi_test(
                 if psi_model is not None and psi_meas.shape == psi_model.shape:
                     residuals_list.append(0.1 * (psi_model - psi_meas))
 
-        # Locked-rotor q-axis residuals
+        # Остатки теста q-оси с заблокированным ротором
         if data_locked is not None:
             env_model = env_model_factory(est_params)
             sim = _simulate_locked_rotor_q(env_model, data_locked)
@@ -471,11 +471,11 @@ def refine_params_multi_test(
             residuals_list.append(1.0 * (i_q_model - i_q_meas))
             if torque_meas.shape == torque_model.shape and np.any(torque_meas):
                 residuals_list.append(2.0 * (torque_model - torque_meas))
-            # Encourage symmetry Lr ~ Ls to stabilize estimation
+            # Поощряем симметрию Lr ~ Ls для стабилизации оценки
             if est_params.Lr is not None and est_params.Ls is not None:
                 residuals_list.append(0.2 * np.array([est_params.Lr - est_params.Ls], dtype=float))
 
-        # Mechanical runup/coast residuals
+        # Остатки для механического разгона/выбега
         if data_mech is not None:
             env_model = env_model_factory(est_params)
             sim = _simulate_mech_runup_coast(env_model, data_mech)

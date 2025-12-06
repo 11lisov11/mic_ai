@@ -1,5 +1,5 @@
 """
-Vector control (FOC) with cascaded PI loops for speed and currents.
+Векторное управление (FOC) с каскадными ПИ-контуром скорости и токов.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ class PI:
         u_unsat = self.kp * error + self.integrator
         if self.limit is not None:
             u = max(-self.limit, min(self.limit, u_unsat))
-            # anti-windup: integrate only if not saturated
+            # антинасыщение: интегрируем только если нет насыщения
             if abs(u) < self.limit:
                 self.integrator += error * self.ki * self.dt
         else:
@@ -75,7 +75,7 @@ class FocController:
         """
         i_a, i_b, i_c = i_abc
         
-        # use synchronous angle driven by reference
+        # используем синхронный угол, задаваемый ссылкой
         theta_e = self.theta_e
         i_d, i_q = abc_to_dq(i_a, i_b, i_c, theta_e)
 
@@ -91,7 +91,7 @@ class FocController:
         v_d = self.pi_id.step(e_id)
         v_q = -self.pi_iq.step(e_iq)
 
-        # overall voltage magnitude limitation if requested
+        # при необходимости ограничиваем результирующее напряжение по модулю
         if self.params.v_limit is not None:
             mag = math.hypot(v_d, v_q)
             if mag > self.params.v_limit and mag > 0:

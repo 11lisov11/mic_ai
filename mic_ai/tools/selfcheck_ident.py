@@ -1,5 +1,5 @@
 """
-CLI to run self-check of full identification against a known motor config.
+CLI для запуска самопроверки полной идентификации на конфигурации с известными параметрами.
 """
 
 from __future__ import annotations
@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from vfd_ai.core.env import make_env_from_config
-from vfd_ai.ident.selfcheck import self_check_full_identification
+from mic_ai.core.env import make_env_from_config
+from mic_ai.ident.selfcheck import self_check_full_identification
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
             tol_percent_main=args.tol_main,
             tol_percent_mech=args.tol_mech,
         )
-    except Exception as exc:  # pragma: no cover - CLI exit path
+    except Exception as exc:  # pragma: no cover - путь завершения CLI
         print(f"[self-check] FAILED: {exc}")
         return 1
     return 0

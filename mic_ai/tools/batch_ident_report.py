@@ -1,5 +1,5 @@
 """
-Batch identification over a set of synthetic motors and plain-text report.
+Пакетная идентификация набора синтетических двигателей и текстовый отчёт.
 """
 
 from __future__ import annotations
@@ -26,11 +26,11 @@ from config.env import (
     SimulationParams,
     create_default_env,
 )
-from vfd_ai.core.env import DirectVoltageEnv
-from vfd_ai.ident.auto_id import run_full_identification
-from vfd_ai.ident.ident_result import IdentificationResult
+from mic_ai.core.env import DirectVoltageEnv
+from mic_ai.ident.auto_id import run_full_identification
+from mic_ai.ident.ident_result import IdentificationResult
 
-# Default identification excitation (can be overridden per motor if fields exist)
+# Возбуждение для идентификации по умолчанию (можно переопределить на уровне двигателя)
 IDENT_DEFAULTS = {
     "ident_u_d_step": 150.0,
     "ident_total_time": 1.0,
@@ -47,7 +47,7 @@ def build_env_from_motor(motor_dict: Dict) -> object:
     Ls_total = float(motor_dict["Ls"])
     Lr_total = float(motor_dict["Lr"])
     Lm_val = float(motor_dict["Lm"])
-    Lm_val = min(Lm_val, 0.95 * min(Ls_total, Lr_total))  # clamp to avoid negative sigmas
+    Lm_val = min(Lm_val, 0.95 * min(Ls_total, Lr_total))  # ограничиваем, чтобы не получить отрицательные сигмы
     Ls_sigma = max(Ls_total - Lm_val, 1e-6)
     Lr_sigma = max(Lr_total - Lm_val, 1e-6)
 
@@ -95,7 +95,7 @@ def build_env_from_motor(motor_dict: Dict) -> object:
 
 
 def run_one(motor_dict: Dict) -> Tuple[IdentificationResult, Dict[str, float]]:
-    # Adaptive retries by increasing test excitation/duration on failures
+    # Адаптивные повторы: повышаем возбуждение/длительность при неудачах
     u_d_step = motor_dict.get("ident_u_d_step")
     u_q_step = motor_dict.get("ident_u_q_step")
     t_d = motor_dict.get("ident_total_time", IDENT_DEFAULTS["ident_total_time"])
@@ -127,7 +127,7 @@ def run_one(motor_dict: Dict) -> Tuple[IdentificationResult, Dict[str, float]]:
             return result, rel_err
         except Exception as exc:
             last_exc = exc
-            # boost excitation and time for next attempt
+            # увеличиваем возбуждение и время для следующей попытки
             if u_d_step is None:
                 u_d_step = IDENT_DEFAULTS["ident_u_d_step"]
             if u_q_step is None:
@@ -137,7 +137,7 @@ def run_one(motor_dict: Dict) -> Tuple[IdentificationResult, Dict[str, float]]:
             t_d *= 1.5
             t_q *= 1.4
             continue
-    # if all attempts failed
+    # если все попытки провалились
     if last_exc:
         raise last_exc
     raise RuntimeError("Unknown failure in run_one")
@@ -191,7 +191,7 @@ def main(argv: List[str] | None = None) -> int:
         try:
             result, rel_err = run_one(motor)
             out_lines.append(format_line(name, motor, result.estimated.as_dict(), rel_err))
-        except Exception as exc:  # pragma: no cover - batch resilience
+        except Exception as exc:  # pragma: no cover - устойчивость пакетного режима
             print(f"[batch] {name} FAILED: {exc}")
             out_lines.append(f"{name}\tERROR\t{exc}")
 

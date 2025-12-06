@@ -1,5 +1,5 @@
 """
-Built-in simulation scenarios for reference commands and load torque.
+Встроенные сценарии симуляции для опорных команд и нагрузочного момента.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ Scenario = tuple[Callable[[float], float], Callable[[float], float]]
 
 def get_scenario(name: str, env: EnvConfig) -> Scenario:
     """
-    Return callable pair (omega_ref(t), load_torque(t)) for the given scenario name.
+    Вернуть пару функций (omega_ref(t), load_torque(t)) по имени сценария.
     """
     omega_nom = 2.0 * math.pi * env.scalar_vf.f_max / env.motor.p
     load_const = env.sim.load_torque
@@ -48,4 +48,3 @@ def get_scenario(name: str, env: EnvConfig) -> Scenario:
 
 
 __all__ = ["get_scenario"]
-

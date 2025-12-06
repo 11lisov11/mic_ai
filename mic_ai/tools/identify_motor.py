@@ -1,5 +1,5 @@
 """
-CLI wrapper for automated motor parameter identification.
+CLI-обёртка для автоматической идентификации параметров двигателя.
 """
 
 from __future__ import annotations
@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from vfd_ai.ident.auto_id import run_auto_identification
-from vfd_ai.ident.ident_result import IdentificationResult
-from vfd_ai.ident.io import save_ident_result
+from mic_ai.ident.auto_id import run_auto_identification
+from mic_ai.ident.ident_result import IdentificationResult
+from mic_ai.ident.io import save_ident_result
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -55,16 +55,16 @@ def main(argv: list[str] | None = None) -> None:
     env = None
     if args.env_config is not None:
         try:
-            from vfd_ai.core.env import make_env_from_config  # type: ignore
-        except Exception as exc:  # pragma: no cover - requires project-specific factory
+            from mic_ai.core.env import make_env_from_config  # type: ignore
+        except Exception as exc:  # pragma: no cover - требуется проектно-специфичная фабрика
             raise ImportError(
-                "Expected make_env_from_config in vfd_ai.core.env to build the digital twin environment."
+                "Expected make_env_from_config in mic_ai.core.env to build the digital twin environment."
             ) from exc
         env = make_env_from_config(args.env_config)
 
     data_rs = None
     if args.rs_leq_data:
-        from vfd_ai.ident.io import load_test_data
+        from mic_ai.ident.io import load_test_data
 
         data_rs = load_test_data(args.rs_leq_data)
 

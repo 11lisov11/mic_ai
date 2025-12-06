@@ -1,7 +1,7 @@
 """
-Demo config with known true parameters for identification self-check.
+Демонстрационная конфигурация с известными истинными параметрами для самопроверки идентификации.
 
-It mirrors the default ENV but shortens simulation time for faster tests.
+Повторяет базовый ENV, но сокращает время моделирования ради быстрых тестов.
 """
 
 from __future__ import annotations
@@ -11,10 +11,10 @@ from dataclasses import replace
 from config.env import create_default_env, SimulationParams
 
 
-# Base environment
+# Базовое окружение
 _base = create_default_env()
 
-# Simulation horizon tuned for identification
+# Горизонт моделирования под задачи идентификации
 _sim = replace(
     _base.sim,
     t_end=3.0,   # дольше для устойчивости locked-rotor
@@ -22,13 +22,12 @@ _sim = replace(
     save_prefix="demo_selfcheck",
 )
 
-# Final ENV exposed for make_env_from_config
+# Финальный ENV, который отдаём make_env_from_config
 ENV = replace(_base, sim=_sim)
 
-# Optional identification tuning (read via getattr in auto_id)
-# These will be pulled via getattr even though EnvConfig is frozen,
-# because we attach them to the module-level ENV via replace() not allowed;
-# so we store them separately in module attributes for easy access.
+# Дополнительные настройки идентификации (читаются через getattr в auto_id)
+# Даже при «замороженном» EnvConfig читаем через getattr, поэтому храним
+# их как отдельные атрибуты модуля для удобного доступа.
 ident_u_d_step = 180.0
 ident_total_time = 2.0
 ident_u_q_step = 280.0

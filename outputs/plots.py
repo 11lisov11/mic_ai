@@ -1,5 +1,5 @@
 """
-Plot simulation run stored as NPZ.
+Построение графиков по результатам симуляции, сохранённым в NPZ.
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ from outputs.styles import apply_style
 
 def _unique_png(prefix: str, directory: Path, idx_hint: int | None = None) -> Path:
     """
-    Return unique PNG path with pattern <prefix>_<n>.png.
-    If idx_hint provided, try to use it first.
+    Вернуть уникальный путь PNG в формате <prefix>_<n>.png.
+    Если idx_hint задан, сначала используется он.
     """
     if idx_hint is not None:
         candidate = directory / f"{prefix}_{idx_hint}.png"

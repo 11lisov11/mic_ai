@@ -1,5 +1,5 @@
 """
-JSON IO helpers for identification results.
+Помощники для чтения/записи JSON с результатами идентификации.
 """
 
 from __future__ import annotations
@@ -46,11 +46,11 @@ def load_estimated_params(path: str) -> MotorParamsEstimated:
 
 def load_test_data(path: str) -> dict:
     """
-    Load recorded test data for identification.
+    Загрузить записанные тестовые данные для идентификации.
 
-    Supports:
-    - .npz: arrays saved with keys (e.g., t, u_d, u_q, i_d, i_q, w_mech, torque)
-    - .json: dict of lists/numbers
+    Поддерживает:
+    - .npz: массивы с ключами (t, u_d, u_q, i_d, i_q, w_mech, torque и т.д.)
+    - .json: словарь списков/чисел
     """
     p = Path(path)
     suffix = p.suffix.lower()

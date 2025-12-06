@@ -1,5 +1,5 @@
 """
-CLI for full multi-test motor identification (electrical + mechanical) with optional self-check.
+CLI для полной многотестовой идентификации двигателя (электрической + механической) с опциональной самопроверкой.
 """
 
 from __future__ import annotations
@@ -12,10 +12,10 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from vfd_ai.core.env import make_env_from_config
-from vfd_ai.ident.auto_id import run_full_identification, self_check_full_identification
-from vfd_ai.ident.ident_result import IdentificationResult
-from vfd_ai.ident.io import save_ident_result
+from mic_ai.core.env import make_env_from_config
+from mic_ai.ident.auto_id import run_full_identification, self_check_full_identification
+from mic_ai.ident.ident_result import IdentificationResult
+from mic_ai.ident.io import save_ident_result
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> None:
 
     data_rs = data_locked = data_mech = None
     if args.rs_leq_data or args.locked_data or args.mech_data:
-        from vfd_ai.ident.io import load_test_data
+        from mic_ai.ident.io import load_test_data
 
         data_rs = load_test_data(args.rs_leq_data) if args.rs_leq_data else None
         data_locked = load_test_data(args.locked_data) if args.locked_data else None

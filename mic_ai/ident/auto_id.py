@@ -1,5 +1,5 @@
 """
-Orchestrates automated motor parameter identification.
+Оркестрация автоматической идентификации параметров двигателя.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def _pick_test_params(env) -> tuple[float, float]:
         if vdc is not None:
             u_d_step = 0.5 * float(vdc) / math.sqrt(3.0)
         else:
-            u_d_step = 50.0  # fallback
+            u_d_step = 50.0  # запасной вариант
 
     if total_time is None:
         total_time = getattr(env, "ident_test_duration", 1.0)
@@ -49,7 +49,7 @@ def _maybe_true_params_from_env(env) -> Optional[MotorParamsTrue]:
         params = getattr(env, "motor_true_params")
         if isinstance(params, MotorParamsTrue):
             return params
-        # Try to convert compatible structures with sigma inductances.
+        # Пытаемся сконвертировать совместимые структуры с раздельными сигмами.
         attrs = ("Rs", "Rr", "Ls", "Lr", "Lm", "J", "B")
         if all(hasattr(params, a) for a in attrs):
             return MotorParamsTrue(
@@ -62,7 +62,7 @@ def _maybe_true_params_from_env(env) -> Optional[MotorParamsTrue]:
                 B=float(getattr(params, "B")),
             )
         if hasattr(params, "Ls_sigma") and hasattr(params, "Lr_sigma") and hasattr(params, "Lm"):
-            # Convert config.env.MotorParams that store leakage inductances separately.
+            # Конвертация config.env.MotorParams, где рассеяние хранится отдельно.
             Ls = float(params.Ls_sigma + params.Lm)
             Lr = float(params.Lr_sigma + params.Lm)
             return MotorParamsTrue(
@@ -79,7 +79,7 @@ def _maybe_true_params_from_env(env) -> Optional[MotorParamsTrue]:
 
 def _build_env_model_factory(env: Any):
     """
-    Try to construct a factory that clones env with overridden motor parameters.
+    Построить фабрику, клонирующую среду с переопределёнными параметрами двигателя.
     """
     base_cfg = None
     for attr in ("env_config", "env", "config"):
@@ -97,7 +97,7 @@ def _build_env_model_factory(env: Any):
     if motor_cfg is None:
         return None
 
-    # Baseline generic values (avoid leaking true params from env into refinement)
+    # Базовые значения по умолчанию (чтобы не вытекали истинные параметры среды в уточнение)
     baseline = {
         "Rs": 0.5,
         "Rr": 1.0,
@@ -109,14 +109,14 @@ def _build_env_model_factory(env: Any):
     }
 
     def factory(est_params: MotorParamsEstimated):
-        # Use estimated values if present; fall back to baseline
+        # Используем оценённые значения, иначе берём базовые
         Rs = est_params.Rs if est_params.Rs is not None else baseline["Rs"]
         Rr = est_params.Rr if est_params.Rr is not None else baseline["Rr"]
         Lm = est_params.Lm if est_params.Lm is not None else baseline["Lm"]
         J = est_params.J if est_params.J is not None else baseline["J"]
         B = est_params.B if est_params.B is not None else baseline["B"]
 
-        # If primary estimates for Ls/Lr exist, use them directly; otherwise sigma fallback
+        # Если есть оценки Ls/Lr, используем напрямую, иначе через сигма-значения
         Ls_total = est_params.Ls
         Lr_total = est_params.Lr
 
@@ -164,10 +164,10 @@ def _build_env_model_factory(env: Any):
             return env_cls(env_cfg_new)
         except Exception:
             try:
-                from vfd_ai.core.env import DirectVoltageEnv
+                from mic_ai.core.env import DirectVoltageEnv
 
                 return DirectVoltageEnv(env_cfg_new)
-            except Exception as exc:  # pragma: no cover - requires integration
+            except Exception as exc:  # pragma: no cover - требуется интеграция
                 raise ValueError("Cannot instantiate env model; provide custom env_model_factory") from exc
 
     return factory
@@ -190,7 +190,7 @@ def run_auto_identification(
     """
     if env is None and data_rs_leq is None:
         raise ValueError("Provide either env (to run tests) or data_rs_leq with recorded test data.")
-    # Acquire data either from provided test results or by running the env test
+    # Берём данные либо из предоставленных тестов, либо запускаем тест в среде
     if data_rs_leq is not None:
         data = data_rs_leq
         test_meta = {"source": "provided", "rs_leq_data": True}
@@ -230,7 +230,7 @@ def run_auto_identification(
             try:
                 estimated = refine_params_with_model(data, estimated, env_factory, use_rr=use_rr)
                 refinement_meta["status"] = "ok"
-            except Exception as exc:  # pragma: no cover - relies on scipy/env
+        except Exception as exc:  # pragma: no cover - зависит от scipy/окружения
                 refinement_meta["status"] = "failed"
                 refinement_meta["error"] = str(exc)
     elif refine and env is None:
@@ -306,7 +306,7 @@ def run_full_identification(
         raise ValueError(
             "Provide env to run tests or supply all data sets (rs_leq, locked_rotor_q, mech_runup)."
         )
-    # --- D-axis test data
+    # --- Данные d-осевого теста
     if data_rs_leq is not None:
         data_rs = data_rs_leq
         meta_rs = {"source": "provided", "rs_leq_data": True}
@@ -317,7 +317,7 @@ def run_full_identification(
     Leq_est, leq_fit_err = estimate_leq_from_dynamics(data_rs, Rs_est)
     Lm_est = estimate_lm(data_rs, Rs_est, Leq_est)
 
-    # --- Locked-rotor q test data
+    # --- Данные q-теста с заблокированным ротором
     if data_locked_rotor_q is not None:
         data_locked = data_locked_rotor_q
         meta_locked = {"source": "provided", "locked_rotor_data": True}
@@ -325,7 +325,7 @@ def run_full_identification(
         u_q_step, locked_time = _pick_locked_rotor_params(env)
         data_locked, meta_locked = run_locked_rotor_q_test(env, u_q_step=u_q_step, total_time=locked_time)
 
-    # --- Mechanical runup/coast data
+    # --- Данные механического разгона/выбега
     if data_mech_runup is not None:
         data_mech = data_mech_runup
         meta_mech = {"source": "provided", "mech_runup_data": True}
@@ -354,7 +354,7 @@ def run_full_identification(
         B=init_B,
     )
     if initial_est_override is not None:
-        # Use provided override but keep fallbacks for missing fields.
+        # Используем переданный override, но оставляем значения по умолчанию для отсутствующих полей.
         def pick(attr, fallback):
             val = getattr(initial_est_override, attr, None)
             return fallback if val is None else val
@@ -382,7 +382,7 @@ def run_full_identification(
         try:
             estimated = refine_params_multi_test(data_tests, initial_est, env_factory, use_rr=True)
             refinement_meta["status"] = "ok"
-        except Exception as exc:  # pragma: no cover - depends on scipy/env
+        except Exception as exc:  # pragma: no cover - зависит от scipy/окружения
             refinement_meta["status"] = "failed"
             refinement_meta["error"] = str(exc)
     elif enable_refine and env is None:

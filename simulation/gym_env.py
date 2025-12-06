@@ -1,5 +1,5 @@
 """
-Gym environment that wraps the induction motor, inverter and controllers.
+Gym-окружение, которое объединяет модель двигателя, инвертор и контроллеры.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import numpy as np
 try:
     import gym
     from gym import spaces
-except ImportError:  # minimal fallback when gym is not installed
+except ImportError:  # минимальный запасной вариант, если gym не установлен
     class _Box:
         def __init__(self, low, high, shape=None, dtype=np.float32):
             self.low = np.array(low if shape is None else np.full(shape, low), dtype=dtype)
@@ -45,7 +45,7 @@ from simulation.scenarios import get_scenario
 
 class InductionMotorEnv(gym.Env):
     """
-    Gym-style environment for scalar V/f or FOC controlled induction motor.
+    Gym-совместимая среда для управления асинхронным двигателем в режимах V/f или FOC.
     """
 
     metadata = {"render.modes": []}
@@ -70,9 +70,9 @@ class InductionMotorEnv(gym.Env):
 
         self.omega_ref_func, self.load_torque_func = get_scenario(env_config.sim.scenario_name, env_config)
 
-        # action: normalized speed command in [-1, 1]
+        # действие: нормализованная команда скорости в диапазоне [-1, 1]
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
-        # observation: omega_m, omega_ref, T_e, i_a, i_b, i_c, P_in, P_out
+        # наблюдение: omega_m, omega_ref, T_e, i_a, i_b, i_c, P_in, P_out
         obs_low = np.array([-np.inf] * 8, dtype=np.float32)
         obs_high = np.array([np.inf] * 8, dtype=np.float32)
         self.observation_space = spaces.Box(low=obs_low, high=obs_high, dtype=np.float32)
@@ -131,8 +131,8 @@ class InductionMotorEnv(gym.Env):
 
         omega_ref = self._apply_action(action, omega_ref)
         
-        # --- Unified Control Step ---
-        # Note: controller expects i_abc from previous step (or filtered)
+        # --- Унифицированный шаг управления ---
+        # Контроллер ожидает i_abc с предыдущего шага (или отфильтрованные)
         v_d, v_q, theta_e, omega_syn, ctrl_info = self.controller.step(
             t=t,
             omega_ref=omega_ref,
@@ -142,7 +142,7 @@ class InductionMotorEnv(gym.Env):
             theta_mech=self.theta_mech
         )
         
-        # Inverter and Motor Update
+        # Обновление инвертора и двигателя
         v_abc, (v_d, v_q) = self.inverter.output(v_d, v_q, theta_e)
         state, i_d, i_q, torque_e, omega_m = self.motor.step(
             v_d, v_q, load_torque, self.dt, omega_syn=omega_syn
@@ -169,7 +169,7 @@ class InductionMotorEnv(gym.Env):
             "theta_e": theta_e,
             "omega_syn": omega_syn,
         }
-        # merge controller debug info
+        # добавляем отладочную информацию контроллера
         info.update(ctrl_info)
 
         reward = 0.0

@@ -1,5 +1,5 @@
 """
-Factory for building a simple direct-voltage environment from a config file.
+Фабрика для создания простого окружения с прямой подачей dq-напряжений по конфигурационному файлу.
 """
 
 from __future__ import annotations
@@ -13,12 +13,12 @@ from typing import Any
 
 from models.induction_motor import InductionMotorModel
 from models.inverter_ideal import IdealInverter
-from vfd_ai.ident.motor_params import MotorParamsTrue
+from mic_ai.ident.motor_params import MotorParamsTrue
 
 
 class DirectVoltageEnv:
     """
-    Minimal environment that applies dq voltage references directly to the motor model.
+    Минимальная среда, которая напрямую подаёт ссылочные dq-напряжения в модель двигателя.
     """
 
     def __init__(self, env_config: Any):
@@ -34,10 +34,10 @@ class DirectVoltageEnv:
         self.u_d_ref = 0.0
         self.u_q_ref = 0.0
         self.t = 0.0
-        self.theta_e = 0.0  # keep synchronous frame fixed for locked-rotor style tests
+        self.theta_e = 0.0  # фиксируем синхронный кадр для locked-rotor тестов
 
         motor_cfg = env_config.motor
-        # Convert leakage + magnetizing to total stator/rotor inductances where possible.
+        # Конвертируем рассеяние и намагничивание в полные индуктивности статора/ротора, где это возможно.
         if hasattr(motor_cfg, "Ls_sigma") and hasattr(motor_cfg, "Lr_sigma") and hasattr(motor_cfg, "Lm"):
             Ls = float(motor_cfg.Ls_sigma + motor_cfg.Lm)
             Lr = float(motor_cfg.Lr_sigma + motor_cfg.Lm)
@@ -91,11 +91,11 @@ class DirectVoltageEnv:
 
 
 def _load_config_module(path: Path) -> types.ModuleType:
-    spec = importlib.util.spec_from_file_location("vfd_ai_user_config", path)
+    spec = importlib.util.spec_from_file_location("mic_ai_user_config", path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load config module from {path}")
     module = importlib.util.module_from_spec(spec)
-    # Ensure module is discoverable during execution (needed for dataclass/typing checks).
+    # Делаем модуль доступным во время исполнения (нужно для dataclass/typing проверок).
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
@@ -109,7 +109,7 @@ def _resolve_env_config(config_module: types.ModuleType) -> Any:
 
 def make_env_from_config(config_path: str) -> DirectVoltageEnv:
     """
-    Load a config file (python module with ENV) and return a DirectVoltageEnv.
+    Загрузить конфиг (python-модуль с ENV) и вернуть DirectVoltageEnv.
     """
     path = Path(config_path).expanduser().resolve()
     if not path.exists():
@@ -118,7 +118,7 @@ def make_env_from_config(config_path: str) -> DirectVoltageEnv:
     env_config = _resolve_env_config(config_module)
     env = DirectVoltageEnv(env_config)
 
-    # Propagate optional identification hints from config module to env instance
+    # Протягиваем необязательные подсказки для идентификации из конфигурационного модуля в экземпляр env
     for name in (
         "ident_u_d_step",
         "ident_total_time",

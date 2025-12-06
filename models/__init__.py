@@ -1,4 +1,3 @@
 """
-Physical models for the VFD AI project.
+Физические модели для проекта MIC AI.
 """
-

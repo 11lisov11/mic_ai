@@ -1,5 +1,5 @@
 """
-Ideal voltage-source inverter with magnitude limitation.
+Идеальный инвертор напряжения с ограничением по амплитуде.
 """
 
 from __future__ import annotations
@@ -19,11 +19,11 @@ class IdealInverter:
         self, v_d: float, v_q: float, theta_e: float
     ) -> Tuple[tuple[float, float, float], tuple[float, float]]:
         """
-        Apply voltage magnitude limitation and return abc voltages.
+        Применить ограничение по модулю напряжения и вернуть фазы abc.
 
         Returns:
-            v_abc: tuple of phase voltages (v_a, v_b, v_c)
-            v_dq: possibly saturated dq voltages (v_d, v_q)
+            v_abc: кортеж фазных напряжений (v_a, v_b, v_c)
+            v_dq: dq-напряжения с учётом насыщения (v_d, v_q)
         """
         v_mag = math.sqrt(v_d * v_d + v_q * v_q)
         v_max = self.params.Vdc / math.sqrt(3.0)
@@ -38,4 +38,3 @@ class IdealInverter:
 
 
 __all__ = ["IdealInverter"]
-

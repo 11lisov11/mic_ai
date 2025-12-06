@@ -1,5 +1,5 @@
 """
-Matplotlib styling helpers.
+Вспомогательные настройки оформления для Matplotlib.
 """
 
 from __future__ import annotations
@@ -21,4 +21,3 @@ def apply_style() -> None:
 
 
 __all__ = ["apply_style"]
-

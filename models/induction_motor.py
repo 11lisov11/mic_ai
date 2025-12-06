@@ -1,5 +1,5 @@
 """
-Simple dq-model of a squirrel-cage induction motor.
+Упрощённая dq-модель короткозамкнутого асинхронного двигателя.
 """
 
 from __future__ import annotations
@@ -20,20 +20,20 @@ class MotorState:
 
 
 class InductionMotorModel:
-    """dq-frame induction motor model with simple Euler integration."""
+    """dq-модель асинхронного двигателя с шагом Эйлера."""
 
     def __init__(self, params: MotorParams):
         self.params = params
         self.state = MotorState()
 
-        # Pre-compute inductances used in current calculations
+        # предварительный расчёт индуктивностей для вычисления токов
         self.Ls = params.Ls_sigma + params.Lm
         self.Lr = params.Lr_sigma + params.Lm
         self.denom = self.Ls * self.Lr - params.Lm ** 2
 
     def _currents(self, state: MotorState) -> Tuple[float, float, float, float]:
         """
-        Compute dq stator and rotor currents from the flux linkages.
+        Рассчитать dq-токи статора и ротора по потокосцеплениям.
         """
         i_ds = (state.psi_ds * self.Lr - state.psi_dr * self.params.Lm) / self.denom
         i_qs = (state.psi_qs * self.Lr - state.psi_qr * self.params.Lm) / self.denom
@@ -50,20 +50,20 @@ class InductionMotorModel:
         omega_syn: float | None = None,
     ) -> tuple[MotorState, float, float, float, float]:
         """
-        Advance the motor state by one time-step using forward Euler.
+        Обновить состояние двигателя на один шаг методом прямого Эйлера.
 
         Args:
-            v_ds: stator d-axis voltage in the synchronous frame.
-            v_qs: stator q-axis voltage in the synchronous frame.
-            load_torque: external mechanical load torque.
-            dt: simulation step.
-            omega_syn: synchronous electrical speed of the dq frame (rad/s).
+            v_ds: статоровое d-напряжение в синхронной системе.
+            v_qs: статоровое q-напряжение в синхронной системе.
+            load_torque: внешняя нагрузка по моменту.
+            dt: шаг моделирования.
+            omega_syn: синхронная электрическая скорость dq-кадра (рад/с).
 
         Returns:
-            state: updated MotorState.
-            i_ds, i_qs: stator dq currents.
-            T_e: electromagnetic torque.
-            omega_m: mechanical speed (rad/s).
+            state: обновлённое состояние MotorState.
+            i_ds, i_qs: dq-токи статора.
+            T_e: электромагнитный момент.
+            omega_m: механическая скорость (рад/с).
         """
         p = self.params
         state = self.state
@@ -96,4 +96,3 @@ class InductionMotorModel:
 
 
 __all__ = ["MotorState", "InductionMotorModel"]
-

@@ -1,5 +1,5 @@
 """
-Generation of test profiles for identification.
+Генерация тестовых профилей для идентификации.
 """
 
 from __future__ import annotations
@@ -9,9 +9,9 @@ import numpy as np
 
 def make_rs_leq_test_profile(dt: float, total_time: float, u_d_step: float) -> dict:
     """
-    Build a simple voltage step profile on the d-axis for Rs/Leq estimation.
+    Построить простой ступенчатый профиль напряжения по d-оси для оценки Rs/Leq.
 
-    Returns dict with time stamps and voltage references.
+    Возвращает словарь с временной сеткой и ссылками по напряжению.
     """
     if dt <= 0:
         raise ValueError("dt must be positive")
@@ -28,10 +28,9 @@ def make_rs_leq_test_profile(dt: float, total_time: float, u_d_step: float) -> d
 
     warmup_steps = min(max(10, int(0.02 * n_steps)), n_steps - 1)
     u_d_ref[warmup_steps:] = u_d_step
-    # u_q_ref remains zero
+    # u_q_ref оставляем равным нулю
 
     return {"t": t, "u_d_ref": u_d_ref, "u_q_ref": u_q_ref}
 
 
 __all__ = ["make_rs_leq_test_profile"]
-

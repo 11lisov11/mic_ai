@@ -1,54 +1,45 @@
-# VFD_AI — модель асинхронного привода с V/f и FOC
+# MIC_AI — Motor-Independent Cognitive Artificial Intelligence (mic_ai)
 
-Проект моделирует управление трёхфазным асинхронным двигателем двумя способами: скалярное V/f и векторное FOC. Реализована модель двигателя в dq-координатах, идеальный инвертор, контроллеры, сценарии нагрузки, Gym-обёртка, сохранение результатов и отрисовка графиков.
+Цифровой двойник асинхронного привода с режимами V/f и FOC и набором утилит для идентификации параметров двигателя и построения отчётов.
 
-## Структура
-- `config/env.py` — все настройки: паспортные данные двигателя, инвертор, V/f и FOC параметры, параметры симуляции. В конце формируется `ENV`.
-- `models/` — физические модели:
-  - `transformations.py` — Clarke/Park прямые и обратные преобразования.
-  - `induction_motor.py` — модель асинхронного двигателя в dq.
-  - `inverter_ideal.py` — идеальный инвертор с ограничением по Vdc/√3.
-- `control/` — контроллеры:
-  - `scalar_vf.py` — V/f с ограничением по U/f, U_boost, плавным пуском (ramp) и фильтрацией момента.
-  - `vector_foc.py` — FOC с PI по скорости и токам, ограничением тока/напряжения, интеграцией угла.
-- `simulation/` — сценарии и запуск:
-  - `scenarios.py` — speed_step, ramp и загрузка.
-  - `gym_env.py` — окружение на базе Gym для RL/скриптов.
-  - `run_simulation.py` — одиночный прогон, сохраняет `outputs/results/data_<n>.npz`.
-- `outputs/plots.py` — построение графиков из NPZ; сохраняет `speed_<n>.png`, `torque_<n>.png`, `currents_<n>.png`, `power_<n>.png`.
-- `tests/` — базовые проверки преобразований, инвертора, контроллеров, симуляции.
+## Что уже реализовано
+- Конфигурация: `config/env.py` хранит номинальные данные двигателя, параметры инвертора, настройки контроллеров (scalar V/f и FOC) и симуляции; есть готовый `ENV` и фабрика `create_default_env()`.
+- Модели: dq-модель двигателя (`models/induction_motor.py`), идеальный инвертор (`models/inverter_ideal.py`), преобразования координат (`models/transformations.py`).
+- Управление: `control/scalar_vf.py` (открытый контур U/f с ограничением ramp/напряжения) и `control/vector_foc.py` (каскад PI-регуляторов скорости/токов, ограничение напряжения и `iq`).
+- Симуляция: Gym-совместимая среда `simulation/gym_env.py` с готовыми сценариями `speed_step`/`ramp`; запуск через `simulation/run_simulation.py` или CLI `python main.py`, сохранение результатов в NPZ с метаданными и построение графиков `outputs/plots.py`.
+- Идентификация: минимальная среда прямого задания dq-напряжений `mic_ai/core/env.py`; тестовые профили и раннеры (`mic_ai/ident/test_sequences.py`, `mic_ai/ident/test_runner.py`); оценки Rs/Leq/Lm и уточнение параметров через least-squares с опциональным SciPy (`mic_ai/ident/estimators.py`); сценарии авто- (`run_auto_identification`) и полной идентификации (`run_full_identification`) с расчётом относительных ошибок при наличии истинных параметров (`mic_ai/ident/auto_id.py`, `mic_ai/ident/ident_result.py`, `mic_ai/ident/io.py`).
+- CLI-утилиты:
+  - `mic_ai/tools/identify_motor.py` — одиночная Rs/Leq идентификация или работа с заранее записанными данными.
+  - `mic_ai/tools/full_identify_motor.py` — полный набор тестов (d-step, locked-rotor q, механика) с опциональным self-check.
+  - `mic_ai/tools/ident_report.py` — сводный отчёт/печать результатов идентификации.
+  - `mic_ai/tools/batch_ident_report.py` — пакетная идентификация по JSONL списку моторов с табличным отчётом.
+  - `mic_ai/tools/selfcheck_ident.py` — проверка сходимости идентификации на конфигурации с истинными параметрами.
+- Визуализация: `outputs/styles.py` и `outputs/plots.py` строят графики скоростей, моментов, токов и мощностей из сохранённых NPZ.
+- Тесты: `tests/test_simulation.py` проверяет работу среды/CLI и сохранение результатов; `tests/test_transformations.py` валидирует преобразования координат; `tests/test_ident_selfcheck.py` (при наличии `config/env_demo_true.py`) запускает self-check идентификации.
 
-## Настройка (config/env.py)
-- Паспортные данные двигателя (`NAMEPLATE_*`) и вычисляемый коэффициент `VF_K = U_ll / (√3 * f_nom)`.
-- V/f: `u_boost=25`, `k_vf=VF_K`, `f_min=1`, `f_max=50`, ramp `df_max=200 Гц/с`, ограничение по фазному U_nom.
-- FOC (актуальные настройки по умолчанию):
-  - Токовые PI: kp_id=1.0, ki_id=100.0, kp_iq=1.0, ki_iq=100.0.
-  - Скоростной PI: kp_speed=0.5, ki_speed=2.5.
-  - Ограничения: `iq_limit=2.0 A`, `v_limit=Vdc/√3`.
-  - Магнитизация: `id_ref=0.4` (берётся из конфигурации, либо 0.5*I_nom по умолчанию).
-- Симуляция: `t_end=3.0`, `dt=1e-4`, режим `SIM_MODE` (scalar/foc), сценарий `speed_step` по умолчанию.
+## Как запустить симуляцию
+```bash
+python main.py --mode foc --scenario speed_step --t-end 0.5 --dt 0.0001 --save-prefix run --no-plot
+# Построить графики после прогона
+python -c "from outputs.plots import plot_run; plot_run('outputs/results/data_1.npz')"
+```
+Параметры по умолчанию берутся из `config/env.py` (можно переключить `mode` на `scalar` или выбрать другой сценарий).
 
-## Запуск
-1. Установите зависимости: `py -3 -m pip install numpy matplotlib tqdm`.
-2. Запустите симуляцию:
-   ```bash
-   py -3 simulation/run_simulation.py
-   ```
-   Результат: `outputs/results/data_<n>.npz`.
-3. Построить графики:
-   ```bash
-   py -3 -c "from outputs.plots import plot_run; plot_run('outputs/results/data_1.npz')"
-   ```
-   PNG сохраняются в `outputs/figures/` с тем же индексом `<n>`.
-
-## Изменение режимов и параметров
-- В `config/env.py` задайте `SIM_MODE = "scalar"` или `"foc"` и поправьте `NAMEPLATE_*`/контроллеры по необходимости.
-- Для V/f: регулируйте `u_boost`, `k_vf` (автоматически рассчитывается), `df_max`.
-- Для FOC: корректируйте PI коэффициенты и лимиты (`iq_limit`, `v_limit`, `id_ref`).
-
-## Данные и файлы
-- Результаты: `outputs/results/data_<n>.npz` (ключи: t, omega_m, omega_ref, T_e, i_a/b/c, P_in, P_out, load_torque, meta).
-- Графики: `speed_<n>.png`, `torque_<n>.png`, `currents_<n>.png`, `power_<n>.png` в `outputs/figures/`.
+## Быстрый старт по идентификации
+- Простая Rs/Leq идентификация (результат в JSON):
+```bash
+python mic_ai/tools/identify_motor.py --env-config config/env_demo_true.py --output out/ident_simple.json
+```
+- Полная идентификация (все тесты) с сохранением JSON:
+```bash
+python mic_ai/tools/full_identify_motor.py --env-config config/env_demo_true.py --output out/ident_full.json
+```
+- Пакетная идентификация по списку моторов (JSONL с полями Rs, Rr, Ls, Lr, Lm, J, B[, p, Vdc, ...]):
+```bash
+python mic_ai/tools/batch_ident_report.py --motors-file tests/motors_100.txt --output reports/motors_report.txt
+```
 
 ## Тесты
-Запуск: `py -3 -m pytest -q`. Проверяются преобразования координат, ограничения инвертора, V/f, FOC и сохранение результатов симуляции.
+```bash
+python -m pytest -q
+```

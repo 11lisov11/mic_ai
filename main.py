@@ -1,5 +1,5 @@
 """
-Convenience CLI for running simulations and optionally plotting results.
+Утилита командной строки для запуска симуляций и при необходимости построения графиков.
 """
 
 from __future__ import annotations

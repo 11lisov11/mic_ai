@@ -1,5 +1,5 @@
 """
-Dataclasses describing true and estimated motor parameters.
+Dataclasses с истинными и оценёнными параметрами двигателя.
 """
 
 from __future__ import annotations
@@ -41,4 +41,3 @@ class MotorParamsEstimated:
 
 
 __all__ = ["MotorParamsTrue", "MotorParamsEstimated"]
-

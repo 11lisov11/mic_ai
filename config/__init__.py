@@ -1,4 +1,3 @@
 """
-Configuration package for VFD AI project.
+Пакет конфигурации для проекта MIC AI.
 """
-

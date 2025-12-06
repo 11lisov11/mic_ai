@@ -1,5 +1,5 @@
 """
-Run identification and print a 4-column table: param | true | est | err%.
+Запустить идентификацию и вывести таблицу из 4 колонок: param | true | est | err%.
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from vfd_ai.core.env import make_env_from_config
-from vfd_ai.ident.auto_id import run_auto_identification, run_full_identification
-from vfd_ai.ident.ident_result import IdentificationResult
-from vfd_ai.ident.motor_params import MotorParamsEstimated
+from mic_ai.core.env import make_env_from_config
+from mic_ai.ident.auto_id import run_auto_identification, run_full_identification
+from mic_ai.ident.ident_result import IdentificationResult
+from mic_ai.ident.motor_params import MotorParamsEstimated
 
 
 def _jitter_estimate(est: MotorParamsEstimated, scale: float = 0.1) -> MotorParamsEstimated:
@@ -49,7 +49,7 @@ def _collect_rows(result: IdentificationResult) -> List[Tuple[str, str, str, str
     true_params = result.true_params.__dict__ if result.true_params else {}
     rel = result.rel_error or {}
 
-    # Prefer params that have true values; otherwise, show all estimated
+    # Предпочитаем параметры с известными истинными значениями; иначе показываем все оценённые
     keys = [k for k in est.keys() if est[k] is not None and k in true_params]
     if not keys:
         keys = [k for k in est.keys() if est[k] is not None]

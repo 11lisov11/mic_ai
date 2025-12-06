@@ -1,5 +1,5 @@
 """
-Entry point to run a reference simulation without RL.
+Точка входа для запуска опорной симуляции без RL.
 """
 
 from __future__ import annotations
@@ -14,11 +14,11 @@ import numpy as np
 
 try:
     from tqdm import tqdm
-except ImportError:  # pragma: no cover - fallback when tqdm not installed
+except ImportError:  # pragma: no cover - запасной вариант, если tqdm не установлен
     def tqdm(iterable, **kwargs):
         return iterable
 
-# Ensure project root on path when executed as a script
+# Добавляем корень проекта в sys.path при запуске как скрипт
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -29,7 +29,7 @@ from simulation.gym_env import InductionMotorEnv
 
 def _next_data_path(results_dir: Path) -> Path:
     """
-    Generate sequential data file path: data_1.npz, data_2.npz, ...
+    Сгенерировать следующий путь для файла данных: data_1.npz, data_2.npz, ...
     """
     idx = 1
     while True:

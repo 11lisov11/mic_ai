@@ -1,5 +1,5 @@
 """
-Container for identification results.
+Контейнер для результатов идентификации.
 """
 
 from __future__ import annotations
@@ -22,4 +22,3 @@ class IdentificationResult:
 
 
 __all__ = ["IdentificationResult"]
-
