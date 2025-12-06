@@ -1,0 +1,11 @@
+@"
+__pycache__/
+*.py[cod]
+*.pyo
+*.np[yz]
+*.npz
+out/
+reports/
+outputs/figures/
+outputs/results/
+"@" | Set-Content -Encoding ASCII .gitignore
