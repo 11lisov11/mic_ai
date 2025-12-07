@@ -35,4 +35,19 @@ ident_torque_ref = 2.8
 ident_runup_time = 1.0
 ident_coast_time = 1.0
 
+# AI assist defaults
+ai_delta_iq_max = 0.8
+ai_sigma_omega = 0.05
+ai_sigma_id = 0.03
+ai_sigma_iq = 0.03
+ai_drift_every_episodes = 5
+ai_drift_scale = 0.04
+ai_w_ext_scale = 1.0
+ai_w_int_scale = 0.5
+ai_wm_lr = 0.0001
+ai_curiosity_beta = 1.0
+baseline_speed_err = 2.68643
+baseline_current_rms = 2.46702
+ext_scale = 5.153
+
 __all__ = ["ENV"]

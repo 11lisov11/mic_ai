@@ -74,12 +74,16 @@ def plot_ident_and_learning(ident_path: str, episodes_path: str, output_path: st
     ep_idx = [ep.get("episode_idx", i) for i, ep in enumerate(episodes)]
     mean_err = [ep.get("mean_speed_error", 0.0) for ep in episodes]
     total_reward = [ep.get("total_reward", 0.0) for ep in episodes]
+    total_ext = [ep.get("total_ext_reward", 0.0) for ep in episodes]
+    wm_loss = [ep.get("wm_loss_mean", np.nan) for ep in episodes]
     ax1.plot(ep_idx, mean_err, marker="o", color="tab:blue", label="mean |e_w|")
     ax1.plot(ep_idx, total_reward, marker="s", color="tab:orange", label="total_reward")
+    ax1.plot(ep_idx, total_ext, marker="^", color="tab:green", label="total_ext_reward")
+    ax1.plot(ep_idx, wm_loss, linestyle="--", color="tab:red", label="wm_loss_mean")
     ax1.set_ylabel("Value")
     ax1.grid(True)
     ax1.set_xlabel("Episode")
-    ax1.set_title("Learning curves (error ↓, reward ↑)")
+    ax1.set_title("Learning curves (error, reward, wm)")
 
     # 3) Trajectories for selected episodes
     ax2 = axes[2]

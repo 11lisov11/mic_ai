@@ -37,6 +37,19 @@ class PI:
 
 class FocController:
     def __init__(self, params: FocParams, motor_params: MotorParams, dt: float):
+        # слегка ослабляем регуляторы для большего влияния RL
+        weaken = 0.7
+        params = FocParams(
+            kp_id=params.kp_id * weaken,
+            ki_id=params.ki_id * weaken,
+            kp_iq=params.kp_iq * weaken,
+            ki_iq=params.ki_iq * weaken,
+            kp_speed=params.kp_speed * weaken,
+            ki_speed=params.ki_speed * weaken,
+            id_ref=params.id_ref,
+            iq_limit=params.iq_limit,
+            v_limit=params.v_limit,
+        )
         self.params = params
         self.p = motor_params.p
         self.dt = dt
@@ -47,6 +60,9 @@ class FocController:
 
         self.theta_e = 0.0
         self.omega_syn = 0.0
+        self.last_iq_ref = 0.0
+        self.last_id_ref = 0.0
+        self.max_di_dt = 500.0  # A/s
 
     def reset(self) -> None:
         self.pi_id.reset()
@@ -54,6 +70,8 @@ class FocController:
         self.pi_speed.reset()
         self.theta_e = 0.0
         self.omega_syn = 0.0
+        self.last_iq_ref = 0.0
+        self.last_id_ref = 0.0
 
     def step(
         self,
@@ -84,6 +102,13 @@ class FocController:
         if self.params.iq_limit is not None:
             i_q_ref = max(-self.params.iq_limit, min(self.params.iq_limit, i_q_ref))
         i_d_ref = self.params.id_ref if self.params.id_ref is not None else 0.5 * NAMEPLATE_I_N
+
+        # ограничиваем скорость изменения ссылок
+        max_delta = self.max_di_dt * self.dt
+        i_q_ref = max(self.last_iq_ref - max_delta, min(self.last_iq_ref + max_delta, i_q_ref))
+        i_d_ref = max(self.last_id_ref - max_delta, min(self.last_id_ref + max_delta, i_d_ref))
+        self.last_iq_ref = i_q_ref
+        self.last_id_ref = i_d_ref
 
         e_id = i_d_ref - i_d
         e_iq = i_q_ref - i_q

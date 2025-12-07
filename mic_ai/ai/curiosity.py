@@ -1,34 +1,33 @@
 from __future__ import annotations
 
 import numpy as np
-from typing import Dict
+from typing import Dict, Optional
+
+from .world_model import SimpleWorldModel
 
 
-class SimpleCuriosityModule:
+class WorldModelCuriosity:
     """
-    Measures novelty of observations via simple finite differences.
+    Curiosity-модуль:
+      - хранит ссылку на world_model,
+      - считает intrinsic reward как нормированную ошибку предсказания.
     """
 
-    def __init__(self, weight: float = 0.1):
-        self.weight = weight
-        self.prev_obs: Dict[str, float] | None = None
+    def __init__(self, model: SimpleWorldModel, beta: float = 0.1):
+        self.model = model
+        self.beta = beta
+        self.eps = 1e-8
 
-    def compute_intrinsic_reward(self, obs: Dict[str, float], obs_next: Dict[str, float]) -> float:
-        if self.prev_obs is None:
-            self.prev_obs = obs
-            return 0.0
-        keys = ["i_d", "i_q"]
-        diffs = []
-        for k in keys:
-            if k in obs and k in obs_next:
-                diffs.append(obs_next[k] - obs[k])
-        if not diffs:
-            self.prev_obs = obs_next
-            return 0.0
-        value = float(np.linalg.norm(diffs))
-        r_int = self.weight * value
-        self.prev_obs = obs_next
+    def compute_intrinsic_reward(self, x: np.ndarray, y_true: np.ndarray) -> float:
+        # prediction_error возвращает сумму квадратов в среднем по батчу; нормализуем на размерность
+        y_true_arr = np.asarray(y_true, dtype=np.float32)
+        dim = float(y_true_arr.shape[-1]) if y_true_arr.ndim > 0 else 1.0
+        err2 = self.model.prediction_error(x, y_true)
+        r_int = self.beta * float(np.sqrt(err2 / (dim + self.eps) + self.eps))
         return r_int
 
+    def update_model(self, x: np.ndarray, y_true: np.ndarray) -> float:
+        return self.model.update(x, y_true)
 
-__all__ = ["SimpleCuriosityModule"]
+
+__all__ = ["WorldModelCuriosity"]

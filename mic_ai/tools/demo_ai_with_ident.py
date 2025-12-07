@@ -15,7 +15,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from mic_ai.ai.ai_env import AiEnvConfig, MicAiAIEnv
-from mic_ai.ai.curiosity import SimpleCuriosityModule
+from mic_ai.ai.curiosity import WorldModelCuriosity
+from mic_ai.ai.world_model import SimpleWorldModel
 from mic_ai.ai.simple_agent import SimpleAdaptiveAgent
 from mic_ai.core.env import make_env_from_config
 from mic_ai.ident.auto_id import run_full_identification
@@ -54,8 +55,29 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
 
     omega_ref = float(2.0 * np.pi * 15.0 / max(env_cfg.motor.p, 1))
     i_base = getattr(env_cfg.motor, "I_n", 1.0)
+
+    def _run_baseline(steps: int) -> tuple[float, float]:
+        env_base = InductionMotorEnv(env_cfg)
+        env_base.omega_ref_func = lambda _t, ref=omega_ref: ref
+        env_base.load_torque_func = lambda _t: getattr(env_cfg.sim, "load_torque", 0.0)
+        cum_err = 0.0
+        cum_current = 0.0
+        obs = env_base.reset()
+        for _ in range(steps):
+            obs, _, done, info = env_base.step(None)
+            omega_meas = float(obs[0]) if hasattr(obs, "__len__") and len(obs) > 0 else float(info.get("omega_meas", 0.0))
+            omega_ref_step = float(info.get("omega_ref", omega_ref))
+            err = abs(omega_ref_step - omega_meas)
+            i_abc = info.get("i_abc", (0.0, 0.0, 0.0))
+            i_rms = float(np.sqrt(np.mean(np.square(i_abc))))
+            cum_err += err
+            cum_current += i_rms
+            if done:
+                break
+        return cum_err, cum_current
+
     ai_env_cfg = AiEnvConfig(
-        episode_steps=int(max(150, 0.5 / env_cfg.sim.dt)),
+        episode_steps=int(max(0.2 / env_cfg.sim.dt, 1)),
         dt=float(env_cfg.sim.dt),
         omega_ref=omega_ref,
         w_speed_error=1.0,
@@ -63,19 +85,78 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
         i_base=i_base,
         lambda_int=0.05,
         control_mode="foc_assist",
-        delta_iq_max=0.2,
+        delta_iq_max=getattr(env_cfg, "ai_delta_iq_max", 0.5),
+        wm_lr=float(getattr(env_cfg, "ai_wm_lr", 1e-4)),
+        curiosity_beta=float(getattr(env_cfg, "ai_curiosity_beta", 0.0)),
+        wm_batch_size=32,
+        w_ext_scale=float(getattr(env_cfg, "ai_w_ext_scale", 1.0)),
+        w_int_scale=float(getattr(env_cfg, "ai_w_int_scale", 0.0)),
+        sigma_omega=float(getattr(env_cfg, "ai_sigma_omega", 0.05)),
+        sigma_iq=float(getattr(env_cfg, "ai_sigma_iq", 0.03)),
+        sigma_id=float(getattr(env_cfg, "ai_sigma_id", 0.03)),
+        drift_every_episodes=int(getattr(env_cfg, "ai_drift_every_episodes", 0)),
+        drift_scale=float(getattr(env_cfg, "ai_drift_scale", 0.0)),
+        enable_id_control=True,
+        delta_id_max=getattr(env_cfg, "ai_delta_id_max", 0.5),
     )
+    base_err = float(getattr(env_cfg, "baseline_speed_err", 0.0))
+    base_curr = float(getattr(env_cfg, "baseline_current_rms", 0.0))
+    if base_err <= 0.0 or base_curr <= 0.0:
+        base_err, base_curr = _run_baseline(ai_env_cfg.episode_steps)
+    ai_env_cfg.baseline_speed_err = base_err
+    ai_env_cfg.baseline_current_rms = base_curr
+    ai_env_cfg.ext_scale = float(getattr(env_cfg, "ext_scale", max((base_err + base_curr) / max(ai_env_cfg.episode_steps, 1), 1.0)))
     training_env = InductionMotorEnv(env_cfg)
-    curiosity = SimpleCuriosityModule(weight=0.05)
-    ai_env = MicAiAIEnv(training_env, ai_env_cfg, curiosity=curiosity)
+    world_input_keys = [
+        "omega_norm",
+        "omega_ref_norm",
+        "err_norm",
+        "id_norm",
+        "iq_norm",
+        "u_dc_norm",
+        "load_torque_norm",
+        "prev_delta_norm",
+        "prev_delta_id_norm",
+        "action_iq_norm",
+        "action_id_norm",
+    ]
+    world_target_keys = ["omega_norm", "id_norm", "iq_norm"]
+    world_model = SimpleWorldModel(
+        len(world_input_keys), len(world_target_keys), hidden_sizes=(32, 32), lr=ai_env_cfg.wm_lr
+    )
+    curiosity = WorldModelCuriosity(world_model, beta=ai_env_cfg.curiosity_beta)
+    ai_env = MicAiAIEnv(
+        training_env,
+        ai_env_cfg,
+        curiosity=curiosity,
+        world_model=world_model,
+        world_input_keys=world_input_keys,
+        world_target_keys=world_target_keys,
+    )
     agent = SimpleAdaptiveAgent(
-        feature_keys=["omega_norm", "omega_ref_norm", "err_norm", "id_norm", "iq_norm", "prev_delta_norm"],
-        lr=1e-3,
-        action_scale=1.0,
+        feature_keys=["omega_norm", "omega_ref_norm", "err_norm", "id_norm", "iq_norm", "u_dc_norm", "load_torque_norm"],
+        lr=7e-4,
+        gamma=0.99,
+        hidden_sizes=(64, 64),
+        sigma=0.15,
+        action_dim=2,
     )
 
     episodes: List[Dict[str, Any]] = []
+    best_ext = -float("inf")
+    no_improve = 0
+    phase_switch = max(1, num_episodes // 2)
+    policy_resets = 0
     for ep_idx in range(num_episodes):
+        ai_env.phase = "explore" if ep_idx < phase_switch else "improve"
+        if ai_env.phase == "improve":
+            ai_env.cfg.w_int_scale = 0.0
+            ai_env.cfg.curiosity_beta = 0.0
+            ai_env.cfg.lambda_int = 0.0
+            if ai_env.curiosity is not None:
+                ai_env.curiosity.beta = 0.0
+        if ep_idx == phase_switch:
+            agent.reset_parameters()
         obs = ai_env.reset()
         agent.start_episode()
         t_series: List[float] = []
@@ -85,12 +166,15 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
         delta_series: List[float] = []
         speed_err_series: List[float] = []
         current_norm_series: List[float] = []
+        ext_series: List[float] = []
+        int_series: List[float] = []
+        wm_series: List[float] = []
 
         done = False
         while not done:
             delta_rel = agent.act(obs)
             obs_next, reward, done, info = ai_env.step(delta_rel)
-            agent.record_reward(reward)
+            agent.record_reward(reward, next_obs=obs_next)
             t_series.append(info.get("t", len(t_series) * ai_env_cfg.dt))
             omega_series.append(info.get("omega_meas", 0.0))
             omega_ref_series.append(info.get("omega_ref", omega_ref))
@@ -98,11 +182,29 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
             delta_series.append(float(info.get("delta_iq_rel", delta_rel)))
             speed_err_series.append(float(info.get("speed_err", 0.0)))
             current_norm_series.append(float(info.get("current_norm", 0.0)))
+            ext_series.append(float(info.get("r_ext", 0.0)))
+            int_series.append(float(info.get("r_int", 0.0)))
+            wm_series.append(float(info.get("wm_loss", 0.0)))
             obs = obs_next
 
-        loss = float(agent.update_after_episode())
+        losses = agent.update_after_episode()
+        loss = float(losses.get("actor_loss", 0.0)) if isinstance(losses, dict) else float(losses)
         mean_err = float(np.mean(np.abs(np.array(speed_err_series)))) if speed_err_series else 0.0
         omega_final = float(omega_series[-1]) if omega_series else 0.0
+        total_ext = float(np.sum(ext_series)) if ext_series else 0.0
+        total_int = float(np.sum(int_series)) if int_series else 0.0
+        wm_loss_mean = float(np.mean(wm_series)) if wm_series else 0.0
+
+        if total_ext > best_ext + 1e-3:
+            best_ext = total_ext
+            no_improve = 0
+        else:
+            no_improve += 1
+        if no_improve >= 5:
+            agent.reset_parameters()
+            policy_resets += 1
+            no_improve = 0
+
         episodes.append(
             {
                 "t": t_series,
@@ -113,6 +215,9 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
                 "speed_err": speed_err_series,
                 "current_norm": current_norm_series,
                 "total_reward": float(np.sum(reward_series)),
+                "total_ext_reward": total_ext,
+                "total_int_reward": total_int,
+                "wm_loss_mean": wm_loss_mean,
                 "episode_idx": ep_idx,
                 "mean_speed_error": mean_err,
                 "omega_final": omega_final,
@@ -155,10 +260,11 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
 
     def _print_diagnostics():
         print(f"\nLearning summary for motor {motor_name}")
-        print("Episode | total_reward | mean_speed_error | omega_final | loss")
+        print("Episode | total_reward | total_ext | mean_speed_error | omega_final | loss")
         for ep in episodes:
             print(
                 f"{ep['episode_idx']:7d} | {ep['total_reward']:12.4f} | "
+                f"{ep.get('total_ext_reward',0.0):10.4f} | "
                 f"{ep['mean_speed_error']:16.4f} | {ep.get('omega_final', 0.0):11.3f} | {ep.get('loss', 0.0):8.4f}"
             )
         if episodes:
@@ -171,6 +277,7 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
                     f"Improvement: reward {episodes[0]['total_reward']:.3f}->{episodes[-1]['total_reward']:.3f}, "
                     f"error {episodes[0]['mean_speed_error']:.4f}->{episodes[-1]['mean_speed_error']:.4f}"
                 )
+        print(f"Policy resets: {policy_resets}")
 
     _print_diagnostics()
 
@@ -194,6 +301,7 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
         "learning_save_path": str(learning_out),
         "improvement_reward": improvement_reward,
         "improvement_error": improvement_error,
+        "policy_resets": policy_resets,
     }
 
 
