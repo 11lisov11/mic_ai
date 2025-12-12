@@ -49,5 +49,6 @@ ai_curiosity_beta = 1.0
 baseline_speed_err = 2.99123
 baseline_current_rms = 1.34218
 ext_scale = 4.333
+ai_v_max = 1.0
 
 __all__ = ["ENV"]

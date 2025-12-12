@@ -12,10 +12,8 @@ def _init_layer(in_dim: int, out_dim: int, scale: float = 0.1) -> Tuple[np.ndarr
 
 class SimpleWorldModel:
     """
-    Компактная MLP-модель мира на numpy:
-      x_t = concat(obs_t, action_t)
-      y_t = obs_{t+1}
-    2 скрытых слоя ReLU по умолчанию (64,64), online SGD, скользящая нормализация входов/выходов.
+    Lightweight numpy MLP that predicts next observation given current observation-action vector.
+    Normalizes inputs/targets online and trains with SGD.
     """
 
     def __init__(self, input_dim: int, output_dim: int, hidden_sizes: Sequence[int] | None = (64, 64), lr: float = 1e-4):
@@ -32,12 +30,11 @@ class SimpleWorldModel:
             self.weights.append(w)
             self.biases.append(b)
 
-        # Нормировочные статистики для входов/выходов
         self.x_mean = np.zeros(input_dim, dtype=np.float32)
         self.x_var = np.ones(input_dim, dtype=np.float32)
         self.y_mean = np.zeros(output_dim, dtype=np.float32)
         self.y_var = np.ones(output_dim, dtype=np.float32)
-        self._count = 1e-6  # чтобы не делить на 0
+        self._count = 1e-6
 
     def _update_stats(self, xs: np.ndarray, ys: np.ndarray) -> None:
         batch = xs.shape[0]
@@ -61,7 +58,7 @@ class SimpleWorldModel:
         for idx, (w, b) in enumerate(zip(self.weights, self.biases)):
             h = h @ w.T + b
             if idx < len(self.weights) - 1:
-                h = np.maximum(h, 0.0)  # ReLU
+                h = np.maximum(h, 0.0)
             activations.append(h)
         return h, activations
 
@@ -120,9 +117,7 @@ class SimpleWorldModel:
 
 
 class WorldModel(SimpleWorldModel):
-    """
-    Обёртка над SimpleWorldModel, принимающая obs и act отдельно.
-    """
+    """World model that consumes concatenated (obs, action) pairs."""
 
     def __init__(self, obs_dim: int, act_dim: int, hidden_sizes: Sequence[int] | None = (64, 64), lr: float = 1e-4):
         super().__init__(obs_dim + act_dim, obs_dim, hidden_sizes=hidden_sizes, lr=lr)
@@ -136,4 +131,4 @@ class WorldModel(SimpleWorldModel):
         return self.update(x, np.asarray(next_obs, dtype=np.float32))
 
 
-__all__ = ["SimpleWorldModel"]
+__all__ = ["SimpleWorldModel", "WorldModel"]

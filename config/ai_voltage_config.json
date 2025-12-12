@@ -1,0 +1,42 @@
+{
+  "reward": {
+    "motor1": {
+      "w_speed": 1.0,
+      "w_current": 1.0,
+      "w_action": 0.1
+    },
+    "motor2": {
+      "w_speed": 1.0,
+      "w_current": 1.5,
+      "w_action": 0.1
+    }
+  },
+  "voltage_scale": {
+    "motor1": 0.20,
+    "motor2": 0.20
+  },
+  "success": {
+    "w_speed": 1.0,
+    "w_current": 5.0,
+    "speed_tol": 0.5,
+    "current_tol": 0.2,
+    "I_nom": {
+      "motor1": 1.2,
+      "motor2": 1.0
+    }
+  },
+  "curriculum": {
+    "omega_pu_stages": [0.3, 0.5],
+    "stage_episode_boundaries": [300, 600],
+    "piecewise_steps": [150, 300],
+    "piecewise_multipliers": [1.0, 0.8, 1.0]
+  },
+  "exploration": {
+    "sigma_start": 0.25,
+    "sigma_end": 0.05,
+    "sigma_decay_episodes": 300
+  },
+  "eval": {
+    "episodes": 5
+  }
+}

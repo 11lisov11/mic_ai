@@ -45,6 +45,27 @@ class AiEnvConfig:
     ext_scale: float = 1.0
     r_int_clip: float = 3.0
     reward_clip: float = 5.0
+    omega_ref_max: float | None = None
+    w_action_delta: float = 0.02
+    w_action_activity: float = 0.02
+    w_ai_voltage_speed: float = 0.3
+    w_ai_voltage_current: float = 0.05
+    w_ai_voltage_action: float = 0.02
+    ai_voltage_speed_tol: float = 0.5
+    curriculum_omega_pu: tuple[float, ...] = (0.3, 0.5, 0.7)
+    curriculum_stage_episodes: tuple[int, ...] = (150, 300, 450)
+    omega_piecewise_steps: tuple[int, ...] = (150, 300)
+    omega_piecewise_multipliers: tuple[float, ...] = (1.0, 0.5, 1.2)
+    exploration_sigma_start: float = 0.3
+    exploration_sigma_end: float = 0.05
+    exploration_sigma_decay_episodes: int = 100
+    i_soft_limit: float = 1.2
+    i_soft_penalty: float = 0.5
+    i_hard_limit: float = 2.0
+    reward_min: float = -3.0
+    reward_max: float = 0.5
+    reward_min_td3: float = -5.0
+    reward_max_td3: float = 0.0
 
 
 class MicAiAIEnv:
@@ -71,16 +92,26 @@ class MicAiAIEnv:
         self.dt = float(getattr(base_env, "dt", ai_config.dt))
         self._omega_base = max(float(getattr(base_env, "omega_base", ai_config.omega_ref)), 1e-6)
         self._omega_norm_base = max(abs(float(ai_config.omega_ref)), 1e-6)
+        self._omega_ref_max = float(ai_config.omega_ref_max) if ai_config.omega_ref_max is not None else self._omega_norm_base
+        self._omega_nominal = self._omega_norm_base
         self._iq_to_speed_gain = 2.0
         self._last_obs_norm: Dict[str, float] | None = None
         self._i_base = max(float(ai_config.i_base), 1e-6)
         self._i_max = float(ai_config.i_max) if ai_config.i_max is not None else None
         self._v_max = float(ai_config.v_max) if ai_config.v_max is not None else None
+        self._v_nominal = 1.0
+        self._v_scale = 0.15
         self._prev_delta_rel = 0.0
         self._prev_action_id_rel = 0.0
+        self._prev_vd_norm = 0.0
+        self._prev_vq_norm = 0.0
+        self._omega_prev = 0.0
         self.control_mode = str(ai_config.control_mode).lower()
         self._cum_r_ext = 0.0
         self._cum_r_int = 0.0
+        # Use a single source of truth for episode length; allow optional alias episode_max_steps on config.
+        self.episode_max_steps = int(max(getattr(ai_config, "episode_max_steps", ai_config.episode_steps), 1))
+        self.cfg.episode_steps = self.episode_max_steps
 
         self.world_input_keys = world_input_keys or [
             "omega_norm",
@@ -114,6 +145,10 @@ class MicAiAIEnv:
         self._last_torque = 0.0
         self._t = 0.0
         self._episode_idx = 0
+        self._curriculum_stage_idx = 0
+        self._curriculum_ref = self.cfg.omega_ref
+        self._omega_piecewise_steps = tuple(int(x) for x in getattr(self.cfg, "omega_piecewise_steps", (150, 300)))
+        self._omega_piecewise_multipliers = tuple(float(x) for x in getattr(self.cfg, "omega_piecewise_multipliers", (1.0, 0.5, 1.2)))
         self._wm_buffer_x: List[np.ndarray] = []
         self._wm_buffer_y: List[np.ndarray] = []
         self._drift_motor_params = getattr(getattr(base_env, "env", None), "motor", None)
@@ -122,29 +157,22 @@ class MicAiAIEnv:
         self._cum_current_rms = 0.0
         self._u_dc_norm = 1.0
         self._load_base = 1.0
+        self._hard_terminated = False
+        self._overcurrent_steps = 0
+        base_v_limit = 1.0
+        self._slip_max = max(self._omega_ref_max, self._omega_norm_base, 1e-6)
 
         env_cfg = getattr(base_env, "env_config", None) if self._mode == "direct_voltage" else getattr(base_env, "env", None)
-        if self._mode == "direct_voltage":
-            if env_cfg is None:
-                raise ValueError("base_env must expose env_config when using direct_voltage mode")
-            self._controller = FocController(env_cfg.foc, env_cfg.motor, self.dt)
-            self._omega_base = (
-                2.0 * np.pi * float(getattr(env_cfg.scalar_vf, "f_max", 50.0)) / float(env_cfg.motor.p)
-            )
-            # If user did not set i_base, approximate from nameplate current if available.
-            if ai_config.i_base <= 0 and hasattr(env_cfg, "motor") and hasattr(env_cfg.motor, "I_n"):
-                self._i_base = max(float(getattr(env_cfg.motor, "I_n", 1.0)), 1e-6)
-        else:
-            if env_cfg and hasattr(env_cfg, "motor") and hasattr(env_cfg.motor, "I_n") and ai_config.i_base <= 0:
-                self._i_base = max(float(getattr(env_cfg.motor, "I_n", 1.0)), 1e-6)
+        if env_cfg and hasattr(env_cfg, "motor") and hasattr(env_cfg.motor, "I_n") and ai_config.i_base <= 0:
+            self._i_base = max(float(getattr(env_cfg.motor, "I_n", 1.0)), 1e-6)
 
         if env_cfg is not None:
             inv = getattr(env_cfg, "inverter", None)
             if inv is not None and hasattr(inv, "Vdc"):
                 vdc = float(getattr(inv, "Vdc", 0.0))
                 self._u_dc_norm = vdc / max(vdc, 1e-6) if vdc != 0 else 0.0
-                if self._v_max is None:
-                    self._v_max = 0.8 * vdc / math.sqrt(3.0)
+                base_v_limit = 0.8 * vdc / math.sqrt(3.0) if vdc != 0 else base_v_limit
+                self._v_nominal = base_v_limit
             sim_cfg = getattr(env_cfg, "sim", None)
             if sim_cfg is not None and hasattr(sim_cfg, "load_torque"):
                 self._load_base = max(abs(float(getattr(sim_cfg, "load_torque", 0.0))), 1.0)
@@ -154,6 +182,21 @@ class MicAiAIEnv:
                     self._i_max = float(iq_limit_cfg)
         if self._i_max is None or self._i_max <= 0:
             self._i_max = self._i_base
+        if self.control_mode == "ai_voltage":
+            cfg_v = getattr(env_cfg, "ai_v_max", None) if env_cfg is not None else None
+            v_cfg = self._v_max if self._v_max is not None else cfg_v
+            if v_cfg is None or v_cfg <= 0:
+                self._v_max = self._v_scale * base_v_limit
+            elif v_cfg <= 5.0:
+                # Treat small values as per-unit multiplier of available DC amplitude.
+                self._v_max = float(v_cfg * base_v_limit)
+            else:
+                self._v_max = float(v_cfg)
+        else:
+            if (self._v_max is None or self._v_max <= 0) and base_v_limit > 0:
+                self._v_max = base_v_limit
+        if self._v_max is None or self._v_max <= 0:
+            self._v_max = 1.0
 
     def _reset_direct_voltage(self) -> None:
         self.base_env.reset()
@@ -161,20 +204,25 @@ class MicAiAIEnv:
         self._theta_mech = 0.0
         self._last_currents_abc = (0.0, 0.0, 0.0)
         self._last_torque = 0.0
-        if self._controller:
-            self._controller.reset()
 
     def _prepare_gym_env(self) -> None:
         # Override scenarios to use constant references during AI training.
         if hasattr(self.base_env, "omega_ref_func"):
             self.base_env.omega_ref_func = lambda _t: self.cfg.omega_ref
-        if hasattr(self.base_env, "load_torque_func"):
+        if hasattr(self.base_env, "load_torque_func") and self.control_mode != "ai_voltage":
             self.base_env.load_torque_func = lambda _t: 0.0
 
     def _omega_ref_from_env(self, t: float) -> float:
-        if hasattr(self.base_env, "omega_ref_func"):
-            return float(self.base_env.omega_ref_func(t))
-        return float(self.cfg.omega_ref)
+        boundaries = list(self._omega_piecewise_steps)
+        multipliers = list(self._omega_piecewise_multipliers)
+        step_idx = self.step_count
+        seg_idx = 0
+        for boundary in boundaries:
+            if step_idx >= boundary:
+                seg_idx += 1
+        seg_idx = min(seg_idx, len(multipliers) - 1)
+        omega_target = float(self._curriculum_ref * multipliers[seg_idx])
+        return omega_target
 
     def _load_torque_from_env(self, t: float) -> float:
         if hasattr(self.base_env, "load_torque_func"):
@@ -187,24 +235,45 @@ class MicAiAIEnv:
     def _current_rms(self, currents_abc: Tuple[float, float, float]) -> float:
         return float(np.sqrt(np.mean(np.square(currents_abc))))
 
-    def _build_agent_obs(self, omega: float, omega_ref: float, i_d: float, i_q: float, load_torque: float = 0.0) -> Dict[str, float]:
-        omega_base = self._omega_norm_base
+    def _build_agent_obs(self, omega: float, omega_ref: float, i_d: float, i_q: float, load_torque: float = 0.0, omega_syn: float | None = None) -> Dict[str, float]:
+        omega_base = self._omega_nominal
         i_base = self._i_base
-        return {
+        theta_e = float(getattr(getattr(self.base_env, "controller", None), "theta_e", 0.0))
+        if omega_syn is None:
+            controller = getattr(self.base_env, "controller", None)
+            if controller is not None:
+                omega_syn = float(getattr(controller, "omega_syn", 0.0))
+        omega_syn = float(omega_syn if omega_syn is not None else 0.0)
+        slip = omega_syn - omega
+        slip_base = max(self._slip_max, abs(omega_syn), 1e-6)
+
+        def _clip(v: float, low: float = -1.0, high: float = 1.0) -> float:
+            if not math.isfinite(v):
+                return 0.0
+            return float(max(low, min(high, v)))
+
+        obs = {
             "omega": float(omega),
             "omega_ref": float(omega_ref),
             "i_d": float(i_d),
             "i_q": float(i_q),
-            "omega_norm": float(omega / omega_base),
-            "omega_ref_norm": float(omega_ref / omega_base),
-            "err_norm": float((omega_ref - omega) / omega_base),
-            "id_norm": float(i_d / i_base),
-            "iq_norm": float(i_q / i_base),
+            "omega_norm": _clip(omega / omega_base),
+            "omega_ref_norm": _clip(omega_ref / omega_base),
+            "err_norm": _clip((omega_ref - omega) / omega_base),
+            "id_norm": float(i_d / max(i_base, 1e-6)),
+            "iq_norm": float(i_q / max(i_base, 1e-6)),
+            "slip": float(slip),
+            "slip_norm": _clip(slip / slip_base),
             "prev_delta_norm": float(self._prev_delta_rel),
             "prev_delta_id_norm": float(self._prev_action_id_rel),
             "u_dc_norm": float(self._u_dc_norm),
             "load_torque_norm": float(load_torque / max(self._load_base, 1e-6)),
+            "sin_theta_e": _clip(math.sin(theta_e), low=-1e3, high=1e3),
+            "cos_theta_e": _clip(math.cos(theta_e), low=-1e3, high=1e3),
+            "last_action_vd": float(self._prev_vd_norm),
+            "last_action_vq": float(self._prev_vq_norm),
         }
+        return obs
 
     def _encode_world_input(self, obs_norm: Dict[str, float], action_norm: Dict[str, float]) -> np.ndarray:
         enriched = dict(obs_norm)
@@ -214,10 +283,14 @@ class MicAiAIEnv:
         enriched["action_vq_norm"] = float(action_norm.get("vq", 0.0))
         enriched["delta_rel"] = enriched["action_iq_norm"]
         enriched["delta_id_rel"] = enriched["action_id_norm"]
-        return np.array([float(enriched.get(k, 0.0)) for k in self.world_input_keys], dtype=np.float32)
+        arr = np.array([float(enriched.get(k, 0.0)) for k in self.world_input_keys], dtype=np.float32)
+        arr = np.nan_to_num(arr, nan=0.0, posinf=1e3, neginf=-1e3)
+        return arr
 
     def _encode_world_target(self, obs_norm: Dict[str, float]) -> np.ndarray:
-        return np.array([float(obs_norm.get(k, 0.0)) for k in self.world_target_keys], dtype=np.float32)
+        arr = np.array([float(obs_norm.get(k, 0.0)) for k in self.world_target_keys], dtype=np.float32)
+        arr = np.nan_to_num(arr, nan=0.0, posinf=1e3, neginf=-1e3)
+        return arr
 
     def _apply_drift_if_needed(self) -> None:
         if self.cfg.drift_every_episodes <= 0:
@@ -262,10 +335,28 @@ class MicAiAIEnv:
         self.history = []
         self._prev_delta_rel = 0.0
         self._prev_action_id_rel = 0.0
+        self._prev_vd = 0.0
+        self._prev_vq = 0.0
+        self._prev_vd_norm = 0.0
+        self._prev_vq_norm = 0.0
+        self._omega_prev = 0.0
         self._cum_speed_err = 0.0
         self._cum_current_rms = 0.0
         self._cum_r_ext = 0.0
         self._cum_r_int = 0.0
+        self._hard_terminated = False
+        self._overcurrent_steps = 0
+        stages = tuple(getattr(self.cfg, "curriculum_omega_pu", (0.3, 0.5, 0.7)))
+        boundaries = tuple(getattr(self.cfg, "curriculum_stage_episodes", (150, 300, 450)))
+        ep_idx = self._episode_idx
+        stage_idx = 0
+        for idx, boundary in enumerate(boundaries):
+            if ep_idx >= boundary:
+                stage_idx = idx + 1
+        stage_idx = min(stage_idx, max(len(stages) - 1, 0))
+        self._curriculum_stage_idx = stage_idx
+        stage_pu = stages[stage_idx] if stages else 0.3
+        self._curriculum_ref = stage_pu * self._omega_nominal
         if self.cfg.baseline_speed_err <= 0.0:
             self.cfg.baseline_speed_err = max(abs(self.cfg.omega_ref) * self.cfg.episode_steps, 1e-3)
         if self.cfg.baseline_current_rms <= 0.0:
@@ -277,6 +368,7 @@ class MicAiAIEnv:
             )
         t_now = float(getattr(self.base_env, "t", 0.0))
         omega_ref = self._omega_ref_from_env(t_now)
+        self._omega_ref_max = max(self._omega_ref_max, abs(omega_ref), 1e-6)
         theta_e = 0.0
         controller = getattr(self.base_env, "controller", None)
         if controller is not None:
@@ -549,14 +641,31 @@ class MicAiAIEnv:
         i_d_prev += np.random.randn() * self.cfg.sigma_id
         i_q_prev += np.random.randn() * self.cfg.sigma_iq
 
-        v_d_cmd = float(np.clip(vd_norm, -1.0, 1.0)) * max(self._v_max, 1e-6)
-        v_q_cmd = float(np.clip(vq_norm, -1.0, 1.0)) * max(self._v_max, 1e-6)
-        mag = math.hypot(v_d_cmd, v_q_cmd)
-        v_limit = max(self._v_max, 1e-6)
-        if mag > v_limit > 0:
-            scale = v_limit / mag
+        alpha_lp = 0.1
+        vd_norm = alpha_lp * vd_norm + (1.0 - alpha_lp) * self._prev_vd_norm
+        vq_norm = alpha_lp * vq_norm + (1.0 - alpha_lp) * self._prev_vq_norm
+
+        i_mag_prev = math.hypot(i_d_prev, i_q_prev)
+        current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
+        i_pu = i_mag_prev / current_limit
+        # Gentle safety envelope: only start damping near the configured current limit.
+        if i_pu > 0.95:
+            vd_norm *= 0.5
+            vq_norm *= 0.5
+        elif i_pu > 0.8:
+            vd_norm *= 0.8
+            vq_norm *= 0.8
+
+        v_limit = max(float(self._v_max), 1e-6)
+        v_d_cmd = float(np.clip(vd_norm, -1.0, 1.0)) * v_limit
+        v_q_cmd = float(np.clip(vq_norm, -1.0, 1.0)) * v_limit
+        mag_abs = math.hypot(v_d_cmd, v_q_cmd)
+        if mag_abs > v_limit and mag_abs > 0.0:
+            scale = v_limit / mag_abs
             v_d_cmd *= scale
             v_q_cmd *= scale
+        v_d_cmd_norm = v_d_cmd / v_limit if v_limit > 0 else 0.0
+        v_q_cmd_norm = v_q_cmd / v_limit if v_limit > 0 else 0.0
 
         p_val = getattr(getattr(motor, "params", None), "p", getattr(controller, "p", 2))
         omega_syn = float(p_val * omega_ref_base)
@@ -566,6 +675,12 @@ class MicAiAIEnv:
         state, i_d_next, i_q_next, torque_e, omega_m_next = motor.step(
             v_d_out, v_q_out, load_torque=load_torque, dt=self.dt, omega_syn=omega_syn
         )
+        invalid_state = not all(np.isfinite([i_d_next, i_q_next, torque_e, omega_m_next]))
+        if invalid_state:
+            i_d_next = float(np.nan_to_num(i_d_next, nan=0.0, posinf=0.0, neginf=0.0))
+            i_q_next = float(np.nan_to_num(i_q_next, nan=0.0, posinf=0.0, neginf=0.0))
+            torque_e = float(np.nan_to_num(torque_e, nan=0.0, posinf=0.0, neginf=0.0))
+            omega_m_next = float(np.nan_to_num(omega_m_next, nan=0.0, posinf=0.0, neginf=0.0))
 
         theta_mech += omega_m_next * self.dt
         i_abc_next = dq_to_abc(i_d_next, i_q_next, theta_e_prev)
@@ -590,9 +705,10 @@ class MicAiAIEnv:
             "v_abc": v_abc,
             "theta_e": theta_e_prev,
             "omega_syn": omega_syn,
-            "action_vd_norm": v_d_cmd / max(self._v_max, 1e-6),
-            "action_vq_norm": v_q_cmd / max(self._v_max, 1e-6),
+            "action_vd_norm": v_d_cmd_norm,
+            "action_vq_norm": v_q_cmd_norm,
             "load_torque": load_torque,
+            "invalid_state": invalid_state,
         }
         done = False
         return obs_raw, done, info, (i_d_next, i_q_next, info["action_vd_norm"], info["action_vq_norm"])
@@ -693,7 +809,7 @@ class MicAiAIEnv:
         Returns observation dict, total reward, done flag, and info.
         """
         if self.control_mode == "ai_voltage":
-            vd_norm, vq_norm = self._extract_current_action(action)  # reuse extractor; first two elements
+            vd_norm, vq_norm = self._extract_current_action(action)
             vd_norm = float(np.clip(vd_norm, -1.0, 1.0))
             vq_norm = float(np.clip(vq_norm, -1.0, 1.0))
             obs_prev_norm = self._last_obs_norm
@@ -707,14 +823,37 @@ class MicAiAIEnv:
                 load_cur = self._load_torque_from_env(t_now)
                 obs_prev_norm = self._build_agent_obs(omega=omega_cur, omega_ref=omega_ref_cur, i_d=i_d_cur, i_q=i_q_cur, load_torque=load_cur)
 
-            action_norm = {"vd": vd_norm, "vq": vq_norm}
-            x_t = self._encode_world_input(obs_prev_norm, action_norm)
             obs_raw, done_env, info, extra = self._step_ai_voltage(vd_norm, vq_norm)
             i_d_next, i_q_next, vd_applied, vq_applied = extra
+            action_norm = {"vd": vd_applied, "vq": vq_applied}
+            x_t = self._encode_world_input(obs_prev_norm, action_norm)
             omega_meas = float(info.get("omega_meas", obs_raw[0] if len(obs_raw) > 0 else 0.0))
             omega_ref = float(info.get("omega_ref", self.cfg.omega_ref))
+            omega_syn = float(info.get("omega_syn", 0.0))
             load_torque = float(info.get("load_torque", 0.0))
-            obs_next = self._build_agent_obs(omega=omega_meas, omega_ref=omega_ref, i_d=i_d_next, i_q=i_q_next, load_torque=load_torque)
+            psi_r_est = float(getattr(getattr(getattr(self.base_env, "motor", None), "params", None), "Lm", 0.0) * i_d_next)
+            momentum_estimate = float(i_q_next * psi_r_est)
+
+            prev_vd_norm = float(self._prev_vd_norm)
+            prev_vq_norm = float(self._prev_vq_norm)
+            action_norm_val = float(math.hypot(vd_applied, vq_applied))
+            action_delta = float(math.hypot(vd_applied - prev_vd_norm, vq_applied - prev_vq_norm))
+
+            # Update "last action" state before building the next observation so that
+            # the agent sees the action it actually just applied.
+            self._prev_delta_rel = vd_applied
+            self._prev_action_id_rel = vq_applied
+            self._prev_vd_norm = vd_applied
+            self._prev_vq_norm = vq_applied
+
+            obs_next = self._build_agent_obs(
+                omega=omega_meas,
+                omega_ref=omega_ref,
+                i_d=i_d_next,
+                i_q=i_q_next,
+                load_torque=load_torque,
+                omega_syn=omega_syn,
+            )
             y_true = self._encode_world_target(obs_next)
 
             wm_loss = 0.0
@@ -727,59 +866,106 @@ class MicAiAIEnv:
                     wm_loss = float(self.curiosity.update_model(xs, ys))
                     self._wm_buffer_x.clear()
                     self._wm_buffer_y.clear()
-            speed_err = abs(omega_ref - omega_meas)
-            current_rms = math.sqrt(i_d_next**2 + i_q_next**2)
-            reward = -self.cfg.w_speed_error * speed_err - self.cfg.w_current_rms * current_rms
-            reward = float(np.clip(reward, -self.cfg.reward_clip, 0.0))
+            elif self.world_model is not None:
+                wm_loss = float(self.world_model.update(x_t, y_true))
 
-            self._cum_speed_err += speed_err
-            self._cum_current_rms += current_rms
+            omega_ref_scale = max(abs(omega_ref), 1e-6)
+            speed_err_abs = abs(omega_meas - omega_ref)
+            err_norm = speed_err_abs / omega_ref_scale
+            i_rms = math.sqrt(i_d_next**2 + i_q_next**2)
+            current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
+            i_rms_norm = i_rms / current_limit
+
+            i_soft_limit = float(getattr(self.cfg, "i_soft_limit", 0.0))
+            i_excess = max(0.0, float(i_rms) - max(i_soft_limit, 0.0))
+            i_excess_norm = i_excess / current_limit
+            # Curriculum for efficiency: while far from the speed target, do not punish current.
+            speed_tol = float(getattr(self.cfg, "ai_voltage_speed_tol", 0.5))
+            if speed_err_abs > speed_tol:
+                i_excess_norm = 0.0
+
+            w_speed = float(getattr(self.cfg, "w_ai_voltage_speed", 1.0))
+            w_current = float(getattr(self.cfg, "w_ai_voltage_current", 0.1))
+            w_action = float(getattr(self.cfg, "w_ai_voltage_action", 0.0))
+
+            action_cost = action_norm_val + 0.5 * action_delta
+            cost = w_speed * err_norm + w_current * i_excess_norm + w_action * action_cost
+            r_raw = float(getattr(self.cfg, "reward_max", 1.0)) - cost
+            reward = float(np.clip(r_raw, float(getattr(self.cfg, "reward_min", -10.0)), float(getattr(self.cfg, "reward_max", 1.0))))
+
+            self._cum_speed_err += speed_err_abs
+            self._cum_current_rms += i_rms
             self._cum_r_ext += reward
+            self._cum_r_int += 0.0
+            self._omega_prev = omega_meas
 
             self._last_obs_norm = obs_next
-            self._prev_delta_rel = vd_applied
-            self._prev_action_id_rel = vq_applied
             self.step_count += 1
-            env_cfg_sim = getattr(getattr(self.base_env, "env", None), "sim", None)
-            done_sim_time = False
-            if env_cfg_sim is not None and hasattr(env_cfg_sim, "t_end"):
-                done_sim_time = float(getattr(self.base_env, "t", 0.0)) >= float(getattr(env_cfg_sim, "t_end", 0.0))
-            done = done_env or done_sim_time or self.step_count >= self.cfg.episode_steps
 
-            reward_info = {
-                "speed_err": speed_err,
-                "speed_err_norm": speed_err / max(abs(omega_ref), 1e-6),
-                "current_norm": current_rms / max(self._i_base, 1e-6),
-                "i_rms": current_rms,
-                "r_ext": reward,
-                "r_int": 0.0,
-            }
+            over_speed = abs(omega_meas) > 1.5 * max(self._omega_ref_max, abs(omega_ref), abs(self.cfg.omega_ref), 1e-6)
+            hard_over_i = i_rms > current_limit
+            if hard_over_i:
+                self._overcurrent_steps += 1
+            invalid_state = bool(info.get("invalid_state", False) or not np.isfinite(reward))
+            done = over_speed or hard_over_i or invalid_state or self.step_count >= self.episode_max_steps
+            done_reason = "none"
+            if over_speed:
+                done_reason = "over_speed"
+            elif hard_over_i:
+                done_reason = "hard_current"
+            elif invalid_state:
+                done_reason = "invalid_state"
+            elif self.step_count >= self.episode_max_steps:
+                done_reason = "max_steps"
+            if done and done_reason != "max_steps":
+                self._hard_terminated = True
 
             info.update(
                 {
-                    **reward_info,
+                    "speed_err": speed_err_abs,
+                    "speed_err_norm": err_norm,
+                    "current_norm": i_rms_norm,
+                    "i_rms": i_rms,
+                    "i_rms_norm": i_rms_norm,
                     "speed_error": omega_meas - omega_ref,
                     "i_d": float(i_d_next),
                     "i_q": float(i_q_next),
                     "t": float(getattr(self.base_env, "t", 0.0)),
                     "action_vd_norm": vd_applied,
                     "action_vq_norm": vq_applied,
+                    "action_norm": action_norm_val,
                     "wm_loss": wm_loss,
+                    "r_ext": reward,
+                    "r_int": 0.0,
+                    "r_raw": r_raw,
+                    "done_reason": done_reason,
+                    "hard_over_i": hard_over_i,
+                    "over_speed": over_speed,
+                    "overcurrent_steps": self._overcurrent_steps,
+                    "momentum_estimate": momentum_estimate,
+                    "reward_sigma": getattr(self.cfg, "exploration_sigma_start", 0.0),
                 }
             )
             self.history.append(
                 {
                     "obs": obs_next,
                     "speed_error": omega_meas - omega_ref,
-                    "speed_err_norm": reward_info.get("speed_err_norm", 0.0),
-                    "i_rms": current_rms,
-                    "current_rms": current_rms,
+                    "speed_err_norm": err_norm,
+                    "i_rms": i_rms,
+                    "current_rms": i_rms,
+                    "omega_ref": omega_ref,
                     "reward": reward,
                     "r_ext": reward,
                     "r_int": 0.0,
                     "wm_loss": wm_loss,
                     "t": info["t"],
                     "action": (vd_applied, vq_applied),
+                    "r_raw": r_raw,
+                    "done_reason": done_reason if done else "",
+                    "hard_over_i": hard_over_i,
+                    "over_speed": over_speed,
+                    "overcurrent_steps": self._overcurrent_steps,
+                    "momentum_estimate": momentum_estimate,
                 }
             )
             return obs_next, float(reward), bool(done), info
@@ -1159,17 +1345,50 @@ class MicAiAIEnv:
     def episode_metrics(self) -> Dict[str, float]:
         steps = max(self.step_count, 1)
         total_reward = float(sum(float(item.get("reward", 0.0)) for item in self.history))
+        total_reward_raw = float(sum(float(item.get("r_raw", item.get("reward", 0.0))) for item in self.history))
         wm_loss_mean = float(np.mean([item.get("wm_loss", 0.0) for item in self.history])) if self.history else 0.0
         mean_r_ext = self._cum_r_ext / steps
         mean_r_int = self._cum_r_int / steps
+        i_rms_values = [float(item.get("i_rms", item.get("current_rms", 0.0))) for item in self.history]
+        i_rms_max = float(max(i_rms_values)) if i_rms_values else 0.0
+        action_norm_vals: List[float] = []
+        omega_vals: List[float] = []
+        momentum_vals: List[float] = []
+        for item in self.history:
+            act = item.get("action")
+            if isinstance(act, (list, tuple)) and len(act) >= 2:
+                action_norm_vals.append(float(math.hypot(float(act[0]), float(act[1]))))
+            elif act is not None:
+                try:
+                    action_norm_vals.append(abs(float(act)))
+                except Exception:
+                    action_norm_vals.append(0.0)
+            obs_item = item.get("obs", {})
+            if isinstance(obs_item, dict) and "omega" in obs_item:
+                omega_vals.append(float(obs_item.get("omega", 0.0)))
+            if "momentum_estimate" in item:
+                momentum_vals.append(float(item.get("momentum_estimate", 0.0)))
+        mean_action_norm = float(np.mean(action_norm_vals)) if action_norm_vals else 0.0
+        omega_mean = float(np.mean(omega_vals)) if omega_vals else 0.0
+        delta_speed = float(omega_vals[-1] - omega_vals[0]) if len(omega_vals) >= 2 else 0.0
+        momentum_mean = float(np.mean(momentum_vals)) if momentum_vals else 0.0
         return {
             "mean_speed_error": self._cum_speed_err / steps,
             "mean_current_rms": self._cum_current_rms / steps,
             "total_reward": total_reward,
+            "total_reward_raw": total_reward_raw,
+            "mean_reward": total_reward / steps,
             "mean_r_ext": mean_r_ext,
             "mean_r_int": mean_r_int,
             "wm_loss_mean": wm_loss_mean,
             "steps": steps,
+            "i_rms_max": i_rms_max,
+            "action_norm": mean_action_norm,
+            "hard_terminated": int(self._hard_terminated),
+            "overcurrent_steps": int(self._overcurrent_steps),
+            "omega_mean": omega_mean,
+            "delta_speed": delta_speed,
+            "momentum_mean": momentum_mean,
         }
 
 

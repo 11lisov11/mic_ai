@@ -193,7 +193,16 @@ def refine_params_with_model(
             env_model.base_controller.set_voltage_dq(u_d_val, u_q_val)
         else:
             # TODO: адаптировать под реальный setter напряжения env_model
-            pass
+            if hasattr(env_model, "u_d_ref") or hasattr(env_model, "u_q_ref"):
+                if hasattr(env_model, "u_d_ref"):
+                    env_model.u_d_ref = float(u_d_val)
+                if hasattr(env_model, "u_q_ref"):
+                    env_model.u_q_ref = float(u_q_val)
+            else:
+                raise ValueError(
+                    "Cannot apply dq voltage to env_model. Expose set_voltage_dq(), base_controller.set_voltage_dq(), "
+                    "or u_d_ref/u_q_ref attributes."
+                )
 
         if hasattr(env_model, "step"):
             try:
@@ -246,6 +255,17 @@ def _apply_voltage_generic(env_model, u_d: float, u_q: float = 0.0) -> None:
         env_model.set_voltage_dq(u_d, u_q)
     elif hasattr(env_model, "base_controller") and hasattr(env_model.base_controller, "set_voltage_dq"):
         env_model.base_controller.set_voltage_dq(u_d, u_q)
+    else:
+        if hasattr(env_model, "u_d_ref") or hasattr(env_model, "u_q_ref"):
+            if hasattr(env_model, "u_d_ref"):
+                env_model.u_d_ref = float(u_d)
+            if hasattr(env_model, "u_q_ref"):
+                env_model.u_q_ref = float(u_q)
+        else:
+            raise ValueError(
+                "Cannot apply dq voltage to env_model. Expose set_voltage_dq(), base_controller.set_voltage_dq(), "
+                "or u_d_ref/u_q_ref attributes."
+            )
     # TODO: адаптировать под проектный API, если установка напряжений отличается
 
 

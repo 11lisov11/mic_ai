@@ -21,6 +21,7 @@ from mic_ai.ai.simple_agent import SimpleAdaptiveAgent
 from mic_ai.core.env import make_env_from_config
 from mic_ai.ident.auto_id import run_full_identification
 from mic_ai.ident.io import save_ident_result
+from mic_ai.ident.apply import apply_estimated_params_to_env_config
 from outputs.styles import apply_style
 from simulation.gym_env import InductionMotorEnv
 
@@ -52,6 +53,9 @@ def run_demo_for_motor(env_config_path: str, output_prefix: str, num_episodes: i
     env_cfg = getattr(env_sim, "env_config", None)
     if env_cfg is None:
         raise ValueError("env_config is required inside config module for AI demo")
+    # Use identified parameters for training env to mirror real workflow.
+    env_cfg = apply_estimated_params_to_env_config(env_cfg, ident_result.estimated)
+    env_sim.env_config = env_cfg
 
     omega_ref = float(2.0 * np.pi * 15.0 / max(env_cfg.motor.p, 1))
     i_base = getattr(env_cfg.motor, "I_n", 1.0)

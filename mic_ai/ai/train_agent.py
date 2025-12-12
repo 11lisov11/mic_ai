@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Ensure project root on path for direct script execution (python mic_ai/ai/train_agent.py ...)
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import argparse
 from typing import Dict, List, Tuple
 
@@ -10,6 +18,7 @@ from mic_ai.ai.curiosity import WorldModelCuriosity
 from mic_ai.ai.simple_agent import ActorCriticAgent
 from mic_ai.ai.world_model import SimpleWorldModel
 from mic_ai.core.env import make_env_from_config
+from mic_ai.ident.apply import load_and_apply_ident
 from simulation.gym_env import InductionMotorEnv
 
 
@@ -37,12 +46,16 @@ def build_ai_env(
     env_config: str,
     control_mode: str,
     enable_id_control: bool,
+    ident_path: str | None = None,
     curiosity_beta: float = 0.0,
     w_int_scale: float | None = None,
     w_ext_scale: float | None = None,
 ) -> Tuple[MicAiAIEnv, AiEnvConfig]:
     env_sim = make_env_from_config(env_config)
     env_cfg = env_sim.env_config
+    if ident_path:
+        env_cfg = load_and_apply_ident(env_cfg, ident_path)
+        env_sim.env_config = env_cfg
 
     omega_ref = _default_omega_ref(env_cfg)
     i_base = getattr(env_cfg.motor, "I_n", 1.0)
@@ -51,7 +64,37 @@ def build_ai_env(
 
     baseline_speed_err = float(getattr(env_cfg, "baseline_speed_err", 0.0))
     baseline_current_rms = float(getattr(env_cfg, "baseline_current_rms", 0.0))
-    ext_scale = float(getattr(env_cfg, "ext_scale", getattr(env_cfg, "ai_ext_scale", 20.0)))
+
+    def _run_baseline(steps: int) -> tuple[float, float]:
+        env_base = InductionMotorEnv(env_cfg)
+        env_base.omega_ref_func = lambda _t, ref=omega_ref: ref
+        env_base.load_torque_func = lambda _t: getattr(env_cfg.sim, "load_torque", 0.0)
+        cum_err = 0.0
+        cum_current = 0.0
+        obs = env_base.reset()
+        for _ in range(steps):
+            obs, _, done, info = env_base.step(None)
+            omega_meas = float(obs[0])
+            omega_ref_step = float(info.get("omega_ref", omega_ref))
+            err = abs(omega_ref_step - omega_meas)
+            i_abc = info.get("i_abc", (0.0, 0.0, 0.0))
+            i_rms = float(np.sqrt(np.mean(np.square(i_abc))))
+            cum_err += err
+            cum_current += i_rms
+            if done:
+                break
+        return cum_err, cum_current
+
+    if baseline_speed_err <= 0.0 or baseline_current_rms <= 0.0:
+        baseline_speed_err, baseline_current_rms = _run_baseline(episode_steps)
+
+    ext_scale = float(
+        getattr(
+            env_cfg,
+            "ext_scale",
+            max((baseline_speed_err + baseline_current_rms) / max(episode_steps, 1), 1.0),
+        )
+    )
     w_int = w_int_scale if w_int_scale is not None else float(getattr(env_cfg, "ai_w_int_scale", 0.0))
     w_ext = w_ext_scale if w_ext_scale is not None else float(getattr(env_cfg, "ai_w_ext_scale", 1.0))
 
@@ -134,6 +177,7 @@ def train(
         env_config,
         control_mode=control_mode,
         enable_id_control=enable_id_control,
+        ident_path=None,
         curiosity_beta=curiosity_beta if control_mode != "ai_speed" else 0.0,
         w_int_scale=w_int_override,
         w_ext_scale=None,
@@ -178,19 +222,60 @@ def train(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--env-config", required=True, help="Path to env config module")
+    parser.add_argument("--ident", default=None, help="Path to identification JSON to apply before training")
     parser.add_argument("--episodes", type=int, default=50)
     parser.add_argument("--control-mode", choices=["ai_speed", "foc_assist"], default="ai_speed")
     parser.add_argument("--enable-id-control", action="store_true", help="Allow agent to control d-axis current")
     parser.add_argument("--curiosity-beta", type=float, default=0.0, help="Curiosity weight for explore phase")
     args = parser.parse_args()
 
-    hist = train(
-        env_config=args.env_config,
-        episodes=args.episodes,
-        control_mode=args.control_mode,
-        enable_id_control=bool(args.enable_id_control),
-        curiosity_beta=args.curiosity_beta,
-    )
+    # Rebuild env with ident if provided.
+    def _train_with_ident() -> List[dict]:
+        control_mode = args.control_mode.lower()
+        w_int_override = 0.0 if control_mode == "ai_speed" else None
+        env, _ = build_ai_env(
+            args.env_config,
+            control_mode=control_mode,
+            enable_id_control=bool(args.enable_id_control),
+            ident_path=args.ident,
+            curiosity_beta=args.curiosity_beta if control_mode != "ai_speed" else 0.0,
+            w_int_scale=w_int_override,
+            w_ext_scale=None,
+        )
+        action_dim = 2 if args.enable_id_control else 1
+        agent = ActorCriticAgent(
+            feature_keys=FEATURE_KEYS,
+            action_dim=action_dim,
+            lr_actor=7e-4,
+            lr_critic=7e-4,
+            gamma=0.99,
+            sigma=0.15,
+            max_grad_norm=5.0,
+        )
+        history: List[dict] = []
+        phase_switch = args.episodes // 2 if control_mode == "foc_assist" else args.episodes
+        for ep in range(args.episodes):
+            env.phase = "explore" if control_mode == "foc_assist" and ep < phase_switch else "improve"
+            if env.phase == "improve":
+                env.cfg.w_int_scale = 0.0
+                env.cfg.curiosity_beta = 0.0
+                env.cfg.lambda_int = 0.0
+                if env.curiosity is not None:
+                    env.curiosity.beta = 0.0
+            if control_mode == "foc_assist" and ep == phase_switch:
+                agent.reset_parameters()
+
+            total_reward, total_r_ext, total_r_int, metrics = _episode_loop(env, agent)
+            metrics.update({"episode": ep})
+            history.append(metrics)
+            print(
+                f"ep {ep:03d} | phase {env.phase:7s} | reward {total_reward:7.3f} | "
+                f"r_ext {total_r_ext:7.3f} | mean|e_w| {metrics['mean_speed_error']:.5f} | "
+                f"mean_i_rms {metrics['mean_current_rms']:.5f}"
+            )
+        return history
+
+    hist = _train_with_ident()
     if hist:
         last = hist[-1]
         print(

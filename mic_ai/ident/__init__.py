@@ -12,6 +12,7 @@ from .estimators import (
 )
 from .ident_result import IdentificationResult
 from .motor_params import MotorParamsEstimated, MotorParamsTrue
+from .apply import apply_estimated_params_to_env_config, load_and_apply_ident
 
 __all__ = [
     "run_auto_identification",
@@ -25,4 +26,6 @@ __all__ = [
     "IdentificationResult",
     "MotorParamsEstimated",
     "MotorParamsTrue",
+    "apply_estimated_params_to_env_config",
+    "load_and_apply_ident",
 ]

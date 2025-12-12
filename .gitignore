@@ -3,8 +3,16 @@ __pycache__/
 *.pyo
 *.np[yz]
 *.npz
+.pytest_cache/
+.venv/
 out/
 reports/
 outputs/figures/
 outputs/results/
-
+outputs/demo_ai/
+outputs/ident/
+outputs/**/*.json
+outputs/**/*.npz
+outputs/**/*.png
+outputs/**/*.pth
+results_run/

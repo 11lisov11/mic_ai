@@ -170,6 +170,13 @@ class ActorCriticAgent:
             deltas.append(delta)
             logprobs.append(float(data["logprob"]))
 
+        # advantage normalization
+        deltas_arr = np.array(deltas, dtype=np.float32)
+        if deltas_arr.size > 1:
+            deltas_arr = (deltas_arr - deltas_arr.mean()) / (deltas_arr.std() + 1e-6)
+        for idx, data in enumerate(self.buffer):
+            delta = float(deltas_arr[idx])
+
             grad_mu = (-delta) * (data["pre_tanh"] - data["mu"]) / (self.sigma**2 + 1e-8)
             grad_mu = np.asarray(grad_mu, dtype=np.float32)[None, :]
             g_w_pi, g_b_pi = _backward_mlp(data["acts_pi"], grad_mu, self.actor_w, output_activation="tanh")
