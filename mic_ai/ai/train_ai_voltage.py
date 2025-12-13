@@ -93,6 +93,7 @@ def build_env(
     voltage_scale: float | None = None,
     motor_key: str | None = None,
     ident_path: str | None = None,
+    override_i_max: float | None = None,
 ) -> MicAiAIEnv:
     env_sim = make_env_from_config(str(env_config_path))
     env_cfg = env_sim.env_config
@@ -103,7 +104,10 @@ def build_env(
     i_base = float(getattr(env_cfg.motor, "I_n", 1.0))
     steps = int(max(episode_steps, 1))
     omega_ref_max = max(abs(omega_ref) * 1.2, 1e-3)
-    i_limit = float(max(getattr(getattr(env_cfg, "foc", None), "iq_limit", i_base * 8.0), i_base * 8.0, 5.0))
+    if override_i_max is not None:
+        i_limit = float(override_i_max)
+    else:
+        i_limit = float(max(getattr(getattr(env_cfg, "foc", None), "iq_limit", i_base * 8.0), i_base * 8.0, 5.0))
     weights = reward_weights or {}
     curriculum_cfg = curriculum_cfg or {}
     piecewise_steps = curriculum_cfg.get("piecewise_steps", (150, 300))
@@ -139,6 +143,7 @@ def build_env(
         w_action_activity=0.0,
         w_ai_voltage_speed=float(weights.get("w_speed", 0.3)),
         w_ai_voltage_current=float(weights.get("w_current", 0.05)),
+        w_ai_voltage_power=float(weights.get("w_power", 0.2)),
         w_ai_voltage_action=float(weights.get("w_action", 0.02)),
         ai_voltage_speed_tol=speed_tol,
         curriculum_omega_pu=tuple(float(x) for x in curriculum_stages),
@@ -245,13 +250,20 @@ def train_ai_voltage(
     target_mean_speed_error: float | None = None,
     target_patience: int = 5,
     fast: bool = False,
+    override_voltage_scale: float | None = None,
+    override_w_power: float | None = None,
+    override_w_action: float | None = None,
 ) -> Dict[str, object]:
     env_path = resolve_config_path(config_name)
     motor_key = _motor_key_from_config(config_name)
     reward_weights = get_reward_weights(AI_VOLTAGE_CFG, motor_key)
+    if override_w_power is not None:
+        reward_weights["w_power"] = float(override_w_power)
+    if override_w_action is not None:
+        reward_weights["w_action"] = float(override_w_action)
     curriculum_cfg = get_curriculum_config(AI_VOLTAGE_CFG)
     exploration_cfg = get_exploration_config(AI_VOLTAGE_CFG)
-    voltage_scale = get_voltage_scale(AI_VOLTAGE_CFG, motor_key)
+    voltage_scale = get_voltage_scale(AI_VOLTAGE_CFG, motor_key) if override_voltage_scale is None else float(override_voltage_scale)
     env = build_env(
         env_path,
         episode_steps=episode_steps,
@@ -290,6 +302,7 @@ def train_ai_voltage(
     arr_mean_reward: List[float] = []
     arr_speed_err: List[float] = []
     arr_current_rms: List[float] = []
+    arr_p_in_pos: List[float] = []
     arr_action_norm: List[float] = []
     arr_actor_loss: List[float] = []
     arr_value_loss: List[float] = []
@@ -303,10 +316,12 @@ def train_ai_voltage(
     score_w_current = float(success_cfg.get("w_current", 5.0)) if isinstance(success_cfg, dict) else 5.0
     score_speed_tol = float(success_cfg.get("speed_tol", 0.5)) if isinstance(success_cfg, dict) else 0.5
     score_i_soft = float(getattr(env.cfg, "i_soft_limit", 0.4))
+    score_w_power = float(reward_weights.get("w_power", 1.0))
 
     best_episode = -1
     best_speed_err = float("inf")
     best_current = float("inf")
+    best_p_in_pos = float("inf")
     best_score = float("inf")
     best_ckpt_path: Path | None = None
     sigma_start = float(exploration_cfg.get("sigma_start", 0.3))
@@ -315,6 +330,7 @@ def train_ai_voltage(
 
     # Efficiency curriculum: first learn to track speed, then gradually tighten current.
     w_current_base = float(getattr(env.cfg, "w_ai_voltage_current", 0.0))
+    w_power_base = float(getattr(env.cfg, "w_ai_voltage_power", 0.0))
     i_soft_final = float(getattr(env.cfg, "i_soft_limit", 0.0))
     i_hard = float(getattr(env.cfg, "i_hard_limit", max(i_soft_final, 1.0)))
     i_soft_start = max(i_soft_final, 0.6 * i_hard)
@@ -343,6 +359,7 @@ def train_ai_voltage(
             eff_scale = (ep - eff_start) / max(eff_end - eff_start, 1)
 
         env.cfg.w_ai_voltage_current = w_current_base * eff_scale
+        env.cfg.w_ai_voltage_power = w_power_base * eff_scale
         env.cfg.i_soft_limit = i_soft_start + (i_soft_final - i_soft_start) * eff_scale
         env.cfg.ai_voltage_speed_tol = speed_tol_start + (speed_tol_final - speed_tol_start) * eff_scale
 
@@ -389,10 +406,13 @@ def train_ai_voltage(
             "mean_reward": float(mean_reward),
             "mean_speed_error": float(metrics_env.get("mean_speed_error", 0.0)),
             "mean_current_rms": float(metrics_env.get("mean_current_rms", 0.0)),
+            "mean_p_in": float(metrics_env.get("mean_p_in", 0.0)),
+            "mean_p_in_pos": float(metrics_env.get("mean_p_in_pos", 0.0)),
             "mean_action_norm": float(metrics_env.get("action_norm", 0.0)),
             "i_soft_limit": float(getattr(env.cfg, "i_soft_limit", 0.0)),
             "speed_tol": float(getattr(env.cfg, "ai_voltage_speed_tol", 0.0)),
             "w_current_eff": float(getattr(env.cfg, "w_ai_voltage_current", 0.0)),
+            "w_power_eff": float(getattr(env.cfg, "w_ai_voltage_power", 0.0)),
             "steps": steps,
             "hard_terminated": int(metrics_env.get("hard_terminated", 0)),
             "wm_loss_mean": float(metrics_env.get("wm_loss_mean", 0.0)),
@@ -412,6 +432,7 @@ def train_ai_voltage(
         arr_mean_reward.append(entry["mean_reward"])
         arr_speed_err.append(entry["mean_speed_error"])
         arr_current_rms.append(entry["mean_current_rms"])
+        arr_p_in_pos.append(entry.get("mean_p_in_pos", 0.0))
         arr_action_norm.append(entry["mean_action_norm"])
         arr_actor_loss.append(entry["actor_loss"])
         arr_value_loss.append(entry["value_loss"])
@@ -424,12 +445,17 @@ def train_ai_voltage(
         if entry["mean_speed_error"] > score_speed_tol:
             score = score_w_speed * entry["mean_speed_error"]
         else:
-            score = score_w_speed * entry["mean_speed_error"] + score_w_current * max(0.0, entry["mean_current_rms"] - score_i_soft)
+            score = (
+                score_w_speed * entry["mean_speed_error"]
+                + score_w_current * max(0.0, entry["mean_current_rms"] - score_i_soft)
+                + score_w_power * float(entry.get("mean_p_in_pos", 0.0))
+            )
         if score < best_score:
             best_score = score
             best_episode = ep
             best_speed_err = entry["mean_speed_error"]
             best_current = entry["mean_current_rms"]
+            best_p_in_pos = float(entry.get("mean_p_in_pos", 0.0))
             best_ckpt_path = motor_ckpt_dir / f"best_actor_ep{ep:03d}.pth"
             torch.save(agent.net.state_dict(), best_ckpt_path)
 
@@ -448,7 +474,8 @@ def train_ai_voltage(
         print(
             f"[{env_path.stem}] ep {ep:03d} | steps {steps:3d} | hard {entry['hard_terminated']} | "
             f"mean_reward {entry['mean_reward']:.3f} | mean|e_w| {entry['mean_speed_error']:.4f} | "
-            f"mean_i_rms {entry['mean_current_rms']:.4f} | act_norm {entry['mean_action_norm']:.3f} | "
+            f"mean_i_rms {entry['mean_current_rms']:.4f} | mean_p_in_pos {entry['mean_p_in_pos']:.4f} | "
+            f"act_norm {entry['mean_action_norm']:.3f} | "
             f"loss_pi {entry['actor_loss']:.4f} loss_v {entry['value_loss']:.4f} | sigma {sigma:.3f}"
         )
 
@@ -467,6 +494,8 @@ def train_ai_voltage(
         mean_reward=np.array(arr_mean_reward, dtype=np.float32),
         mean_speed_error=np.array(arr_speed_err, dtype=np.float32),
         mean_current_rms=np.array(arr_current_rms, dtype=np.float32),
+        mean_p_in=np.array([float(e.get("mean_p_in", 0.0)) for e in episodes_log], dtype=np.float32),
+        mean_p_in_pos=np.array([float(e.get("mean_p_in_pos", 0.0)) for e in episodes_log], dtype=np.float32),
         mean_action_norm=np.array(arr_action_norm, dtype=np.float32),
         actor_loss=np.array(arr_actor_loss, dtype=np.float32),
         value_loss=np.array(arr_value_loss, dtype=np.float32),
@@ -492,6 +521,8 @@ def train_ai_voltage(
         mean_reward=np.array(arr_mean_reward, dtype=np.float32),
         mean_speed_error=np.array(arr_speed_err, dtype=np.float32),
         mean_current_rms=np.array(arr_current_rms, dtype=np.float32),
+        mean_p_in=np.array([float(e.get("mean_p_in", 0.0)) for e in episodes_log], dtype=np.float32),
+        mean_p_in_pos=np.array([float(e.get("mean_p_in_pos", 0.0)) for e in episodes_log], dtype=np.float32),
         mean_action_norm=np.array(arr_action_norm, dtype=np.float32),
         actor_loss=np.array(arr_actor_loss, dtype=np.float32),
         value_loss=np.array(arr_value_loss, dtype=np.float32),
@@ -516,15 +547,24 @@ def train_ai_voltage(
     plot_curves(run_dir / "plot_reward.png", np.array(epi_idx), {"mean_reward": np.array(arr_mean_reward)})
     plot_curves(run_dir / "plot_current_rms.png", np.array(epi_idx), {"mean_current_rms": np.array(arr_current_rms)})
     plot_curves(run_dir / "plot_action_norm.png", np.array(epi_idx), {"mean_action_norm": np.array(arr_action_norm)})
+    plot_curves(
+        run_dir / "plot_power_in_pos.png",
+        np.array(epi_idx),
+        {"mean_p_in_pos": np.array([float(e.get("mean_p_in_pos", 0.0)) for e in episodes_log])},
+    )
 
     if best_episode < 0 and arr_speed_err:
         best_episode = int(np.argmin(arr_speed_err))
         best_speed_err = float(np.min(arr_speed_err))
         best_current = float(arr_current_rms[best_episode]) if best_episode < len(arr_current_rms) else best_current
-        if best_speed_err > score_speed_tol:
-            best_score = float(score_w_speed * best_speed_err)
-        else:
-            best_score = float(score_w_speed * best_speed_err + score_w_current * max(0.0, best_current - score_i_soft))
+    if best_speed_err > score_speed_tol:
+        best_score = float(score_w_speed * best_speed_err)
+    else:
+        best_score = float(
+            score_w_speed * best_speed_err
+            + score_w_current * max(0.0, best_current - score_i_soft)
+            + score_w_power * best_p_in_pos
+        )
 
     print(
         f"SUCCESS: training finished\n"
@@ -541,6 +581,7 @@ def train_ai_voltage(
         "best_episode": best_episode,
         "best_mean_speed_error": best_speed_err,
         "best_mean_current_rms": best_current,
+        "best_mean_p_in_pos": best_p_in_pos,
         "best_score": best_score,
         "best_checkpoint": str(best_ckpt_path) if best_ckpt_path is not None else "",
         "last_checkpoint": str(last_actor_path),
@@ -628,6 +669,9 @@ if __name__ == "__main__":
     parser.add_argument("--target-mean-speed-error", type=float, default=None, help="Early-stop threshold for mean|e_w|")
     parser.add_argument("--target-patience", type=int, default=5, help="Consecutive episodes to confirm target")
     parser.add_argument("--fast", action="store_true", help="Faster training settings (smaller net, fewer epochs)")
+    parser.add_argument("--voltage-scale", type=float, default=None, help="Override voltage_scale (per-unit of base limit).")
+    parser.add_argument("--w-power", type=float, default=None, help="Override reward weight for input power (P_in).")
+    parser.add_argument("--w-action", type=float, default=None, help="Override reward weight for action magnitude.")
     parser.add_argument(
         "--demo-all",
         action="store_true",
@@ -649,4 +693,7 @@ if __name__ == "__main__":
             target_mean_speed_error=args.target_mean_speed_error,
             target_patience=args.target_patience,
             fast=bool(args.fast),
+            override_voltage_scale=args.voltage_scale,
+            override_w_power=args.w_power,
+            override_w_action=args.w_action,
         )

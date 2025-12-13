@@ -8,8 +8,8 @@ from typing import Dict
 DEFAULT_CONFIG_PATH = Path("config/ai_voltage_config.json")
 DEFAULT_CONFIG: Dict[str, Dict] = {
     "reward": {
-        "motor1": {"w_speed": 1.0, "w_current": 1.0, "w_action": 0.1},
-        "motor2": {"w_speed": 1.0, "w_current": 1.5, "w_action": 0.1},
+        "motor1": {"w_speed": 1.0, "w_current": 1.0, "w_power": 2.0, "w_action": 0.1},
+        "motor2": {"w_speed": 1.0, "w_current": 1.5, "w_power": 2.0, "w_action": 0.1},
     },
     "voltage_scale": {"motor1": 0.20, "motor2": 0.20},
     "success": {
@@ -60,7 +60,9 @@ def get_reward_weights(config: Dict, motor_key: str) -> Dict[str, float]:
     """Return reward weights for the given motor, falling back to defaults."""
     reward_cfg = config.get("reward", {})
     weights = reward_cfg.get(motor_key, {}) if isinstance(reward_cfg, dict) else {}
-    default_weights = DEFAULT_CONFIG["reward"].get(motor_key, {"w_speed": 1.0, "w_current": 1.0, "w_action": 0.1})
+    default_weights = DEFAULT_CONFIG["reward"].get(
+        motor_key, {"w_speed": 1.0, "w_current": 1.0, "w_power": 2.0, "w_action": 0.1}
+    )
     merged = deepcopy(default_weights)
     if isinstance(weights, dict):
         merged.update({k: float(v) for k, v in weights.items() if isinstance(v, (int, float))})
