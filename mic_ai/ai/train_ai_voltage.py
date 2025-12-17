@@ -94,9 +94,13 @@ def build_env(
     motor_key: str | None = None,
     ident_path: str | None = None,
     override_i_max: float | None = None,
+    env_cfg_override: object | None = None,
 ) -> MicAiAIEnv:
     env_sim = make_env_from_config(str(env_config_path))
     env_cfg = env_sim.env_config
+    if env_cfg_override is not None:
+        env_cfg = env_cfg_override  # type: ignore[assignment]
+        env_sim.env_config = env_cfg  # type: ignore[assignment]
     if ident_path:
         env_cfg = load_and_apply_ident(env_cfg, ident_path)
         env_sim.env_config = env_cfg

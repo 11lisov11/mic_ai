@@ -101,6 +101,9 @@ class SimulationParams:
     scenario_name: str
     save_prefix: str
     load_torque: float = 0.0
+    # Sensor noise (applied to controller inputs inside InductionMotorEnv; metrics use true states).
+    sigma_omega: float = 0.0
+    sigma_i_abc: float = 0.0
 
 
 @dataclass(frozen=True)

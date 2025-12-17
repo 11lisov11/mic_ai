@@ -1,153 +1,96 @@
 # MIC_AI
 
-Motor Intelligence Control with Artificial Intelligence  
-Self‑Learning Control of Induction Motor (dq‑модель)
+Motor Intelligence Control with Artificial Intelligence (MIC_AI) — исследовательско-инженерный проект по самообучающемуся управлению асинхронным двигателем (dq-модель) с прицелом на перенос на MCU.
 
-## 1. Что это за проект и зачем он существует
+Сравнение проводится между:
+- `AI (RL)`: прямое управление напряжениями `v_d/v_q` (без PI/FOC в контуре управления).
+- `FOC`: классическое векторное управление с PI-регуляторами.
 
-MIC_AI — исследовательско‑инженерный проект по созданию самообучающегося управления асинхронным двигателем, ориентированного на реальный электропривод (ограничения, безопасность, воспроизводимость), а не на демонстрационные reinforcement learning.
+Цель визуализаций и таблиц — строгое воспроизводимое сравнение при одинаковых условиях эксперимента (профили `ω_ref`, нагрузки, длительность эпизодов, ограничения по току/напряжению).
 
-Проект отвечает на вопрос:
-можно ли управлять асинхронным двигателем без классического FOC и PI‑регуляторов, используя прямое управление напряжениями в dq‑координатах, и получить сопоставимую или лучшую точность и энергоэффективность с перспективой переноса на микроконтроллер.
+## Что внутри
 
-## 2. Ключевая идея
+- Digital Twin: dq-двигатель + инвертор + преобразования `abc <-> dq` + механика нагрузки.
+- Базовые алгоритмы: V/f и FOC (baseline/fallback).
+- AI-контур `ai_voltage`: агент управляет `v_d/v_q` напрямую.
+- Инструменты для отчётов, сравнения и paper-графиков (PNG+PDF, русские подписи).
 
-Сначала физика и безопасность → потом обучение → потом компактность → потом адаптация.
+## Установка (Windows)
 
-RL здесь — инструмент синтеза регулятора. Финальные выводы делаются по физическим метрикам и детерминированной оценке, а не по reward.
+Если виртуальное окружение уже создано (`.venv/`), достаточно:
 
-## 3. Отличия от типичных RL‑проектов
+`.\.venv\Scripts\python.exe -m pip install -r requirements.txt`
 
-| Типичный RL | MIC_AI |
-|---|---|
-| Агент «играет» | Агент — регулятор |
-| Нет реальных ограничений | Жёсткие ограничения по току/напряжению |
-| «Сломать эпизод» допустимо | Hard‑termination отслеживается и не является целью |
-| Reward = критерий качества | Reward — обучающий сигнал |
-| Деплой не обязателен | Цель — перенос на MCU |
+Если окружения нет:
 
-## 4. Архитектура управления
+`python -m venv .venv`
 
-### 4.1 Режимы управления
+`.\.venv\Scripts\python.exe -m pip install -r requirements.txt`
 
-- Baseline и safety fallback: V/f и FOC (PI по скорости, PI по токам).
-- AI‑управление (`ai_voltage`): агент напрямую управляет `v_d / v_q` (без PI и FOC в контуре).
+## Обучение `ai_voltage`
 
-### 4.2 Контур `ai_voltage`
-
-`action ∈ [-1, 1]^2` → масштабирование `v_d/v_q` → safety envelope (по току) → сглаживание → `dq→abc` → инвертор → dq‑модель АД
-
-## 5. Digital Twin (модель привода)
-
-- dq‑модель асинхронного двигателя
-- модель трёхфазного инвертора
-- преобразования `abc ↔ dq`
-- расчёт момента и механики (`J`, `B`)
-- сценарии скорости и нагрузки
-
-## 6. Идентификация параметров двигателя
-
-Команды (симуляция/демо‑конфиг):
-```bash
-python mic_ai/tools/identify_motor.py --env-config config/env_demo_true_motor1.py --output out/ident_simple.json
-python mic_ai/tools/full_identify_motor.py --env-config config/env_demo_true_motor1.py --output out/ident_full.json
-```
-
-## 7. RL (PPO)
-
-- Алгоритм: PPO (on‑policy), PyTorch
-- Состояние (пример): нормированная скорость, `i_d/i_q`, slip, предыдущие действия
-- Reward используется как обучающий сигнал; качество сравнивается по физическим метрикам на детерминированном eval
-
-## 8. Методика сравнения AI vs FOC (строго и воспроизводимо)
-
-Для корректного сравнения используются одинаковые:
-- профили `ω_ref(t)` (в т.ч. piecewise по эпизоду)
-- нагрузка `T_load(t)`
-- длительность эпизода (`episode_steps`)
-- ограничения по току и напряжению
-
-Оцениваемые метрики (усреднение по эпизоду):
-- `I_rms` статора, A
-- `P_in^+` — положительная составляющая входной мощности, W
-- `|ω_ref − ω|`, рад/с
-
-## 9. Установка и быстрый старт
-
-Установка зависимостей:
-```bash
-python -m pip install -r requirements.txt
-```
-
-Запуск симуляции:
-```bash
-python main.py --mode foc --scenario speed_step --t-end 0.5 --dt 0.0001 --no-plot
-```
-Результаты: `outputs/results/data_N.npz`
-
-Графики по сохранённому `npz`:
-```bash
-python -c "from outputs.plots import plot_run; plot_run('outputs/results/data_1.npz')"
-```
-Результаты: `outputs/figures/`
-
-## 10. Обучение `ai_voltage`
-
-Рекомендуемый режим для воспроизводимых сравнений: `--episode-steps 200`.
-
-```bash
-python mic_ai/ai/train_ai_voltage.py config/env_demo_true_motor1.py --episodes 600 --episode-steps 200
-```
+`.\.venv\Scripts\python.exe mic_ai/ai/train_ai_voltage.py config/env_demo_true_motor1.py --episodes 600 --episode-steps 200`
 
 Артефакты:
-- `outputs/demo_ai/episode_logs/` — JSON‑логи эпизодов
-- `outputs/demo_ai/plots/` — `npz` с кривыми обучения
-- `outputs/demo_ai/checkpoints/` — чекпойнты (`best_actor.pth`, `last_actor.pth`)
-- `results_run/<timestamp>_<config>/` — метрики/плоты запуска
+- `outputs/demo_ai/episode_logs/` — JSON-логи по эпизодам
+- `outputs/demo_ai/plots/` — графики обучения
+- `outputs/demo_ai/checkpoints/` — `best_actor.pth`, `last_actor.pth`
 
-## 11. Детерминированный eval и сравнение с FOC
+## Научные графики (AI vs FOC, IEEE-стиль)
 
-Eval чекпойнта (политика без стохастики действий):
-```bash
-python -m mic_ai.tools.eval_ai_voltage_checkpoint --env-config config/env_demo_true_motor1.py --checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episodes 30 --episode-steps 200 --output outputs/demo_ai/episode_logs/ai_voltage_eval_motor1.json
-```
+Строгое сравнение (одинаковые `ω_ref`, нагрузка, длительность эпизода, ограничения):
 
-Сравнение и базовые графики:
-```bash
-python -m mic_ai.tools.compare_ai_foc --env-config config/env_demo_true_motor1.py --ai-episodes outputs/demo_ai/episode_logs/ai_voltage_eval_motor1.json --output-dir outputs/compare_ai_foc_eval_200 --episode-steps 200 --foc-eval-episodes 30
-```
+`.\.venv\Scripts\python.exe -m mic_ai.tools.paper_plots_ai_vs_foc --env-config config/env_demo_true_motor1.py --ai-checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episode-steps 200 --episodes-per-stage 25 --window 5 --out-dir outputs/paper_figures_motor1_strict_v7 --voltage-scale 1.25 --disable-noise`
 
-## 12. Графики для статьи (IEEE‑стиль, русские подписи)
+Вывод: `outputs/paper_figures_motor1_strict_v7/` (PNG+PDF+JSON+`captions_ru.txt`).
 
-Скрипт генерирует 4 фигуры (Irms, Pin+, |ω_ref−ω|, Pareto) в PNG и PDF и сохраняет исходные JSON‑данные для воспроизводимости.
+## Пакет для статьи: многократные прогоны (seeds), таблицы и 95% ДИ
 
-```bash
-python -m mic_ai.tools.paper_plots_ai_vs_foc --env-config config/env_demo_true_motor1.py --ai-checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episode-steps 200 --episodes-per-stage 25 --window 5 --out-dir outputs/paper_figures_motor1_strict --voltage-scale 1.0 --disable-noise
-```
+Запуск без шумов измерений (AI: среднее и 95% доверительный интервал по сид-прогонам):
 
-Результаты: `outputs/paper_figures_motor1_strict/`
+`.\.venv\Scripts\python.exe -m mic_ai.tools.paper_eval_suite --env-config config/env_demo_true_motor1.py --ai-checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episode-steps 200 --episodes-per-stage 25 --voltage-scale 1.25 --seeds 10 --seed0 0 --disable-noise --out-dir outputs/paper_eval_suite_motor1_s10`
 
-## 13. Структура репозитория
+Режим с шумами измерений (шум применяется к AI-наблюдениям и входам FOC-контроллера в симуляции):
 
-```
-mic_ai/
-  ai/            обучение и окружение AI
-  ident/         идентификация параметров
-  tools/         отчёты, графики, анализ
-control/         V/f, FOC
-models/          dq‑двигатель, инвертор, преобразования
-simulation/      окружение и сценарии
-outputs/         результаты и артефакты
-results_run/     артефакты запусков (метрики/плоты/веса)
-```
+`.\.venv\Scripts\python.exe -m mic_ai.tools.paper_eval_suite --env-config config/env_demo_true_motor1.py --ai-checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episode-steps 200 --episodes-per-stage 25 --voltage-scale 1.25 --seeds 10 --seed0 0 --sigma-omega 0.05 --sigma-i 0.03 --out-dir outputs/paper_eval_suite_motor1_s10_noise_fair`
 
-## 14. Тесты
+Артефакты в `outputs/paper_eval_suite_motor1_s10/`:
+- `summary_overall.csv` — сводная таблица метрик (AI mean/std/ci95 vs FOC)
+- `summary_by_stage.csv` — сводка по стадиям
+- `fig_stage_Irms.*`, `fig_stage_Pin_pos.*`, `fig_stage_speed_error.*` — графики по стадиям (AI: 95% ДИ)
+- `run_meta.json` — параметры запуска (для воспроизводимости)
 
-```bash
-python -m pytest -q
-```
+## Экспорт таблиц (LaTeX/Markdown)
 
-## 15. Примечания
+Генерация таблиц для вставки в статью (LaTeX) и для предпросмотра (Markdown):
 
-- `gym` выводит предупреждение на NumPy 2.x; это не блокирует запуск. Переход на `gymnasium` запланирован.
-- Инструменты в `mic_ai/tools/` предпочтительно запускать как модуль: `python -m mic_ai.tools.<script> ...`
+`.\.venv\Scripts\python.exe -m mic_ai.tools.paper_tables --summary-overall outputs/paper_eval_suite_motor1_s10/summary_overall.csv --summary-by-stage outputs/paper_eval_suite_motor1_s10/summary_by_stage.csv --summary-cases outputs/paper_param_robustness_motor1_s5_no_noise/summary_cases.csv --out-dir outputs/paper_tables --prefix motor1`
+
+## Робастность: вариации параметров двигателя/нагрузки
+
+Прогон набора сценариев с вариацией параметров (пример: `Rs +10%`, `Lm -10%`, `J +20%`, `T_load +20%`, комбинированный worst-case):
+
+`.\.venv\Scripts\python.exe -m mic_ai.tools.paper_param_robustness --env-config config/env_demo_true_motor1.py --ai-checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episode-steps 200 --episodes-per-stage 25 --voltage-scale 1.25 --seeds 5 --seed0 0 --disable-noise --out-dir outputs/paper_param_robustness_motor1_s5_no_noise`
+
+Вывод: `outputs/paper_param_robustness_motor1_s5_no_noise/`
+
+- `summary_cases.csv` — сравнение AI vs FOC по всем кейсам (mean + 95% ДИ для AI)
+- `case_*/summary_overall.csv`, `case_*/summary_by_stage.csv` — таблицы по каждому кейсу
+- `case_*/run_meta.json` — параметры и масштабирование кейса
+
+## Manifest эксперимента (воспроизводимость)
+
+Экспорт “паспортных” данных запуска (конфиг, ограничения, профиль `ω_ref`, сиды, версии, хэш чекпойнта):
+
+`.\.venv\Scripts\python.exe -m mic_ai.tools.paper_experiment_manifest --env-config config/env_demo_true_motor1.py --ai-checkpoint outputs/demo_ai/checkpoints/motor1/last_actor.pth --episode-steps 200 --episodes-per-stage 25 --voltage-scale 1.25 --seeds 10 --seed0 0 --disable-noise --out-dir outputs/paper_manifest_motor1`
+
+Вывод: `outputs/paper_manifest_motor1/manifest_motor1.json` и `outputs/paper_manifest_motor1/manifest_motor1.md`.
+
+## Структура репозитория (кратко)
+
+- `models/` — dq-модель, инвертор, преобразования
+- `control/` — V/f, FOC
+- `simulation/` — окружение и симуляция
+- `mic_ai/ai/` — окружения и агенты
+- `mic_ai/tools/` — отчёты, сравнения, paper-графики
+- `outputs/` — результаты экспериментов

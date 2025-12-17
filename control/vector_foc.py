@@ -37,21 +37,10 @@ class PI:
 
 class FocController:
     def __init__(self, params: FocParams, motor_params: MotorParams, dt: float):
-        # слегка ослабляем регуляторы для большего влияния RL
-        weaken = 0.7
-        params = FocParams(
-            kp_id=params.kp_id * weaken,
-            ki_id=params.ki_id * weaken,
-            kp_iq=params.kp_iq * weaken,
-            ki_iq=params.ki_iq * weaken,
-            kp_speed=params.kp_speed * weaken,
-            ki_speed=params.ki_speed * weaken,
-            id_ref=params.id_ref,
-            iq_limit=params.iq_limit,
-            v_limit=params.v_limit,
-        )
         self.params = params
         self.p = motor_params.p
+        self.Rr = float(getattr(motor_params, "Rr", 0.0))
+        self.Lr = float(getattr(motor_params, "Lr_sigma", 0.0) + getattr(motor_params, "Lm", 0.0))
         self.dt = dt
 
         self.pi_id = PI(params.kp_id, params.ki_id, dt, limit=params.v_limit)
@@ -114,7 +103,7 @@ class FocController:
         e_iq = i_q_ref - i_q
 
         v_d = self.pi_id.step(e_id)
-        v_q = -self.pi_iq.step(e_iq)
+        v_q = self.pi_iq.step(e_iq)
 
         # при необходимости ограничиваем результирующее напряжение по модулю
         if self.params.v_limit is not None:
@@ -124,7 +113,12 @@ class FocController:
                 v_d *= scale
                 v_q *= scale
 
-        omega_syn = self.p * omega_ref
+        eps = 1e-6
+        if self.Rr > 0.0 and self.Lr > eps:
+            omega_slip = (self.Rr / self.Lr) * (i_q_ref / max(abs(i_d_ref), eps))
+        else:
+            omega_slip = 0.0
+        omega_syn = self.p * omega_m + omega_slip
         self.theta_e = theta_e + omega_syn * self.dt
         self.omega_syn = omega_syn
 

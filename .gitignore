@@ -14,5 +14,11 @@ outputs/ident/
 outputs/**/*.json
 outputs/**/*.npz
 outputs/**/*.png
+outputs/**/*.pdf
+outputs/**/*.svg
+outputs/**/*.csv
+outputs/**/*.txt
+outputs/**/*.tex
+outputs/**/*.md
 outputs/**/*.pth
 results_run/

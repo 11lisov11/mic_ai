@@ -55,6 +55,8 @@ class InductionMotorEnv(gym.Env):
         self.env = env_config
         self.dt = env_config.sim.dt
         self.mode = env_config.sim.mode.lower()
+        self.sigma_omega = max(float(getattr(env_config.sim, "sigma_omega", 0.0) or 0.0), 0.0)
+        self.sigma_i_abc = max(float(getattr(env_config.sim, "sigma_i_abc", 0.0) or 0.0), 0.0)
 
         self.motor = InductionMotorModel(env_config.motor)
         self.inverter = IdealInverter(env_config.inverter)
@@ -133,11 +135,19 @@ class InductionMotorEnv(gym.Env):
         
         # --- Унифицированный шаг управления ---
         # Контроллер ожидает i_abc с предыдущего шага (или отфильтрованные)
+        omega_m_true = self.motor.state.omega_m
+        i_abc_true = self.last_currents_abc
+        omega_m_meas = omega_m_true + np.random.randn() * self.sigma_omega if self.sigma_omega > 0 else omega_m_true
+        if self.sigma_i_abc > 0:
+            i_abc_meas = tuple(float(x + np.random.randn() * self.sigma_i_abc) for x in i_abc_true)
+        else:
+            i_abc_meas = i_abc_true
+
         v_d, v_q, theta_e, omega_syn, ctrl_info = self.controller.step(
             t=t,
             omega_ref=omega_ref,
-            omega_m=self.motor.state.omega_m,
-            i_abc=self.last_currents_abc,
+            omega_m=omega_m_meas,
+            i_abc=i_abc_meas,
             torque_e=self.last_torque,
             theta_mech=self.theta_mech
         )

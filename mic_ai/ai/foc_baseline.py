@@ -98,19 +98,39 @@ def run_foc_baseline(
     n_episodes_eval: int = 5,
     episode_steps: int = 400,
     v_limit: float | None = None,
+    sigma_omega: float | None = None,
+    sigma_i_abc: float | None = None,
+    env_cfg_override: object | None = None,
 ) -> List[Dict[str, float]]:
     """
     Run FOC baseline episodes matching the ai_voltage curriculum and return episode summaries.
     """
-    env_sim = make_env_from_config(str(config_name))
-    env_cfg = env_sim.env_config
+    if env_cfg_override is None:
+        env_sim = make_env_from_config(str(config_name))
+        env_cfg = env_sim.env_config
+    else:
+        env_cfg = env_cfg_override  # type: ignore[assignment]
     if v_limit is not None and hasattr(env_cfg, "foc"):
         try:
             env_cfg = replace(env_cfg, foc=replace(env_cfg.foc, v_limit=float(v_limit)))
         except Exception:
             pass
+    if sigma_omega is not None or sigma_i_abc is not None:
+        try:
+            sim_cfg = getattr(env_cfg, "sim", None)
+            if sim_cfg is not None:
+                env_cfg = replace(
+                    env_cfg,
+                    sim=replace(
+                        sim_cfg,
+                        sigma_omega=float(sigma_omega) if sigma_omega is not None else float(getattr(sim_cfg, "sigma_omega", 0.0) or 0.0),
+                        sigma_i_abc=float(sigma_i_abc) if sigma_i_abc is not None else float(getattr(sim_cfg, "sigma_i_abc", 0.0) or 0.0),
+                    ),
+                )
+        except Exception:
+            pass
     # Match the ai_voltage training nominal reference:
-    # build_env() uses omega_ref = 2π * 10 / p (10 Hz electrical base, converted to mechanical rad/s via pole pairs).
+    # omega_ref = 2*pi*10/p (10 Hz electrical base -> mechanical rad/s via pole pairs).
     omega_nominal = float(2.0 * np.pi * 10.0 / max(getattr(env_cfg.motor, "p", 1), 1))
     piecewise_steps = tuple(int(x) for x in curriculum_config.get("piecewise_steps", (150, 300)))
     multipliers = tuple(float(x) for x in curriculum_config.get("piecewise_multipliers", (1.0, 0.8, 1.0)))
@@ -144,9 +164,6 @@ def run_foc_baseline(
     return results
 
 
-def save_foc_baseline(config_name: str, curriculum_config: Dict[str, object], log_path: Path, n_episodes_eval: int = 5, episode_steps: int = 400) -> Path:
-    log_path = log_path.resolve()
-    log_path.parent.mkdir(parents=True, exist_ok=True)
 def save_foc_baseline(
     config_name: str,
     curriculum_config: Dict[str, object],
@@ -154,13 +171,21 @@ def save_foc_baseline(
     n_episodes_eval: int = 5,
     episode_steps: int = 400,
     v_limit: float | None = None,
+    sigma_omega: float | None = None,
+    sigma_i_abc: float | None = None,
+    env_cfg_override: object | None = None,
 ) -> Path:
+    log_path = log_path.resolve()
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     results = run_foc_baseline(
         config_name,
         curriculum_config,
         n_episodes_eval=n_episodes_eval,
         episode_steps=episode_steps,
         v_limit=v_limit,
+        sigma_omega=sigma_omega,
+        sigma_i_abc=sigma_i_abc,
+        env_cfg_override=env_cfg_override,
     )
     with log_path.open("w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
