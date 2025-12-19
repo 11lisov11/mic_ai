@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MIC_AI Candidate Policy",
+  "type": "object",
+  "required": ["policy_type", "params"],
+  "properties": {
+    "policy_id": {
+      "type": "string"
+    },
+    "policy_type": {
+      "type": "string",
+      "enum": ["vf", "foc", "pid_speed", "mic_rule", "nn_stub", "nn"]
+    },
+    "params": {
+      "type": "object",
+      "description": "Policy parameters (controller gains, limits, etc.)"
+    },
+    "limits": {
+      "type": "object",
+      "description": "Safety limit overrides"
+    },
+    "testsuite_overrides": {
+      "type": "object",
+      "properties": {
+        "duration": { "type": "number" },
+        "dt": { "type": "number" },
+        "controller": { "type": "string" },
+        "seed": { "type": "integer" },
+        "log_root": { "type": "string" },
+        "run_prefix": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "with_identification": {
+      "type": "boolean"
+    },
+    "id_config": {
+      "type": "object",
+      "description": "Identification configuration overrides",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

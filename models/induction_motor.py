@@ -31,6 +31,13 @@ class InductionMotorModel:
         self.Lr = params.Lr_sigma + params.Lm
         self.denom = self.Ls * self.Lr - params.Lm ** 2
 
+    def update_params(self, params: MotorParams) -> None:
+        """Update motor parameters and refresh derived inductances."""
+        self.params = params
+        self.Ls = params.Ls_sigma + params.Lm
+        self.Lr = params.Lr_sigma + params.Lm
+        self.denom = self.Ls * self.Lr - params.Lm ** 2
+
     def _currents(self, state: MotorState) -> Tuple[float, float, float, float]:
         """
         Рассчитать dq-токи статора и ротора по потокосцеплениям.

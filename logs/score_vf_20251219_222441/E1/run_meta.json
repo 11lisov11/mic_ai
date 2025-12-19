@@ -1,0 +1,136 @@
+{
+  "bench_version": "0.1.0",
+  "config": {
+    "controller": "scalar",
+    "disturbance_profile": null,
+    "dt": 0.01,
+    "duration": 1.0,
+    "foc": {
+      "id_ref": 0.4,
+      "iq_limit": 2.0,
+      "ki_id": 100.0,
+      "ki_iq": 100.0,
+      "ki_speed": 2.5,
+      "kp_id": 1.0,
+      "kp_iq": 1.0,
+      "kp_speed": 0.5,
+      "v_limit": 311.7691453623979
+    },
+    "inverter": {
+      "Vdc": 540.0,
+      "f_pwm": 10000.0
+    },
+    "load_config": {
+      "mode": "torque",
+      "speed_int_limit": 0.0,
+      "speed_ki": 0.0,
+      "speed_kp": 0.0,
+      "t_max": 2.4696456686673414,
+      "tau_load": 0.05
+    },
+    "load_profile": {
+      "amplitude": 0.0,
+      "frequency": 0.0,
+      "initial": 0.0,
+      "kind": "constant",
+      "seed": null,
+      "step_interval": 0.0,
+      "step_time": 0.0,
+      "value": 0.0
+    },
+    "log_root": "logs\\score_vf_20251219_222441",
+    "motor": {
+      "B": 0.001084293285114197,
+      "I_n": 0.7,
+      "J": 0.01,
+      "Lm": 2.850407894697701,
+      "Lr_sigma": 0.05,
+      "Ls_sigma": 0.05,
+      "Rr": 42.17957024079473,
+      "Rs": 17.006802721088434,
+      "p": 2
+    },
+    "param_drift": null,
+    "run_name": "E1",
+    "safety": {
+      "i_inst_max": null,
+      "i_rms_max": null,
+      "omega_max": null,
+      "vdc_max": null
+    },
+    "scalar_vf": {
+      "f_max": 50.0,
+      "f_min": 1.0,
+      "k_vf": 4.387862045841156,
+      "u_boost": 25.0
+    },
+    "sensor": {
+      "currents": {
+        "delay_steps": 0,
+        "quant": 0.0,
+        "sigma": 0.0
+      },
+      "omega": {
+        "delay_steps": 0,
+        "quant": 0.0,
+        "sigma": 0.0
+      },
+      "seed": null,
+      "vdc": {
+        "delay_steps": 0,
+        "quant": 0.0,
+        "sigma": 0.0
+      }
+    },
+    "speed_profile": {
+      "amplitude": 0.0,
+      "frequency": 0.0,
+      "initial": 0.0,
+      "kind": "step",
+      "seed": null,
+      "step_interval": 0.0,
+      "step_time": 0.1,
+      "value": 121.47491593880534
+    }
+  },
+  "context": {
+    "aging": 0.0,
+    "est_params": {
+      "B_est": null,
+      "J_est": null,
+      "Rs_est": 6.164445498999224
+    }
+  },
+  "identification": {
+    "aging": 0.0,
+    "est_params": {
+      "B_est": null,
+      "J_est": null,
+      "Rs_est": 6.164445498999224
+    },
+    "id_log_path": "logs\\score_vf_20251219_222441\\identify\\timeseries.npz",
+    "id_metrics": {
+      "i_q_mean": 0.965598763643429,
+      "v_q_mean": 5.952380952380952,
+      "window_end": 0.13,
+      "window_start": 0.1
+    }
+  },
+  "metrics": {
+    "current_scale": NaN,
+    "dt": 0.01,
+    "duration": 0.99,
+    "i_rms": NaN,
+    "iae": NaN,
+    "overshoot": NaN,
+    "ref_scale": 121.47491593880534,
+    "safety_trip": 0.0,
+    "settling_time": 0.85,
+    "smoothness": 381.3481509996564,
+    "voltage_scale": 194.66399910585804
+  },
+  "npz_path": "logs\\score_vf_20251219_222441\\E1\\timeseries.npz",
+  "score": NaN,
+  "seed": null,
+  "steps": 100
+}

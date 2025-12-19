@@ -1,0 +1,11 @@
+{
+  "policy_id": "foc_default",
+  "policy_type": "foc",
+  "params": {},
+  "limits": {},
+  "testsuite_overrides": {
+    "duration": 0.2,
+    "dt": 0.01,
+    "controller": "foc"
+  }
+}
