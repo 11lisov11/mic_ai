@@ -101,6 +101,7 @@
       "Rs_est": 17.01373958520963
     }
   },
+  "disqualified": false,
   "identification": {
     "aging": 0.00040788761032640227,
     "est_params": {
@@ -118,19 +119,23 @@
   },
   "metrics": {
     "current_scale": 1.0,
+    "disqualified": 0.0,
     "dt": 0.001,
     "duration": 0.199,
+    "energy_proxy": 12.435047287135488,
     "i_rms": 0.27884507411312087,
     "iae": 24.68617938978041,
     "overshoot": 0.0,
+    "power_scale": 52.71770346759332,
     "ref_scale": 121.47491593880534,
+    "ripple": 0.1802717054851707,
     "safety_trip": 0.0,
     "settling_time": 0.0,
     "smoothness": 182.43508493672806,
     "voltage_scale": 35.14513564506221
   },
   "npz_path": "logs\\testsuite_20251219_222656\\E3\\timeseries.npz",
-  "score": 46.28167819085727,
+  "score": 44.56501709043152,
   "seed": null,
   "steps": 200
 }

@@ -93,14 +93,19 @@
       "value": 15.184364492350667
     }
   },
+  "disqualified": false,
   "metrics": {
     "current_scale": 1.0,
+    "disqualified": 0.0,
     "dt": 0.01,
     "duration": 0.19,
+    "energy_proxy": 0.0,
     "i_rms": 0.0,
     "iae": 3.0586094695094017,
     "overshoot": 0.3448205464144476,
+    "power_scale": 1.5,
     "ref_scale": 15.184364492350667,
+    "ripple": 0.0,
     "safety_trip": 0.0,
     "settling_time": 0.0,
     "smoothness": 0.0,

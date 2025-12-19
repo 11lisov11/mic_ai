@@ -1,0 +1,31 @@
+{
+  "baseline_hashes": {
+    "0": "fb5eca07813298561a989cf597bc65ca8ed111027358d5270413c896aa944938",
+    "1": "6c82b0b51498ebd987a87ae40d86f3f7f6fdece4377bc4d10475c046cef672ea",
+    "2": "6d2e87676172a8b9ecd6cbcfdbc1998d470521ba63810b110ff07d224cfc63c9"
+  },
+  "baseline_mean": 45.75448117807897,
+  "baseline_scores": {
+    "0": 45.75448117817255,
+    "1": 45.75448117807897,
+    "2": 45.75448117798539
+  },
+  "best_improvement_abs": 2.1237976193895918,
+  "best_improvement_rel": 0.04641725935266655,
+  "best_params": {
+    "dvq_max": 1629.0294817171691,
+    "integrator_limit": 0.7235028213034004,
+    "k_age": 0.20200414976193715,
+    "ki": 0.7170407640190779,
+    "kp": 2.2129830206970165,
+    "tau_action": 0.04515053537704636,
+    "vq_max": 223.62947331624508
+  },
+  "best_score": 47.87827879746856,
+  "best_seed_wins": 3,
+  "iters": 60,
+  "min_abs_improve": 2.0,
+  "min_rel_improve": 0.05,
+  "policy": "mic_rule",
+  "replicates": 3
+}

@@ -10,6 +10,7 @@ import math
 import numpy as np
 
 from bench.leaderboard import update_leaderboard
+from bench.validation import suite_conditions
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,8 @@ class ScoreWeights:
     settling_time: float = 0.2
     i_rms: float = 0.5
     smoothness: float = 0.01
+    energy_proxy: float = 0.2
+    ripple: float = 0.2
 
 
 @dataclass(frozen=True)
@@ -28,7 +31,7 @@ class ScoreConfig:
     """Scoring configuration."""
 
     weights: ScoreWeights = ScoreWeights()
-    safety_penalty: float = 0.1
+    safety_penalty: float = 0.0
     base_score: float = 100.0
     eps: float = 1e-6
 
@@ -40,12 +43,28 @@ def score_testsuite(
     score_config: ScoreConfig | None = None,
 ) -> dict[str, object]:
     """Score a testsuite run directory and update the leaderboard."""
+    entry = build_score_entry(run_dir, policy_id, score_config)
+    leaderboard_path = Path(leaderboard_path)
+    update_leaderboard(leaderboard_path, entry)
+    return {
+        "score": entry["score"],
+        "leaderboard_path": leaderboard_path,
+        "entry": entry,
+    }
+
+
+def build_score_entry(
+    run_dir: str | Path,
+    policy_id: str,
+    score_config: ScoreConfig | None = None,
+) -> dict[str, object]:
+    """Build a leaderboard entry without modifying the leaderboard."""
     run_dir = Path(run_dir)
     if not run_dir.exists():
         raise FileNotFoundError(f"testsuite run_dir not found: {run_dir}")
     score_config = score_config or ScoreConfig()
 
-    case_dirs = sorted([p for p in run_dir.iterdir() if p.is_dir()])
+    case_dirs = sorted([p for p in run_dir.iterdir() if p.is_dir() and p.name.startswith("E")])
     if not case_dirs:
         raise ValueError(f"No case directories found in {run_dir}")
 
@@ -54,10 +73,16 @@ def score_testsuite(
         metrics, score = score_run(case_dir, score_config)
         case_results.append({"case": case_dir.name, "metrics": metrics, "score": score})
 
+    suite_disqualified = any(case["metrics"].get("safety_trip", 0.0) > 0.0 for case in case_results)
     suite_score = float(np.mean([case["score"] for case in case_results]))
+    if suite_disqualified:
+        suite_score = float(score_config.safety_penalty)
+
     suite_metrics = _aggregate_metrics([case["metrics"] for case in case_results])
     suite_metrics["suite_score"] = suite_score
+    suite_metrics["disqualified"] = float(suite_disqualified)
 
+    conditions = suite_conditions(run_dir)
     entry = {
         "policy_id": policy_id,
         "score": suite_score,
@@ -65,14 +90,13 @@ def score_testsuite(
         "timestamp": _now_stamp(),
         "metrics": suite_metrics,
         "cases": [{"case": c["case"], "score": c["score"]} for c in case_results],
+        "conditions": {
+            "suite_hash": conditions.get("suite_hash"),
+            "case_hashes": conditions.get("case_hashes"),
+        },
+        "disqualified": suite_disqualified,
     }
-    leaderboard_path = Path(leaderboard_path)
-    update_leaderboard(leaderboard_path, entry)
-    return {
-        "score": suite_score,
-        "leaderboard_path": leaderboard_path,
-        "entry": entry,
-    }
+    return entry
 
 
 def score_run(run_dir: str | Path, score_config: ScoreConfig | None = None) -> tuple[dict[str, float], float]:
@@ -98,13 +122,26 @@ def score_run(run_dir: str | Path, score_config: ScoreConfig | None = None) -> t
 
     meta["metrics"] = metrics
     meta["score"] = score
+    meta["disqualified"] = bool(metrics.get("safety_trip", 0.0) > 0.0)
     _write_json(meta_path, meta)
     return metrics, score
 
 
 def compute_metrics(timeseries: Mapping[str, np.ndarray], dt: float | None = None) -> dict[str, float]:
     """Compute tracking metrics from time series arrays."""
-    required = ("t", "omega_m", "omega_ref", "i_a", "i_b", "i_c", "v_d", "v_q", "flag_safety")
+    required = (
+        "t",
+        "omega_m",
+        "omega_ref",
+        "i_d",
+        "i_q",
+        "i_a",
+        "i_b",
+        "i_c",
+        "v_d",
+        "v_q",
+        "flag_safety",
+    )
     missing = [key for key in required if key not in timeseries]
     if missing:
         raise KeyError(f"Missing timeseries keys: {missing}")
@@ -112,6 +149,8 @@ def compute_metrics(timeseries: Mapping[str, np.ndarray], dt: float | None = Non
     t = np.asarray(timeseries["t"], dtype=float)
     omega_m = np.asarray(timeseries["omega_m"], dtype=float)
     omega_ref = np.asarray(timeseries["omega_ref"], dtype=float)
+    i_d = np.asarray(timeseries["i_d"], dtype=float)
+    i_q = np.asarray(timeseries["i_q"], dtype=float)
     i_a = np.asarray(timeseries["i_a"], dtype=float)
     i_b = np.asarray(timeseries["i_b"], dtype=float)
     i_c = np.asarray(timeseries["i_c"], dtype=float)
@@ -129,10 +168,13 @@ def compute_metrics(timeseries: Mapping[str, np.ndarray], dt: float | None = Non
     i_rms = float(np.sqrt(np.mean((i_a * i_a + i_b * i_b + i_c * i_c) / 3.0)))
     smoothness = float(_control_smoothness(v_d, v_q, dt_val))
     safety_trip = float(np.any(flag_safety > 0.5))
+    energy_proxy = float(_mean_abs(1.5 * (v_d * i_d + v_q * i_q)))
+    ripple = float(_current_ripple(i_d, i_q))
 
     ref_scale = float(max(np.max(np.abs(omega_ref)), 1.0))
     current_scale = float(max(np.max(np.abs(np.concatenate([i_a, i_b, i_c]))), 1.0))
     voltage_scale = float(max(np.max(np.hypot(v_d, v_q)), 1.0))
+    power_scale = float(max(1.5 * voltage_scale * current_scale, 1.0))
 
     return {
         "iae": iae,
@@ -141,16 +183,23 @@ def compute_metrics(timeseries: Mapping[str, np.ndarray], dt: float | None = Non
         "i_rms": i_rms,
         "smoothness": smoothness,
         "safety_trip": safety_trip,
+        "disqualified": float(safety_trip > 0.0),
+        "energy_proxy": energy_proxy,
+        "ripple": ripple,
         "dt": float(dt_val),
         "duration": float(duration),
         "ref_scale": ref_scale,
         "current_scale": current_scale,
         "voltage_scale": voltage_scale,
+        "power_scale": power_scale,
     }
 
 
 def compute_score(metrics: Mapping[str, float], config: ScoreConfig) -> float:
     """Compute scalar score from metrics."""
+    if metrics.get("safety_trip", 0.0) > 0.0:
+        return float(config.safety_penalty)
+
     w = config.weights
     eps = config.eps
     duration = max(metrics.get("duration", 0.0), metrics.get("dt", 0.0), eps)
@@ -161,6 +210,8 @@ def compute_score(metrics: Mapping[str, float], config: ScoreConfig) -> float:
     settling_norm = metrics["settling_time"] / (duration + eps)
     i_rms_norm = metrics["i_rms"] / (metrics["current_scale"] + eps)
     smooth_norm = metrics["smoothness"] / (metrics["voltage_scale"] / dt + eps)
+    energy_norm = metrics["energy_proxy"] / (metrics.get("power_scale", 1.0) + eps)
+    ripple_norm = metrics["ripple"] / (metrics["current_scale"] + eps)
 
     cost = (
         w.iae * iae_norm
@@ -168,10 +219,10 @@ def compute_score(metrics: Mapping[str, float], config: ScoreConfig) -> float:
         + w.settling_time * settling_norm
         + w.i_rms * i_rms_norm
         + w.smoothness * smooth_norm
+        + w.energy_proxy * energy_norm
+        + w.ripple * ripple_norm
     )
     score = config.base_score / (1.0 + cost)
-    if metrics.get("safety_trip", 0.0) > 0.0:
-        score *= config.safety_penalty
     return float(score)
 
 
@@ -219,10 +270,35 @@ def _control_smoothness(v_d: np.ndarray, v_q: np.ndarray, dt: float) -> float:
     return float(np.sqrt(np.mean(dv_d * dv_d + dv_q * dv_q)))
 
 
+def _mean_abs(values: np.ndarray) -> float:
+    if values.size < 1:
+        return 0.0
+    return float(np.mean(np.abs(values)))
+
+
+def _current_ripple(i_d: np.ndarray, i_q: np.ndarray) -> float:
+    if i_d.size < 1 or i_q.size < 1:
+        return 0.0
+    i_mag = np.sqrt(i_d * i_d + i_q * i_q)
+    i_mean = float(np.mean(i_mag))
+    ripple = i_mag - i_mean
+    return float(np.sqrt(np.mean(ripple * ripple)))
+
+
 def _aggregate_metrics(metrics_list: list[dict[str, float]]) -> dict[str, float]:
     if not metrics_list:
         return {}
-    keys = ("iae", "overshoot", "settling_time", "i_rms", "smoothness", "safety_trip")
+    keys = (
+        "iae",
+        "overshoot",
+        "settling_time",
+        "i_rms",
+        "smoothness",
+        "energy_proxy",
+        "ripple",
+        "safety_trip",
+        "disqualified",
+    )
     return {key: float(np.mean([m[key] for m in metrics_list])) for key in keys}
 
 
@@ -250,4 +326,5 @@ __all__ = [
     "compute_score",
     "score_run",
     "score_testsuite",
+    "build_score_entry",
 ]

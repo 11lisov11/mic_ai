@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Mapping, Sequence
 
+import json
 import math
 import numpy as np
 
@@ -37,6 +38,7 @@ DEFAULT_VDC_MULT = 1.2
 LCG_A = 1664525
 LCG_C = 1013904223
 LCG_M = 2**32
+ACTION_TRACE_LEN = 200
 
 
 @dataclass(frozen=True)
@@ -464,9 +466,13 @@ def _write_logs(
     npz_path = run_dir / "timeseries.npz"
     np.savez(npz_path, **{k: np.asarray(v) for k, v in data.items()})
 
+    action_trace_path, action_trace_len = _write_action_trace(run_dir, data, ACTION_TRACE_LEN)
+
     meta = {
         "bench_version": BENCH_VERSION,
         "npz_path": str(npz_path),
+        "action_trace_path": str(action_trace_path),
+        "action_trace_len": action_trace_len,
         "steps": steps_run,
         "config": _config_to_dict(config),
         "metrics": {},
@@ -498,6 +504,24 @@ def _resolve_run_dir(log_root: Path, run_name: str | None) -> Path:
             candidate.mkdir(parents=True)
             return candidate
         idx += 1
+
+
+def _write_action_trace(
+    run_dir: Path, data: dict[str, list[float]], max_steps: int
+) -> tuple[Path, int]:
+    t = data.get("t", [])
+    v_d = data.get("v_d", [])
+    v_q = data.get("v_q", [])
+    steps = min(len(t), len(v_d), len(v_q), max_steps)
+    trace = [
+        {"t": float(t[idx]), "v_d": float(v_d[idx]), "v_q": float(v_q[idx])}
+        for idx in range(steps)
+    ]
+    path = run_dir / "action_trace.json"
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(trace, handle, indent=2, sort_keys=True, ensure_ascii=True)
+        handle.write("\n")
+    return path, steps
 
 
 def _config_to_dict(config: ExperimentConfig) -> dict[str, object]:

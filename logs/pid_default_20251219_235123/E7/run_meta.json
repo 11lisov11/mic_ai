@@ -103,22 +103,27 @@
     }
   },
   "context": null,
+  "disqualified": false,
   "identification": null,
   "metrics": {
     "current_scale": 1.0,
+    "disqualified": 0.0,
     "dt": 0.001,
     "duration": 0.199,
+    "energy_proxy": 12.303297311425272,
     "i_rms": 0.2753373083513565,
     "iae": 24.56068435453844,
     "overshoot": 0.0,
+    "power_scale": 52.85048362012704,
     "ref_scale": 121.47491593880534,
+    "ripple": 0.17832579738639218,
     "safety_trip": 0.0,
     "settling_time": 0.0,
     "smoothness": 182.837902454029,
     "voltage_scale": 35.23365574675136
   },
   "npz_path": "logs\\pid_default_20251219_235123\\E7\\timeseries.npz",
-  "score": 46.430926369290674,
+  "score": 44.72350084320589,
   "seed": null,
   "steps": 200
 }

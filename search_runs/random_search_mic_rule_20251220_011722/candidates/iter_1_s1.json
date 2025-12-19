@@ -1,0 +1,23 @@
+{
+  "limits": {},
+  "params": {
+    "dvq_max": 2459.4964725869313,
+    "integrator_limit": 1.9720005329079575,
+    "k_age": 0.01127472136860852,
+    "ki": 1.515908805880605,
+    "kp": 4.237667072472735,
+    "tau_action": 0.020246706872520715,
+    "vq_max": 151.0700100351556
+  },
+  "policy_id": "mic_rule_search_1_s1",
+  "policy_type": "mic_rule",
+  "testsuite_overrides": {
+    "controller": "foc",
+    "dt": 0.001,
+    "duration": 0.2,
+    "log_root": "logs",
+    "run_prefix": "iter_1_s1",
+    "seed": 1
+  },
+  "with_identification": true
+}

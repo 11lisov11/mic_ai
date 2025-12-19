@@ -12,6 +12,8 @@ def _write_run(root: Path, name: str, safety_trip: bool = False) -> None:
     t = np.array([0.0, 0.01, 0.02], dtype=float)
     omega_ref = np.array([10.0, 10.0, 10.0], dtype=float)
     omega_m = np.array([0.0, 5.0, 9.0], dtype=float)
+    i_d = np.array([0.05, 0.1, 0.05], dtype=float)
+    i_q = np.array([0.1, 0.2, 0.1], dtype=float)
     i_a = np.array([0.1, 0.2, 0.1], dtype=float)
     i_b = np.array([-0.1, -0.2, -0.1], dtype=float)
     i_c = np.array([0.0, 0.0, 0.0], dtype=float)
@@ -25,6 +27,8 @@ def _write_run(root: Path, name: str, safety_trip: bool = False) -> None:
         t=t,
         omega_m=omega_m,
         omega_ref=omega_ref,
+        i_d=i_d,
+        i_q=i_q,
         i_a=i_a,
         i_b=i_b,
         i_c=i_c,
@@ -54,7 +58,8 @@ def test_score_testsuite_updates_leaderboard(tmp_path) -> None:
     assert len(data["entries"]) == 1
     entry = data["entries"][0]
     assert entry["policy_id"] == "foc_baseline"
-    assert entry["score"] > 0.0
+    assert entry["score"] == 0.0
+    assert entry["metrics"]["disqualified"] == 1.0
 
     meta_path = tmp_path / "E1" / "run_meta.json"
     with meta_path.open("r", encoding="utf-8") as handle:

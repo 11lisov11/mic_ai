@@ -38,6 +38,20 @@
       "type": "object",
       "description": "Identification configuration overrides",
       "additionalProperties": true
+    },
+    "conditions_reference": {
+      "type": "object",
+      "description": "Reference conditions for tuned baselines",
+      "properties": {
+        "suite_hash": { "type": "string" },
+        "source": { "type": "string" },
+        "iters": { "type": "integer" },
+        "seeds": { "type": "integer" },
+        "baseline_score": { "type": "number" },
+        "best_score": { "type": "number" },
+        "improvement_pct": { "type": "number" }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": false

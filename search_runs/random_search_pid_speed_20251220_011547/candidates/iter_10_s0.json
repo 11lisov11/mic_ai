@@ -1,0 +1,19 @@
+{
+  "limits": {},
+  "params": {
+    "integrator_limit": 3.883122287197656,
+    "ki": 1.8260221064757964,
+    "kp": 3.093346169874628
+  },
+  "policy_id": "pid_speed_search_10_s0",
+  "policy_type": "pid_speed",
+  "testsuite_overrides": {
+    "controller": "foc",
+    "dt": 0.001,
+    "duration": 0.2,
+    "log_root": "logs",
+    "run_prefix": "iter_10_s0",
+    "seed": 0
+  },
+  "with_identification": true
+}

@@ -102,21 +102,26 @@
       "value": 121.47491593880534
     }
   },
+  "disqualified": true,
   "metrics": {
     "current_scale": 15.334602749211182,
+    "disqualified": 1.0,
     "dt": 0.01,
     "duration": 0.04,
+    "energy_proxy": 45.78125539550897,
     "i_rms": 5.547555452396989,
     "iae": 6.1483456975468,
     "overshoot": 0.0,
+    "power_scale": 196.43765136182336,
     "ref_scale": 121.47491593880534,
+    "ripple": 6.5525753631954435,
     "safety_trip": 1.0,
     "settling_time": 0.0,
     "smoothness": 212.29358954941256,
     "voltage_scale": 8.540060436058711
   },
   "npz_path": "logs\\testsuite_20251219_213439\\E7\\timeseries.npz",
-  "score": 4.08376271129931,
+  "score": 0.0,
   "seed": null,
   "steps": 5
 }

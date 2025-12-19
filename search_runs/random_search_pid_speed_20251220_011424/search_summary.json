@@ -1,0 +1,23 @@
+{
+  "baseline_hashes": {
+    "0": "fb5eca07813298561a989cf597bc65ca8ed111027358d5270413c896aa944938",
+    "1": "6c82b0b51498ebd987a87ae40d86f3f7f6fdece4377bc4d10475c046cef672ea",
+    "2": "6d2e87676172a8b9ecd6cbcfdbc1998d470521ba63810b110ff07d224cfc63c9"
+  },
+  "baseline_mean": 45.63136895366076,
+  "baseline_scores": {
+    "0": 45.63136895375411,
+    "1": 45.631368953660754,
+    "2": 45.63136895356741
+  },
+  "best_improvement_abs": 0.0,
+  "best_improvement_rel": 0.0,
+  "best_params": {},
+  "best_score": 45.63136895366076,
+  "best_seed_wins": 0,
+  "iters": 10,
+  "min_abs_improve": 2.0,
+  "min_rel_improve": 0.05,
+  "policy": "pid_speed",
+  "replicates": 3
+}
