@@ -16,6 +16,8 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     p.add_argument("--out-dir", default="outputs/paper_figures")
     p.add_argument("--voltage-scale", type=float, default=1.25, help="Per-unit voltage_scale used for AI eval.")
     p.add_argument("--disable-noise", action="store_true", help="Disable measurement noise in AI env for eval.")
+    p.add_argument("--caption-offset", type=int, default=2, help="Offset for figure numbers in captions (e.g. 2 -> Fig. 1 becomes Fig. 3).")
+    p.add_argument("--layout", choices=["stage_summary", "training_curves"], default="stage_summary")
     p.add_argument("--force-eval", action="store_true", help="Recompute baseline and AI eval logs even if JSON files exist.")
     p.add_argument("--no-captions", action="store_true", help="Do not write captions_ru.txt / captions_en.txt.")
     return p.parse_args(argv)
@@ -43,6 +45,8 @@ def main() -> None:
         n_stages=int(prepared.n_stages),
         stage_omega_ref_rad_s=prepared.stage_omega_ref_rad_s,
         figures=[1],
+        layout=str(args.layout),
+        caption_offset=int(args.caption_offset),
         write_captions=not bool(args.no_captions),
     )
     print(f"Saved Fig. 1 to {prepared.out_dir}")
@@ -52,4 +56,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

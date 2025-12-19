@@ -23,6 +23,8 @@ class Series:
     i_rms: np.ndarray
     p_in_pos: np.ndarray
     speed_err: np.ndarray
+    steps: np.ndarray
+    hard_terminated: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,13 @@ class PreparedData:
     ai: Series
     foc: Series
     stage_omega_ref_rad_s: List[float]
+
+
+@dataclass(frozen=True)
+class StageStats:
+    mean: float
+    std: float
+    n: int
 
 
 def _ensure_matplotlib():
@@ -90,6 +99,8 @@ def _extract_series(episodes: List[Dict[str, float]], prefer_i_rms_abc: bool) ->
     i: List[float] = []
     p: List[float] = []
     s: List[float] = []
+    steps: List[int] = []
+    hard: List[int] = []
 
     for idx, ep in enumerate(episodes):
         ep_idx = ep.get("episode", idx)
@@ -110,6 +121,14 @@ def _extract_series(episodes: List[Dict[str, float]], prefer_i_rms_abc: bool) ->
             i.append(float(ep.get("mean_current_rms", 0.0)))
         p.append(float(ep.get("mean_p_in_pos", 0.0)))
         s.append(float(ep.get("mean_speed_error", 0.0)))
+        try:
+            steps.append(int(ep.get("steps", 0)))
+        except Exception:
+            steps.append(0)
+        try:
+            hard.append(int(ep.get("hard_terminated", 0)))
+        except Exception:
+            hard.append(0)
 
     order = np.argsort(np.asarray(xs, dtype=int))
     return Series(
@@ -118,6 +137,8 @@ def _extract_series(episodes: List[Dict[str, float]], prefer_i_rms_abc: bool) ->
         i_rms=np.asarray(i, dtype=float)[order],
         p_in_pos=np.asarray(p, dtype=float)[order],
         speed_err=np.asarray(s, dtype=float)[order],
+        steps=np.asarray(steps, dtype=int)[order],
+        hard_terminated=np.asarray(hard, dtype=int)[order],
     )
 
 
@@ -294,6 +315,38 @@ def _stage_means(series: Series, episodes_per_stage: int, n_stages: int, y: np.n
     return out
 
 
+def _stage_stats(series: Series, episodes_per_stage: int, n_stages: int, y: np.ndarray) -> Dict[int, StageStats]:
+    stage = np.asarray(series.stage, dtype=int)
+    if stage.size != series.episodes.size or np.any(stage < 0):
+        stage = np.asarray([_stage_from_episode(ep, episodes_per_stage, n_stages) for ep in series.episodes], dtype=int)
+    y = np.asarray(y, dtype=float)
+    out: Dict[int, StageStats] = {}
+    for st in range(int(n_stages)):
+        mask = stage == st
+        if not np.any(mask):
+            continue
+        vals = y[mask]
+        vals = vals[np.isfinite(vals)]
+        if vals.size == 0:
+            continue
+        mean = float(np.mean(vals))
+        std = float(np.std(vals, ddof=1)) if vals.size >= 2 else 0.0
+        out[int(st)] = StageStats(mean=mean, std=std, n=int(vals.size))
+    if not out:
+        vals = y[np.isfinite(y)]
+        mean = float(np.mean(vals)) if vals.size else 0.0
+        std = float(np.std(vals, ddof=1)) if vals.size >= 2 else 0.0
+        out[0] = StageStats(mean=mean, std=std, n=int(vals.size))
+    return out
+
+
+def _resolve_stage(series: Series, episodes_per_stage: int, n_stages: int) -> np.ndarray:
+    stage = np.asarray(series.stage, dtype=int)
+    if stage.size != series.episodes.size or np.any(stage < 0):
+        stage = np.asarray([_stage_from_episode(ep, episodes_per_stage, n_stages) for ep in series.episodes], dtype=int)
+    return stage
+
+
 def _plot_foc_stage_means(
     ax,
     foc_means: Dict[int, float],
@@ -460,6 +513,258 @@ def _add_stage_omega_labels(ax, stage_omega_ref_rad_s: List[float]) -> None:
     )
 
 
+def _stage_tick_labels_ru(n_stages: int, stage_omega_ref_rad_s: List[float]) -> List[str]:
+    labels: List[str] = []
+    for st in range(int(n_stages)):
+        if st < len(stage_omega_ref_rad_s) and np.isfinite(stage_omega_ref_rad_s[st]):
+            w = float(stage_omega_ref_rad_s[st])
+            labels.append(rf"Стадия {st}" + "\n" + rf"$\omega_{{\mathrm{{ref}}}}$={w:.2f} рад/с")
+        else:
+            labels.append(f"Стадия {st}")
+    return labels
+
+
+def _plot_stage_bars(
+    ax,
+    *,
+    ai: Series,
+    foc: Series,
+    y_ai: np.ndarray,
+    y_foc: np.ndarray,
+    episodes_per_stage: int,
+    n_stages: int,
+    stage_omega_ref_rad_s: List[float],
+    ylabel: str,
+    title: str,
+    label_ai: str,
+    label_foc: str,
+    best_idx: int | None = None,
+    best_label: str | None = None,
+) -> None:
+    _style_axes(ax, spine_lw=0.7, spine_color="0.30")
+    n_stages = int(n_stages)
+    x = np.arange(n_stages, dtype=float)
+    width = 0.36
+    ai_center = x - width / 2.0
+    foc_center = x + width / 2.0
+
+    stats_ai = _stage_stats(ai, episodes_per_stage, n_stages, np.asarray(y_ai, dtype=float))
+    stats_foc = _stage_stats(foc, episodes_per_stage, n_stages, np.asarray(y_foc, dtype=float))
+    ai_means = [float(stats_ai.get(st, StageStats(0.0, 0.0, 0)).mean) for st in range(n_stages)]
+    ai_stds = [float(stats_ai.get(st, StageStats(0.0, 0.0, 0)).std) for st in range(n_stages)]
+    foc_means = [float(stats_foc.get(st, StageStats(0.0, 0.0, 0)).mean) for st in range(n_stages)]
+    foc_stds = [float(stats_foc.get(st, StageStats(0.0, 0.0, 0)).std) for st in range(n_stages)]
+
+    err_kw = {"elinewidth": 1.0, "ecolor": "0.15", "capsize": 3, "capthick": 1.0}
+    ax.bar(
+        ai_center,
+        ai_means,
+        width=width,
+        yerr=ai_stds,
+        color="0.15",
+        alpha=0.92,
+        label=label_ai,
+        zorder=2,
+        error_kw=err_kw,
+    )
+    ax.bar(
+        foc_center,
+        foc_means,
+        width=width,
+        yerr=foc_stds,
+        color="white",
+        edgecolor="0.15",
+        linewidth=1.2,
+        hatch="///",
+        label=label_foc,
+        zorder=2,
+        error_kw=err_kw,
+    )
+
+    stage_ai = _resolve_stage(ai, episodes_per_stage, n_stages)
+    stage_foc = _resolve_stage(foc, episodes_per_stage, n_stages)
+    rng = np.random.default_rng(0)
+    y_ai = np.asarray(y_ai, dtype=float)
+    y_foc = np.asarray(y_foc, dtype=float)
+    hard_ai = np.asarray(getattr(ai, "hard_terminated", np.zeros_like(stage_ai)), dtype=int)
+    for st in range(n_stages):
+        mask_ai = stage_ai == st
+        if np.any(mask_ai):
+            vals_all = y_ai[mask_ai]
+            hard_all = hard_ai[mask_ai]
+            finite = np.isfinite(vals_all)
+            vals = vals_all[finite]
+            hard_vals = hard_all[finite]
+            jitter = (rng.random(vals.size) - 0.5) * 0.10
+            ax.scatter(
+                np.full(vals.size, ai_center[st]) + jitter,
+                vals,
+                s=18,
+                facecolors=np.where(hard_vals.astype(bool), "none", "0.10"),
+                edgecolors="0.10",
+                alpha=0.18,
+                linewidths=0.7,
+                marker="o",
+                zorder=3,
+                label="_nolegend_",
+            )
+
+    if best_idx is not None and best_label:
+        best_idx = int(best_idx)
+        if 0 <= best_idx < int(y_ai.size):
+            st = int(stage_ai[best_idx]) if best_idx < int(stage_ai.size) else 0
+            st = int(np.clip(st, 0, max(n_stages - 1, 0)))
+            ax.scatter(
+                [ai_center[st]],
+                [float(y_ai[best_idx])],
+                s=85,
+                marker="D",
+                color="black",
+                edgecolors="white",
+                linewidths=1.2,
+                label=best_label,
+                zorder=5,
+            )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(_stage_tick_labels_ru(n_stages, stage_omega_ref_rad_s))
+    ax.set_xlabel("Стадия (задание скорости)")
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title, pad=8)
+    ax.grid(True, axis="y", alpha=0.25)
+    try:
+        ax.set_axisbelow(True)
+    except Exception:
+        pass
+
+    y_hi = float(max([0.0] + [m + s for m, s in zip(ai_means + foc_means, ai_stds + foc_stds)]))
+    ax.set_ylim(0.0, max(1e-9, y_hi * 1.18))
+
+
+def _plot_pareto(
+    ax,
+    *,
+    ai: Series,
+    foc: Series,
+    episodes_per_stage: int,
+    n_stages: int,
+    best_idx: int,
+    label_ai_selected: str,
+) -> None:
+    n_stages = int(n_stages)
+    stage_ai = _resolve_stage(ai, episodes_per_stage, n_stages)
+    stage_foc = _resolve_stage(foc, episodes_per_stage, n_stages)
+
+    hard_ai = np.asarray(getattr(ai, "hard_terminated", np.zeros_like(stage_ai)), dtype=int)
+
+    markers = ["o", "^", "s", "v", "P", "X", "D"]
+
+    # AI episodes, separated by stage (marker shape).
+    for st in range(n_stages):
+        mask = stage_ai == st
+        if not np.any(mask):
+            continue
+        x = np.asarray(ai.speed_err, dtype=float)[mask]
+        y = np.asarray(ai.p_in_pos, dtype=float)[mask]
+        h = hard_ai[mask]
+        finite = np.isfinite(x) & np.isfinite(y)
+        x = x[finite]
+        y = y[finite]
+        h = h[finite]
+        if x.size == 0:
+            continue
+        ax.scatter(
+            x,
+            y,
+            s=30,
+            marker=markers[st % len(markers)],
+            facecolors=np.where(h.astype(bool), "none", "0.15"),
+            edgecolors="0.15",
+            linewidths=0.9,
+            alpha=0.28,
+            label=f"MIC_AI (стадия {st})",
+            zorder=2,
+        )
+
+    # FOC stage-wise means (single legend entry + annotations).
+    foc_points: List[tuple[float, float]] = []
+    for st in range(n_stages):
+        mask = stage_foc == st
+        if not np.any(mask):
+            continue
+        sx = float(np.mean(np.asarray(foc.speed_err, dtype=float)[mask]))
+        py = float(np.mean(np.asarray(foc.p_in_pos, dtype=float)[mask]))
+        ax.scatter(
+            [sx],
+            [py],
+            s=95,
+            marker="D",
+            facecolors="white",
+            edgecolors="0.15",
+            linewidths=1.8,
+            label="FOC (среднее по стадиям)" if not foc_points else None,
+            zorder=4,
+        )
+        foc_points.append((sx, py))
+
+    # Selected AI point.
+    best_idx = int(best_idx)
+    if 0 <= best_idx < int(ai.speed_err.size):
+        ax.scatter(
+            [float(ai.speed_err[best_idx])],
+            [float(ai.p_in_pos[best_idx])],
+            s=115,
+            marker="D",
+            facecolors="black",
+            edgecolors="white",
+            linewidths=1.2,
+            label=label_ai_selected,
+            zorder=5,
+        )
+        ax.annotate(
+            "Выбранный эпизод",
+            xy=(float(ai.speed_err[best_idx]), float(ai.p_in_pos[best_idx])),
+            xytext=(10, -12),
+            textcoords="offset points",
+            ha="left",
+            va="top",
+            fontsize=10,
+            arrowprops={"arrowstyle": "-", "lw": 0.8, "color": "0.25"},
+        )
+
+    for st, (sx, py) in enumerate(foc_points):
+        ax.annotate(
+            f"FOC (стадия {int(st)})",
+            xy=(float(sx), float(py)),
+            xytext=(10, 8),
+            textcoords="offset points",
+            ha="left",
+            va="bottom",
+            fontsize=10,
+            arrowprops={"arrowstyle": "-", "lw": 0.8, "color": "0.25"},
+        )
+
+    ax.set_xlabel(r"$|\omega_{\mathrm{ref}}-\omega|$, рад/с")
+    ax.set_ylabel(r"$P_{\mathrm{in}}^{+}$, Вт")
+    ax.grid(True, alpha=0.25)
+
+    # Axis limits with padding.
+    xs = [np.asarray(ai.speed_err, dtype=float), np.asarray(foc.speed_err, dtype=float)]
+    ys = [np.asarray(ai.p_in_pos, dtype=float), np.asarray(foc.p_in_pos, dtype=float)]
+    x_all = np.concatenate([v[np.isfinite(v)] for v in xs if v.size])
+    y_all = np.concatenate([v[np.isfinite(v)] for v in ys if v.size])
+    if x_all.size:
+        x_lo, x_hi = float(np.min(x_all)), float(np.max(x_all))
+        pad = 0.08 * (x_hi - x_lo) if x_hi > x_lo else 0.5
+        ax.set_xlim(x_lo - pad, x_hi + pad)
+    if y_all.size:
+        y_lo, y_hi = float(np.min(y_all)), float(np.max(y_all))
+        pad = 0.10 * (y_hi - y_lo) if y_hi > y_lo else 1.0
+        ax.set_ylim(max(0.0, y_lo - pad), y_hi + pad)
+
+
+
 def _legend_ordered(ax, order: List[str], **kwargs) -> None:
     handles, labels = ax.get_legend_handles_labels()
     label_to_handle: Dict[str, object] = {}
@@ -475,6 +780,23 @@ def _legend_ordered(ax, order: List[str], **kwargs) -> None:
         leg.set_zorder(10)
     except Exception:
         pass
+
+
+def _figure_legend_ordered(fig, axes: List[object], order: List[str], **kwargs) -> None:
+    label_to_handle: Dict[str, object] = {}
+    for ax in axes:
+        try:
+            handles, labels = ax.get_legend_handles_labels()
+        except Exception:
+            continue
+        for h, l in zip(handles, labels):
+            if not l:
+                continue
+            if l not in label_to_handle:
+                label_to_handle[l] = h
+    ordered_labels = [l for l in order if l in label_to_handle]
+    ordered_handles = [label_to_handle[l] for l in ordered_labels]
+    fig.legend(ordered_handles, ordered_labels, **kwargs)
 
 
 def _pick_best_ai_for_pareto(
@@ -584,12 +906,16 @@ def make_plots(
     n_stages: int,
     stage_omega_ref_rad_s: List[float] | None = None,
     figures: List[int] | None = None,
+    layout: str = "stage_summary",
+    combined: bool = False,
+    caption_offset: int = 0,
     write_captions: bool = True,
 ) -> Path | None:
     plt = _set_ieee_style()
 
     stage_omega_ref_rad_s = list(stage_omega_ref_rad_s or [])
     figs = set(int(f) for f in (figures or [1, 2, 3, 4]))
+    layout = str(layout or "stage_summary").strip().lower()
 
     x_min = int(min(np.min(ai.episodes), np.min(foc.episodes)))
     x_max = int(max(np.max(ai.episodes), np.max(foc.episodes)))
@@ -607,10 +933,12 @@ def make_plots(
     best_idx = _pick_best_ai_for_pareto(ai, foc_s_means, episodes_per_stage, n_stages)
     best_ep = int(ai.episodes[best_idx])
 
-    label_ai_eps = "AI (эксперименты)"
+    label_ai_eps = "AI (эпизоды)"
     label_ai_roll = f"AI (скользящее среднее, окно {int(window)})"
     label_foc = "FOC (среднее по стадиям)"
-    label_ai_selected = "AI selected (Парето)"
+    label_ai_selected = "Выбранный эпизод (Парето)"
+    label_ai_bar = r"MIC_AI (среднее $\pm\sigma$)"
+    label_foc_bar = r"FOC (среднее $\pm\sigma$)"
 
     ai_i_roll, _ = _rolling_mean_std(ai.i_rms, window)
     ai_p_roll, _ = _rolling_mean_std(ai.p_in_pos, window)
@@ -618,287 +946,499 @@ def make_plots(
 
     stage_text = _format_stage_omega_text(stage_omega_ref_rad_s)
 
-    if 1 in figs:
-        # --- Figure 1: Irms (two panels) ---
-        fig1, (ax1a, ax1b) = plt.subplots(
-            2,
-            1,
-            sharex=True,
-            figsize=(7.6, 5.0),
-            gridspec_kw={"height_ratios": [1.0, 1.0]},
-        )
-        for ax in (ax1a, ax1b):
-            _style_axes(ax, spine_lw=0.7, spine_color="0.30")
-            ax.plot(ai.episodes, ai.i_rms, color="0.55", linewidth=1.0, alpha=0.35, label="_nolegend_")
-            ax.plot(
+    caption_offset = int(caption_offset)
+
+    if layout == "stage_summary":
+        # --- Publication layout: stage-wise summary (means + dispersion) ---
+        best_label = label_ai_selected
+        fig_num_irms = 1 + caption_offset
+        fig_num_pin = 2 + caption_offset
+        fig_num_err = 3 + caption_offset
+        fig_num_par = 4 + caption_offset
+
+        if combined:
+            fig_all, axes = plt.subplots(2, 2, figsize=(9.8, 7.0))
+            ax_i, ax_p = axes[0]
+            ax_e, ax_par = axes[1]
+
+            _plot_stage_bars(
+                ax_i,
+                ai=ai,
+                foc=foc,
+                y_ai=ai.i_rms,
+                y_foc=foc.i_rms,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                stage_omega_ref_rad_s=stage_omega_ref_rad_s,
+                ylabel=r"$I_{\mathrm{rms}}$, А",
+                title="(a) $I_{\\mathrm{rms}}$",
+                label_ai=label_ai_bar,
+                label_foc=label_foc_bar,
+                best_idx=best_idx,
+                best_label=best_label,
+            )
+
+            _plot_stage_bars(
+                ax_p,
+                ai=ai,
+                foc=foc,
+                y_ai=ai.p_in_pos,
+                y_foc=foc.p_in_pos,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                stage_omega_ref_rad_s=stage_omega_ref_rad_s,
+                ylabel=r"$P_{\mathrm{in}}^{+}$, Вт",
+                title="(b) $P_{\\mathrm{in}}^{+}$",
+                label_ai=label_ai_bar,
+                label_foc=label_foc_bar,
+                best_idx=best_idx,
+                best_label=best_label,
+            )
+
+            _plot_stage_bars(
+                ax_e,
+                ai=ai,
+                foc=foc,
+                y_ai=ai.speed_err,
+                y_foc=foc.speed_err,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                stage_omega_ref_rad_s=stage_omega_ref_rad_s,
+                ylabel=r"$|\omega_{\mathrm{ref}}-\omega|$, рад/с",
+                title="(c) $|e_\\omega|$",
+                label_ai=label_ai_bar,
+                label_foc=label_foc_bar,
+                best_idx=best_idx,
+                best_label=best_label,
+            )
+
+            _style_axes(ax_par, spine_lw=0.7, spine_color="0.30")
+            _plot_pareto(
+                ax_par,
+                ai=ai,
+                foc=foc,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                best_idx=best_idx,
+                label_ai_selected=label_ai_selected,
+            )
+            ax_par.set_title("(d) Парето", pad=8)
+
+            legend_order = [label_ai_selected, label_ai_bar, label_foc_bar]
+            legend_order += [f"MIC_AI (стадия {st})" for st in range(int(n_stages))]
+            legend_order += ["FOC (среднее по стадиям)"]
+            _figure_legend_ordered(
+                fig_all,
+                [ax_i, ax_p, ax_e, ax_par],
+                legend_order,
+                loc="upper center",
+                bbox_to_anchor=(0.5, 1.01),
+                frameon=True,
+                framealpha=0.92,
+                ncol=3,
+                fontsize=9,
+                handlelength=2.0,
+            )
+            fig_all.suptitle(
+                f"Сводное сравнение MIC_AI и FOC (Рис. {fig_num_irms}–{fig_num_par})",
+                y=1.08,
+                fontsize=12,
+            )
+            fig_all.tight_layout(rect=(0, 0, 1, 0.86))
+            _save_fig(fig_all, out_dir / "fig_all_summary")
+            plt.close(fig_all)
+
+        if 1 in figs:
+            fig1, ax1 = plt.subplots(figsize=(7.6, 4.2))
+            _plot_stage_bars(
+                ax1,
+                ai=ai,
+                foc=foc,
+                y_ai=ai.i_rms,
+                y_foc=foc.i_rms,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                stage_omega_ref_rad_s=stage_omega_ref_rad_s,
+                ylabel=r"$I_{\mathrm{rms}}$, А",
+                title="",
+                label_ai=label_ai_bar,
+                label_foc=label_foc_bar,
+                best_idx=best_idx,
+                best_label=best_label,
+            )
+            fig1.suptitle(f"Рисунок {fig_num_irms} – Среднеквадратичный ток статора", y=1.02)
+            _legend_ordered(
+                ax1,
+                [best_label, label_ai_bar, label_foc_bar],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=9,
+                handlelength=2.0,
+            )
+            fig1.tight_layout()
+            _save_fig(fig1, out_dir / "fig1_Irms")
+            plt.close(fig1)
+
+        if 2 in figs:
+            fig2, ax2 = plt.subplots(figsize=(7.6, 4.2))
+            _plot_stage_bars(
+                ax2,
+                ai=ai,
+                foc=foc,
+                y_ai=ai.p_in_pos,
+                y_foc=foc.p_in_pos,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                stage_omega_ref_rad_s=stage_omega_ref_rad_s,
+                ylabel=r"$P_{\mathrm{in}}^{+}$, Вт",
+                title="",
+                label_ai=label_ai_bar,
+                label_foc=label_foc_bar,
+                best_idx=best_idx,
+                best_label=best_label,
+            )
+            fig2.suptitle(f"Рисунок {fig_num_pin} – Положительная составляющая входной мощности", y=1.02)
+            _legend_ordered(
+                ax2,
+                [best_label, label_ai_bar, label_foc_bar],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=9,
+                handlelength=2.0,
+            )
+            fig2.tight_layout()
+            _save_fig(fig2, out_dir / "fig2_Pin_pos")
+            plt.close(fig2)
+
+        if 3 in figs:
+            fig3, ax3 = plt.subplots(figsize=(7.6, 4.2))
+            _plot_stage_bars(
+                ax3,
+                ai=ai,
+                foc=foc,
+                y_ai=ai.speed_err,
+                y_foc=foc.speed_err,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                stage_omega_ref_rad_s=stage_omega_ref_rad_s,
+                ylabel=r"$|\omega_{\mathrm{ref}}-\omega|$, рад/с",
+                title="",
+                label_ai=label_ai_bar,
+                label_foc=label_foc_bar,
+                best_idx=best_idx,
+                best_label=best_label,
+            )
+            fig3.suptitle(f"Рисунок {fig_num_err} – Средняя абсолютная ошибка скорости", y=1.02)
+            _legend_ordered(
+                ax3,
+                [best_label, label_ai_bar, label_foc_bar],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=9,
+                handlelength=2.0,
+            )
+            fig3.tight_layout()
+            _save_fig(fig3, out_dir / "fig3_speed_error")
+            plt.close(fig3)
+
+        if 4 in figs:
+            fig4, ax4 = plt.subplots(figsize=(7.6, 4.4))
+            _style_axes(ax4, spine_lw=0.7, spine_color="0.30")
+            _plot_pareto(
+                ax4,
+                ai=ai,
+                foc=foc,
+                episodes_per_stage=episodes_per_stage,
+                n_stages=n_stages,
+                best_idx=best_idx,
+                label_ai_selected=label_ai_selected,
+            )
+            fig4.suptitle(f"Рисунок {fig_num_par} – Парето-компромисс: ошибка скорости и входная мощность", y=1.02)
+            order = [f"MIC_AI (стадия {st})" for st in range(int(n_stages))]
+            order += ["FOC (среднее по стадиям)", label_ai_selected]
+            _legend_ordered(
+                ax4,
+                order,
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=9,
+                handlelength=2.0,
+            )
+            fig4.tight_layout()
+            _save_fig(fig4, out_dir / "fig4_pareto")
+            plt.close(fig4)
+
+    elif layout == "training_curves":
+        # --- Legacy layout: episode index vs metric ---
+        if 1 in figs:
+            # --- Figure 1: Irms (two panels) ---
+            fig1, (ax1a, ax1b) = plt.subplots(
+                2,
+                1,
+                sharex=True,
+                figsize=(7.6, 5.0),
+                gridspec_kw={"height_ratios": [1.0, 1.0]},
+            )
+            for ax in (ax1a, ax1b):
+                _style_axes(ax, spine_lw=0.7, spine_color="0.30")
+                ax.plot(ai.episodes, ai.i_rms, color="0.55", linewidth=1.0, alpha=0.35, label="_nolegend_")
+                ax.plot(
+                    ai.episodes,
+                    ai_i_roll,
+                    color="black",
+                    linestyle="-",
+                    linewidth=2.9,
+                    label=label_ai_roll if ax is ax1a else None,
+                )
+                _plot_foc_stage_means(
+                    ax,
+                    foc_i_means,
+                    episodes_per_stage=episodes_per_stage,
+                    n_stages=n_stages,
+                    x_min=x_min,
+                    x_max=x_max,
+                    label=label_foc,
+                )
+                _add_stage_boundaries(ax, episodes_per_stage, n_stages, x_min, x_max)
+                ax.scatter(
+                    [best_ep],
+                    [_finite_or_default(float(ai.i_rms[best_idx]), 0.0)],
+                    s=110 if ax is ax1b else 95,
+                    marker="D",
+                    color="black",
+                    edgecolors="white",
+                    linewidths=1.2,
+                    label=label_ai_selected if ax is ax1a else None,
+                    zorder=5,
+                )
+                ax.grid(True, alpha=0.25)
+
+            ax1a.set_title(
+                "Сравнение среднеквадратичного тока статора при AI- и FOC-управлении",
+                pad=22,
+            )
+            _add_stage_omega_labels(ax1a, stage_omega_ref_rad_s)
+            ax1a.set_ylabel(r"$I_{\mathrm{rms}}$, А")
+            ax1a.set_xlim(x_min_plot, x_max_plot)
+            ax1a.set_ylim(*_full_limits(ai.i_rms, foc_i_means, pad_frac=0.10))
+            _legend_ordered(
+                ax1a,
+                [label_ai_roll, label_foc, label_ai_selected],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=8,
+                handlelength=2.0,
+            )
+            _annotate_foc_stage_means(ax1a, foc_i_means, x_anchor=x_max, decimals=2, unit_ru="А")
+
+            ax1b.set_ylabel("")
+            ax1b.set_xlabel("Номер эпизода")
+            ax1b.set_ylim(*_zoom_limits(ai.i_rms, q_low=0.02, q_high=0.98, pad_frac=0.22))
+            _save_fig(fig1, out_dir / "fig1_Irms")
+            plt.close(fig1)
+
+        if 2 in figs:
+            # --- Figure 2: Pin+ (two panels) ---
+            fig2, (ax2a, ax2b) = plt.subplots(
+                2,
+                1,
+                sharex=True,
+                figsize=(7.6, 5.0),
+                gridspec_kw={"height_ratios": [1.0, 1.0]},
+            )
+            for ax in (ax2a, ax2b):
+                _style_axes(ax, spine_lw=0.7, spine_color="0.30")
+                ax.plot(
+                    ai.episodes,
+                    ai.p_in_pos,
+                    color="0.55",
+                    linewidth=1.0,
+                    alpha=0.35,
+                    label="_nolegend_",
+                )
+                ax.plot(
+                    ai.episodes,
+                    ai_p_roll,
+                    color="black",
+                    linestyle="-",
+                    linewidth=2.9,
+                    label=label_ai_roll if ax is ax2a else None,
+                )
+                _plot_foc_stage_means(
+                    ax,
+                    foc_p_means,
+                    episodes_per_stage=episodes_per_stage,
+                    n_stages=n_stages,
+                    x_min=x_min,
+                    x_max=x_max,
+                    label=label_foc,
+                )
+                _add_stage_boundaries(ax, episodes_per_stage, n_stages, x_min, x_max)
+                ax.scatter(
+                    [best_ep],
+                    [_finite_or_default(float(ai.p_in_pos[best_idx]), 0.0)],
+                    s=95,
+                    marker="D",
+                    color="black",
+                    edgecolors="white",
+                    linewidths=1.2,
+                    label=label_ai_selected if ax is ax2a else None,
+                    zorder=5,
+                )
+                ax.grid(True, alpha=0.25)
+
+            ax2a.set_title(
+                "Сравнение потребляемой входной мощности при AI- и FOC-управлении",
+                pad=22,
+            )
+            _add_stage_omega_labels(ax2a, stage_omega_ref_rad_s)
+            ax2a.set_ylabel(r"$P_{\mathrm{in}}^{+}$, Вт")
+            ax2a.set_xlim(x_min_plot, x_max_plot)
+            ax2a.set_ylim(*_full_limits(ai.p_in_pos, foc_p_means, pad_frac=0.10))
+            _legend_ordered(
+                ax2a,
+                [label_ai_roll, label_foc, label_ai_selected],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=8,
+                handlelength=2.0,
+            )
+
+            _annotate_foc_stage_means(ax2a, foc_p_means, x_anchor=x_max, decimals=1, unit_ru="Вт")
+
+            ax2b.set_ylabel("")
+            ax2b.set_xlabel("Номер эпизода")
+            ylo_z, yhi_z = _zoom_limits(ai.p_in_pos, q_low=0.02, q_high=0.98, pad_frac=0.22)
+            ax2b.set_ylim(ylo_z - 6.0, yhi_z + 2.0)
+            _save_fig(fig2, out_dir / "fig2_Pin_pos")
+            plt.close(fig2)
+
+        if 3 in figs:
+            # --- Figure 3: speed error (single panel + band) ---
+            fig3, ax3 = plt.subplots(figsize=(7.6, 4.0))
+            _style_axes(ax3, spine_lw=0.7, spine_color="0.30")
+            ax3.plot(ai.episodes, ai.speed_err, color="0.55", linewidth=1.0, alpha=0.35, label="_nolegend_")
+            ax3.fill_between(
                 ai.episodes,
-                ai_i_roll,
+                ai_s_roll - ai_s_std,
+                ai_s_roll + ai_s_std,
+                color="black",
+                alpha=0.15,
+                linewidth=0,
+                zorder=1,
+            )
+            ax3.plot(
+                ai.episodes,
+                ai_s_roll,
                 color="black",
                 linestyle="-",
-                linewidth=2.9,
-                label=label_ai_roll if ax is ax1a else None,
+                linewidth=3.0,
+                label=label_ai_roll,
+                zorder=2,
             )
             _plot_foc_stage_means(
-                ax,
-                foc_i_means,
+                ax3,
+                foc_s_means,
                 episodes_per_stage=episodes_per_stage,
                 n_stages=n_stages,
                 x_min=x_min,
                 x_max=x_max,
-                label="",
+                label=label_foc,
             )
-            _add_stage_boundaries(ax, episodes_per_stage, n_stages, x_min, x_max)
-            ax.scatter(
+            _add_stage_boundaries(ax3, episodes_per_stage, n_stages, x_min, x_max)
+            ax3.scatter(
                 [best_ep],
-                [_finite_or_default(float(ai.i_rms[best_idx]), 0.0)],
-                s=110 if ax is ax1b else 95,
+                [_finite_or_default(float(ai.speed_err[best_idx]), 0.0)],
+                s=65,
                 marker="D",
-                color="black",
+                color="0.25",
                 edgecolors="white",
-                linewidths=1.2,
-                label=label_ai_selected if ax is ax1a else None,
-                zorder=5,
+                linewidths=1.0,
+                alpha=0.65,
+                label=label_ai_selected,
+                zorder=3,
             )
-            ax.grid(True, alpha=0.25)
-
-        ax1a.set_title(
-            "Сравнение среднеквадратичного тока статора при AI- и FOC-управлении",
-            pad=22,
-        )
-        _add_stage_omega_labels(ax1a, stage_omega_ref_rad_s)
-        ax1a.set_ylabel(r"$I_{\mathrm{rms}}$, А")
-        ax1a.set_xlim(x_min_plot, x_max_plot)
-        ax1a.set_ylim(*_full_limits(ai.i_rms, foc_i_means, pad_frac=0.10))
-        _legend_ordered(
-            ax1a,
-            [label_ai_roll, label_ai_selected],
-            loc="upper left",
-            bbox_to_anchor=(1.01, 1.0),
-            frameon=True,
-            framealpha=0.90,
-            ncol=1,
-            borderpad=0.28,
-            fontsize=8,
-            handlelength=2.0,
-        )
-        _annotate_foc_stage_means(ax1a, foc_i_means, x_anchor=x_max, decimals=2, unit_ru="А")
-
-        ax1b.set_ylabel("")
-        ax1b.set_xlabel("Номер эксперимента")
-        ax1b.set_ylim(*_zoom_limits(ai.i_rms, q_low=0.02, q_high=0.98, pad_frac=0.22))
-        _save_fig(fig1, out_dir / "fig1_Irms")
-        plt.close(fig1)
-
-    if 2 in figs:
-        # --- Figure 2: Pin+ (two panels) ---
-        fig2, (ax2a, ax2b) = plt.subplots(
-            2,
-            1,
-            sharex=True,
-            figsize=(7.6, 5.0),
-            gridspec_kw={"height_ratios": [1.0, 1.0]},
-        )
-        for ax in (ax2a, ax2b):
-            _style_axes(ax, spine_lw=0.7, spine_color="0.30")
-            ax.plot(
-                ai.episodes,
-                ai.p_in_pos,
-                color="0.55",
-                linewidth=1.0,
-                alpha=0.35,
-                label="_nolegend_",
+            ax3.set_title(
+                "Сравнение средней ошибки регулирования скорости при AI- и FOC-управлении",
+                pad=22,
             )
-            ax.plot(
-                ai.episodes,
-                ai_p_roll,
-                color="black",
-                linestyle="-",
-                linewidth=2.9,
-                label=label_ai_roll if ax is ax2a else None,
+            _add_stage_omega_labels(ax3, stage_omega_ref_rad_s)
+            ax3.set_xlabel("Номер эпизода")
+            ax3.set_ylabel(r"$|\omega_{\mathrm{ref}}-\omega|$, рад/с")
+            ax3.set_xlim(x_min_plot, x_max_plot)
+            ax3.set_ylim(*_full_limits(ai.speed_err, foc_s_means, pad_frac=0.08))
+            ax3.grid(True, alpha=0.25)
+            _legend_ordered(
+                ax3,
+                [label_ai_roll, label_foc, label_ai_selected],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=8,
+                handlelength=2.0,
             )
-            _plot_foc_stage_means(
-                ax,
-                foc_p_means,
+            _annotate_foc_stage_means(ax3, foc_s_means, x_anchor=x_max, decimals=2, unit_ru="рад/с")
+            _save_fig(fig3, out_dir / "fig3_speed_error")
+            plt.close(fig3)
+
+        if 4 in figs:
+            # --- Figure 4: Pareto ---
+            fig4, ax4 = plt.subplots(figsize=(7.6, 4.4))
+            _style_axes(ax4, spine_lw=0.7, spine_color="0.30")
+            _plot_pareto(
+                ax4,
+                ai=ai,
+                foc=foc,
                 episodes_per_stage=episodes_per_stage,
                 n_stages=n_stages,
-                x_min=x_min,
-                x_max=x_max,
-                label="",
+                best_idx=best_idx,
+                label_ai_selected=label_ai_selected,
             )
-            _add_stage_boundaries(ax, episodes_per_stage, n_stages, x_min, x_max)
-            ax.scatter(
-                [best_ep],
-                [_finite_or_default(float(ai.p_in_pos[best_idx]), 0.0)],
-                s=95,
-                marker="D",
-                color="black",
-                edgecolors="white",
-                linewidths=1.2,
-                label=label_ai_selected if ax is ax2a else None,
-                zorder=5,
+            ax4.set_title("Парето-сравнение качества управления: ошибка скорости и входная мощность", pad=22)
+            ax4.grid(True, alpha=0.25)
+            _legend_ordered(
+                ax4,
+                [label_ai_eps, label_foc, label_ai_selected],
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                frameon=True,
+                framealpha=0.90,
+                ncol=1,
+                borderpad=0.28,
+                fontsize=8,
+                handlelength=2.0,
             )
-            ax.grid(True, alpha=0.25)
-
-        ax2a.set_title(
-            "Сравнение потребляемой входной мощности при AI- и FOC-управлении",
-            pad=22,
-        )
-        _add_stage_omega_labels(ax2a, stage_omega_ref_rad_s)
-        ax2a.set_ylabel(r"$P_{\mathrm{in}}^{+}$, Вт")
-        ax2a.set_xlim(x_min_plot, x_max_plot)
-        ax2a.set_ylim(*_full_limits(ai.p_in_pos, foc_p_means, pad_frac=0.10))
-        _legend_ordered(
-            ax2a,
-            [label_ai_roll, label_ai_selected],
-            loc="upper left",
-            bbox_to_anchor=(1.01, 1.0),
-            frameon=True,
-            framealpha=0.90,
-            ncol=1,
-            borderpad=0.28,
-            fontsize=8,
-            handlelength=2.0,
-        )
-
-        _annotate_foc_stage_means(ax2a, foc_p_means, x_anchor=x_max, decimals=1, unit_ru="Вт")
-
-        ax2b.set_ylabel("")
-        ax2b.set_xlabel("Номер эксперимента")
-        ylo_z, yhi_z = _zoom_limits(ai.p_in_pos, q_low=0.02, q_high=0.98, pad_frac=0.22)
-        ax2b.set_ylim(ylo_z - 6.0, yhi_z + 2.0)
-        _save_fig(fig2, out_dir / "fig2_Pin_pos")
-        plt.close(fig2)
-
-    if 3 in figs:
-        # --- Figure 3: speed error (single panel + band) ---
-        fig3, ax3 = plt.subplots(figsize=(7.6, 4.0))
-        _style_axes(ax3, spine_lw=0.7, spine_color="0.30")
-        ax3.plot(ai.episodes, ai.speed_err, color="0.55", linewidth=1.0, alpha=0.35, label="_nolegend_")
-        ax3.fill_between(ai.episodes, ai_s_roll - ai_s_std, ai_s_roll + ai_s_std, color="black", alpha=0.15, linewidth=0, zorder=1)
-        ax3.plot(
-            ai.episodes,
-            ai_s_roll,
-            color="black",
-            linestyle="-",
-            linewidth=3.0,
-            label=label_ai_roll,
-            zorder=2,
-        )
-        _plot_foc_stage_means(
-            ax3,
-            foc_s_means,
-            episodes_per_stage=episodes_per_stage,
-            n_stages=n_stages,
-            x_min=x_min,
-            x_max=x_max,
-            label="",
-        )
-        _add_stage_boundaries(ax3, episodes_per_stage, n_stages, x_min, x_max)
-        ax3.scatter(
-            [best_ep],
-            [_finite_or_default(float(ai.speed_err[best_idx]), 0.0)],
-            s=65,
-            marker="D",
-            color="0.25",
-            edgecolors="white",
-            linewidths=1.0,
-            alpha=0.65,
-            label=label_ai_selected,
-            zorder=3,
-        )
-        ax3.set_title(
-            "Сравнение средней ошибки регулирования скорости при AI- и FOC-управлении",
-            pad=22,
-        )
-        _add_stage_omega_labels(ax3, stage_omega_ref_rad_s)
-        ax3.set_xlabel("Номер эксперимента")
-        ax3.set_ylabel(r"$|\omega_{\mathrm{ref}}-\omega|$, рад/с")
-        ax3.set_xlim(x_min_plot, x_max_plot)
-        ax3.set_ylim(*_full_limits(ai.speed_err, foc_s_means, pad_frac=0.08))
-        ax3.grid(True, alpha=0.25)
-        _legend_ordered(
-            ax3,
-            [label_ai_roll, label_ai_selected],
-            loc="upper left",
-            bbox_to_anchor=(1.01, 1.0),
-            frameon=True,
-            framealpha=0.90,
-            ncol=1,
-            borderpad=0.28,
-            fontsize=8,
-            handlelength=2.0,
-        )
-        _annotate_foc_stage_means(ax3, foc_s_means, x_anchor=x_max, decimals=2, unit_ru="рад/с")
-        _save_fig(fig3, out_dir / "fig3_speed_error")
-        plt.close(fig3)
-
-    if 4 in figs:
-        # --- Figure 4: Pareto ---
-        fig4, ax4 = plt.subplots(figsize=(6.2, 4.8))
-        _style_axes(ax4, spine_lw=0.7, spine_color="0.30")
-        ax4.scatter(ai.speed_err, ai.p_in_pos, s=18, c="black", alpha=0.30, label=label_ai_eps)
-        foc_points: List[tuple[float, float]] = []
-        for st in range(int(n_stages)):
-            sx = float(foc_s_means.get(st, foc_s_mean))
-            py = float(foc_p_means.get(st, foc_p_mean))
-            ax4.scatter(
-                [sx],
-                [py],
-                s=85,
-                marker="D",
-                c="none",
-                edgecolors="black",
-                linewidths=1.8,
-                label=label_foc if st == 0 else None,
-            )
-            foc_points.append((sx, py))
-        ax4.scatter(
-            [ai.speed_err[best_idx]],
-            [ai.p_in_pos[best_idx]],
-            s=105,
-            marker="D",
-            c="black",
-            edgecolors="white",
-            linewidths=1.2,
-            label=label_ai_selected,
-        )
-        for st, (sx, py) in enumerate(foc_points):
-            ax4.annotate(
-                f"FOC (стадия {int(st)})",
-                xy=(float(sx), float(py)),
-                xytext=(10, 8),
-                textcoords="offset points",
-                ha="left",
-                va="bottom",
-                fontsize=10,
-                arrowprops={"arrowstyle": "-", "lw": 0.8, "color": "0.25"},
-            )
-        ax4.annotate(
-            "AI selected",
-            xy=(float(ai.speed_err[best_idx]), float(ai.p_in_pos[best_idx])),
-            xytext=(10, -12),
-            textcoords="offset points",
-            ha="left",
-            va="top",
-            fontsize=10,
-            arrowprops={"arrowstyle": "-", "lw": 0.8, "color": "0.25"},
-        )
-        ax4.set_title("Парето-сравнение качества управления: ошибка скорости и входная мощность", pad=22)
-        ax4.set_xlabel(r"$|\omega_{\mathrm{ref}}-\omega|$, рад/с")
-        ax4.set_ylabel(r"$P_{\mathrm{in}}^{+}$, Вт")
-        ax4.grid(True, alpha=0.25)
-        _legend_ordered(
-            ax4,
-            [label_ai_eps, label_ai_selected],
-            loc="upper right",
-            frameon=False,
-            ncol=1,
-            borderpad=0.28,
-            fontsize=8,
-            handlelength=2.0,
-        )
-        _save_fig(fig4, out_dir / "fig4_pareto")
-        plt.close(fig4)
+            _save_fig(fig4, out_dir / "fig4_pareto")
+            plt.close(fig4)
+    else:
+        raise ValueError(f"Unknown layout: {layout!r}. Use 'stage_summary' or 'training_curves'.")
 
     stage_text_en_parts: List[str] = []
     for idx, w in enumerate(stage_omega_ref_rad_s):
@@ -909,86 +1449,159 @@ def make_plots(
     stage_prefix_ru = f"{stage_text}. " if stage_text else ""
     stage_prefix_en = f"{stage_text_en}. " if stage_text_en else ""
 
-    captions_ru = [
-        (
-            "Рис. 1. Сравнение среднеквадратичного значения тока статора "
-            r"$I_{\mathrm{rms}}$ при AI- и FOC-управлении (средние значения по эксперименту). "
-            f"{stage_prefix_ru}"
-            f"Серые линии — значения AI по экспериментам; чёрная линия — скользящее среднее (окно {int(window)}). "
-            "Тонкая линия FOC — среднее значение по стадиям; вариативность FOC по экспериментам мала и не показана. "
-            "Вертикальные линии обозначают границы стадий; верхняя панель показывает полный диапазон значений, "
-            "нижняя — увеличенный фрагмент области AI."
-        ),
-        (
-            "Рис. 2. Сравнение положительной составляющей входной мощности "
-            r"$P_{\mathrm{in}}^{+}$ при AI- и FOC-управлении (учитывается только положительная часть мощности). "
-            f"{stage_prefix_ru}"
-            f"Серые линии — значения AI по экспериментам; чёрная линия — скользящее среднее (окно {int(window)}). "
-            "Тонкая линия FOC — среднее значение по стадиям; вариативность FOC по экспериментам мала и не показана. "
-            "Вертикальные линии обозначают границы стадий; верхняя панель показывает полный диапазон значений, "
-            "нижняя — увеличенный фрагмент области AI."
-        ),
-        (
-            "Рис. 3. Сравнение средней по эксперименту ошибки регулирования скорости "
-            r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ при AI- и FOC-управлении. "
-            f"{stage_prefix_ru}"
-            f"Серые линии — значения AI по экспериментам; чёрная линия — скользящее среднее (окно {int(window)}), "
-            r"затенение — $\pm\sigma$ в окне. "
-            "Тонкая линия FOC — среднее значение по стадиям; вариативность FOC по экспериментам мала и не показана. "
-            r"Маркер «AI selected (Парето)» выбран по критерию $\arg\min P_{\mathrm{in}}^{+}$ при ограничении "
-            r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ (по стадиям), поэтому не обязан минимизировать ошибку скорости."
-        ),
-        (
-            "Рис. 4. Парето-сравнение качества управления по критериям "
-            r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ и $P_{\mathrm{in}}^{+}$ для AI- и FOC-управления "
-            "(средние значения по эксперименту). "
-            "Точки — эксперименты AI; полые ромбы — средние значения FOC по стадиям. "
-            r"Точка «AI selected (Парето)» выбрана как решение $\arg\min P_{\mathrm{in}}^{+}$ при условии "
-            r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ в соответствующей стадии. "
-            "Врезка показывает увеличенную область, содержащую эксперименты AI."
-        ),
-    ]
+    hard_ai = int(np.sum(np.asarray(getattr(ai, "hard_terminated", 0), dtype=int) > 0))
+    hard_note_ru = (
+        f" Открытые маркеры показывают эпизоды с досрочным завершением (hard_terminated={hard_ai}/{ai.episodes.size})."
+        if hard_ai > 0
+        else ""
+    )
+    hard_note_en = (
+        f" Open markers indicate hard-terminated episodes (hard_terminated={hard_ai}/{ai.episodes.size})."
+        if hard_ai > 0
+        else ""
+    )
 
-    captions_en = [
-        (
-            "Fig. 1. Comparison of stator RMS current "
-            r"$I_{\mathrm{rms}}$ under AI-based control and classical field-oriented control (FOC) "
-            "(run-averaged values). "
-            f"{stage_prefix_en}"
-            f"Gray curves show AI run values; the solid black curve is the rolling mean (window {int(window)}). "
-            "The thin FOC curve is the stage-wise mean; FOC run-to-run variability is small and omitted for readability. "
-            "Vertical lines indicate stage boundaries; the top panel shows the full range, "
-            "the bottom panel shows a zoomed view of the AI region."
-        ),
-        (
-            "Fig. 2. Comparison of positive input power component "
-            r"$P_{\mathrm{in}}^{+}$ under AI-based control and FOC (only the positive power component is included). "
-            f"{stage_prefix_en}"
-            f"Gray curves show AI run values; the solid black curve is the rolling mean (window {int(window)}). "
-            "The thin FOC curve is the stage-wise mean; FOC run-to-run variability is small and omitted for readability. "
-            "Vertical lines indicate stage boundaries; the top panel shows the full range, "
-            "the bottom panel shows a zoomed view of the AI region."
-        ),
-        (
-            "Fig. 3. Comparison of run-averaged speed regulation error "
-            r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ under AI-based control and FOC. "
-            f"{stage_prefix_en}"
-            f"Gray curves show AI run values; the solid black curve is the rolling mean (window {int(window)}), "
-            r"and the shaded band indicates $\pm\sigma$ within the window. "
-            "The thin FOC curve is the stage-wise mean; FOC run-to-run variability is small and omitted for readability. "
-            r"The “AI selected (Pareto)” marker is selected as $\arg\min P_{\mathrm{in}}^{+}$ subject to "
-            r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ (stage-wise), therefore it is not expected to minimize the speed error."
-        ),
-        (
-            "Fig. 4. Pareto comparison of control quality using "
-            r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ and $P_{\mathrm{in}}^{+}$ for AI-based control and FOC "
-            "(run-averaged values). "
-            "Dots show AI runs; open diamonds show stage-wise FOC means. "
-            r"The “AI selected (Pareto)” point is selected as $\arg\min P_{\mathrm{in}}^{+}$ subject to "
-            r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ for the corresponding stage. "
-            "The inset shows a zoomed region containing AI runs."
-        ),
-    ]
+    if layout == "stage_summary":
+        captions_ru = [
+            (
+                f"Рисунок {1 + caption_offset} – Среднеквадратичный ток статора "
+                r"$I_{\mathrm{rms}}$ при управлении MIC_AI и FOC (средние значения по эпизодам в каждой стадии). "
+                r"Столбцы показывают среднее значение, погрешности — $\pm\sigma$; точки — отдельные эпизоды."
+                + hard_note_ru
+            ),
+            (
+                f"Рисунок {2 + caption_offset} – Положительная составляющая входной мощности "
+                r"$P_{\mathrm{in}}^{+}$ при управлении MIC_AI и FOC (средние значения по эпизодам в каждой стадии). "
+                r"Столбцы показывают среднее значение, погрешности — $\pm\sigma$; точки — отдельные эпизоды."
+                + hard_note_ru
+            ),
+            (
+                f"Рисунок {3 + caption_offset} – Средняя абсолютная ошибка скорости "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ при управлении MIC_AI и FOC (по стадиям). "
+                r"Столбцы показывают среднее значение, погрешности — $\pm\sigma$; точки — отдельные эпизоды. "
+                r"Маркер «Выбранный эпизод (Парето)» выбран как $\arg\min P_{\mathrm{in}}^{+}$ при ограничении "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ (по стадиям)."
+                + hard_note_ru
+            ),
+            (
+                f"Рисунок {4 + caption_offset} – Парето-сравнение MIC_AI и FOC по критериям "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ и $P_{\mathrm{in}}^{+}$ (средние значения по эпизодам). "
+                "Точки MIC_AI сгруппированы по стадиям (разные маркеры); ромбы — средние значения FOC по стадиям. "
+                r"Точка «Выбранный эпизод (Парето)» выбрана как $\arg\min P_{\mathrm{in}}^{+}$ при условии "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ в соответствующей стадии."
+                + hard_note_ru
+            ),
+        ]
+
+        captions_en = [
+            (
+                f"Fig. {1 + caption_offset}. Stator RMS current "
+                r"$I_{\mathrm{rms}}$ for MIC_AI and FOC (stage-wise, run-averaged). "
+                r"Bars show the mean and error bars show $\pm\sigma$; dots show individual runs."
+                + hard_note_en
+            ),
+            (
+                f"Fig. {2 + caption_offset}. Positive input power component "
+                r"$P_{\mathrm{in}}^{+}$ for MIC_AI and FOC (stage-wise, run-averaged). "
+                r"Bars show the mean and error bars show $\pm\sigma$; dots show individual runs."
+                + hard_note_en
+            ),
+            (
+                f"Fig. {3 + caption_offset}. Mean absolute speed error "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ for MIC_AI and FOC (stage-wise). "
+                r"Bars show the mean and error bars show $\pm\sigma$; dots show individual runs. "
+                r"The “AI selected (Pareto)” marker is selected as $\arg\min P_{\mathrm{in}}^{+}$ subject to "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ (stage-wise)."
+                + hard_note_en
+            ),
+            (
+                f"Fig. {4 + caption_offset}. Pareto comparison of MIC_AI and FOC using "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ and $P_{\mathrm{in}}^{+}$ (run-averaged). "
+                "MIC_AI points are grouped by stage (different markers); diamonds show stage-wise FOC means. "
+                r"The “AI selected (Pareto)” point is selected as $\arg\min P_{\mathrm{in}}^{+}$ subject to "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ for the corresponding stage."
+                + hard_note_en
+            ),
+        ]
+    else:
+        captions_ru = [
+            (
+                f"Рисунок {1 + caption_offset} – Сравнение среднеквадратичного тока статора "
+                r"$I_{\mathrm{rms}}$ при AI- и FOC-управлении (средние значения по эпизоду). "
+                f"{stage_prefix_ru}"
+                f"Серые линии — значения AI по эпизодам; чёрная линия — скользящее среднее (окно {int(window)}). "
+                "Тонкая линия FOC — среднее значение по стадиям; вариативность FOC по эпизодам мала и не показана. "
+                "Вертикальные линии обозначают границы стадий; верхняя панель показывает полный диапазон значений, "
+                "нижняя — увеличенный фрагмент области AI."
+            ),
+            (
+                f"Рисунок {2 + caption_offset} – Сравнение положительной составляющей входной мощности "
+                r"$P_{\mathrm{in}}^{+}$ при AI- и FOC-управлении (учитывается только положительная часть мощности). "
+                f"{stage_prefix_ru}"
+                f"Серые линии — значения AI по эпизодам; чёрная линия — скользящее среднее (окно {int(window)}). "
+                "Тонкая линия FOC — среднее значение по стадиям; вариативность FOC по эпизодам мала и не показана. "
+                "Вертикальные линии обозначают границы стадий; верхняя панель показывает полный диапазон значений, "
+                "нижняя — увеличенный фрагмент области AI."
+            ),
+            (
+                f"Рисунок {3 + caption_offset} – Сравнение средней по эпизоду ошибки регулирования скорости "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ при AI- и FOC-управлении. "
+                f"{stage_prefix_ru}"
+                f"Серые линии — значения AI по эпизодам; чёрная линия — скользящее среднее (окно {int(window)}), "
+                r"затенение — $\pm\sigma$ в окне. "
+                "Тонкая линия FOC — среднее значение по стадиям; вариативность FOC по эпизодам мала и не показана. "
+                r"Маркер «AI selected (Парето)» выбран по критерию $\arg\min P_{\mathrm{in}}^{+}$ при ограничении "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ (по стадиям), поэтому не обязан минимизировать ошибку скорости."
+            ),
+            (
+                f"Рисунок {4 + caption_offset} – Парето-сравнение качества управления по критериям "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ и $P_{\mathrm{in}}^{+}$ для AI- и FOC-управления "
+                "(средние значения по эпизоду). "
+                "Точки — эпизоды AI; полые ромбы — средние значения FOC по стадиям. "
+                r"Точка «AI selected (Парето)» выбрана как решение $\arg\min P_{\mathrm{in}}^{+}$ при условии "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ в соответствующей стадии."
+            ),
+        ]
+
+        captions_en = [
+            (
+                f"Fig. {1 + caption_offset}. Comparison of stator RMS current "
+                r"$I_{\mathrm{rms}}$ under AI-based control and classical field-oriented control (FOC) "
+                "(run-averaged values). "
+                f"{stage_prefix_en}"
+                f"Gray curves show AI run values; the solid black curve is the rolling mean (window {int(window)}). "
+                "The thin FOC curve is the stage-wise mean; FOC run-to-run variability is small and omitted for readability. "
+                "Vertical lines indicate stage boundaries; the top panel shows the full range, "
+                "the bottom panel shows a zoomed view of the AI region."
+            ),
+            (
+                f"Fig. {2 + caption_offset}. Comparison of positive input power component "
+                r"$P_{\mathrm{in}}^{+}$ under AI-based control and FOC (only the positive power component is included). "
+                f"{stage_prefix_en}"
+                f"Gray curves show AI run values; the solid black curve is the rolling mean (window {int(window)}). "
+                "The thin FOC curve is the stage-wise mean; FOC run-to-run variability is small and omitted for readability. "
+                "Vertical lines indicate stage boundaries; the top panel shows the full range, "
+                "the bottom panel shows a zoomed view of the AI region."
+            ),
+            (
+                f"Fig. {3 + caption_offset}. Comparison of run-averaged speed regulation error "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ under AI-based control and FOC. "
+                f"{stage_prefix_en}"
+                f"Gray curves show AI run values; the solid black curve is the rolling mean (window {int(window)}), "
+                r"and the shaded band indicates $\pm\sigma$ within the window. "
+                "The thin FOC curve is the stage-wise mean; FOC run-to-run variability is small and omitted for readability. "
+                r"The “AI selected (Pareto)” marker is selected as $\arg\min P_{\mathrm{in}}^{+}$ subject to "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ (stage-wise), therefore it is not expected to minimize the speed error."
+            ),
+            (
+                f"Fig. {4 + caption_offset}. Pareto comparison of control quality using "
+                r"$|e_\omega|=|\omega_{\mathrm{ref}}-\omega|$ and $P_{\mathrm{in}}^{+}$ for AI-based control and FOC "
+                "(run-averaged values). "
+                "Dots show AI runs; open diamonds show stage-wise FOC means. "
+                r"The “AI selected (Pareto)” point is selected as $\arg\min P_{\mathrm{in}}^{+}$ subject to "
+                r"$|e_\omega|\leq |e_\omega|_{\mathrm{FOC}}$ for the corresponding stage."
+            ),
+        ]
 
     if not write_captions:
         return None
@@ -1013,6 +1626,23 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     p.add_argument("--out-dir", default="outputs/paper_figures")
     p.add_argument("--voltage-scale", type=float, default=1.25, help="Per-unit voltage_scale; 1.25 ~ full Vdc/sqrt(3) if base is 0.8.")
     p.add_argument("--disable-noise", action="store_true", help="Disable measurement noise in AI env for eval.")
+    p.add_argument(
+        "--layout",
+        choices=["stage_summary", "training_curves"],
+        default="stage_summary",
+        help="Plot layout: publication-friendly stage summary (default) or legacy training curves.",
+    )
+    p.add_argument(
+        "--combined",
+        action="store_true",
+        help="Also save a combined 2x2 summary figure (fig_all_summary.*).",
+    )
+    p.add_argument(
+        "--caption-offset",
+        type=int,
+        default=2,
+        help="Offset for figure numbers in captions (e.g. 2 -> Fig. 1 becomes Fig. 3).",
+    )
     p.add_argument(
         "--figures",
         type=int,
@@ -1048,6 +1678,9 @@ def main() -> None:
         n_stages=int(prepared.n_stages),
         stage_omega_ref_rad_s=prepared.stage_omega_ref_rad_s,
         figures=args.figures,
+        layout=str(args.layout),
+        combined=bool(args.combined),
+        caption_offset=int(args.caption_offset),
         write_captions=not bool(args.no_captions),
     )
     print(f"Saved figures to {prepared.out_dir}")
