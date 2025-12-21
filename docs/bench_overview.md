@@ -11,7 +11,7 @@ The bench provides a reproducible, PC-first environment for comparing induction 
 - Evaluation: fixed testsuite E1..E7 plus scoring and leaderboard.
 - Runner: JSON-defined candidates for baselines and research policies.
 
-## Stages 1-9 (progressive scaffold)
+## Stages 1-12 (progressive scaffold)
 Stage 1: load model sanity check.
 Stage 2: safety supervision.
 Stage 3: orchestrator + logging.
@@ -21,6 +21,9 @@ Stage 6: JSON candidate runner.
 Stage 7: identification integration and drift response.
 Stage 8: full suite with identification + scoring.
 Stage 9: baseline policy variants (PID, MIC, etc).
+Stage 10: scoring hardening (energy/ripple, DQ on safety) + validation and conditions hashing.
+Stage 11: random search for tuned PID/MIC baselines.
+Stage 12: persisted tuned baselines for downstream comparisons.
 
 ## Testsuite E1..E7
 The testsuite is a fixed set of scenarios covering speed steps, load disturbances, and sensor effects. It is designed for fair comparisons: all policies see the same references, disturbances, and safety limits.
@@ -28,8 +31,11 @@ The testsuite is a fixed set of scenarios covering speed steps, load disturbance
 ## Identification and aging
 Identification runs estimate Rs and allow optional aging factors to influence controller gains. The MIC rule policy can apply gain scheduling using the aging signal, while other controllers keep fixed gains. This makes adaptation explicit and testable.
 
+## Identification signal interface
+Identification uses an explicit signal interface: dq voltage commands in, dq currents + mechanical speed out, and an optional torque command channel. Hardware integrations should implement `set_voltage_dq`, `read_currents_dq`, `read_mech_speed`, `lock_rotor`, and optionally `set_torque_command`/`set_iq_ref` via an adapter (no direct access to model internals).
+
 ## Scoring and leaderboard
-Each case produces metrics such as IAE, overshoot, settling time, RMS current, smoothness, and safety trips. Scores are aggregated into a suite score and written to leaderboard.json along with per-case details.
+Each case produces metrics such as IAE, overshoot, settling time, RMS current, smoothness, energy proxy, ripple, and safety trips (trips trigger DQ). Scores are aggregated into a suite score and written to leaderboard.json with conditions hashes and warnings for mismatched experiment settings.
 
 ## Reproducibility artifacts
 Every run logs timeseries as NPZ and metadata/metrics as JSON. Test runs can be replayed by pointing to the logged config and seeds, enabling apples-to-apples comparisons across policies and environments.

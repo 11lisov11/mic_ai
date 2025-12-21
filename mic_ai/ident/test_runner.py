@@ -1,124 +1,24 @@
 """
-Запуск тестов для идентификации на переданной среде.
+Identification test runners using the unified signal interface.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 import numpy as np
 
+from .signal_interface import IdentSignalInterface
 from .test_sequences import make_rs_leq_test_profile
 
 
-def _lock_rotor(env) -> None:
-    """
-    Принудительно обнулить механическую скорость для имитации закреплённого ротора.
-    """
-    if hasattr(env, "motor") and hasattr(env.motor, "state"):
-        env.motor.state.omega_m = 0.0  # type: ignore[attr-defined]
-    if hasattr(env, "omega_m"):
-        try:
-            env.omega_m = 0.0  # type: ignore[assignment]
-        except Exception:
-            pass
-
-
-def _apply_voltage_command(env, u_d: float, u_q: float) -> None:
-    """
-    Попытаться передать ссылку по dq-напряжениям в среду.
-    """
-    applied = False
-    if hasattr(env, "set_voltage_dq"):
-        env.set_voltage_dq(u_d, u_q)
-        applied = True
-    if hasattr(env, "base_controller") and hasattr(env.base_controller, "set_voltage_dq"):
-        env.base_controller.set_voltage_dq(u_d, u_q)
-        applied = True
-    if hasattr(env, "controller") and hasattr(env.controller, "set_voltage_dq"):
-        env.controller.set_voltage_dq(u_d, u_q)
-        applied = True
-    if hasattr(env, "u_d_ref"):
-        env.u_d_ref = u_d
-        applied = True
-    if hasattr(env, "u_q_ref"):
-        env.u_q_ref = u_q
-        applied = True
-    # TODO: интегрировать с проектным API для задания dq-напряжений (например, env.driver.set_voltage_dq)
-    if not applied:
-        raise ValueError(
-            "Unable to apply dq voltage reference to environment; please connect your env's setter in _apply_voltage_command."
-        )
-
-
-def _step_env(env, u_d: float, u_q: float):
-    """
-    Продвинуть среду на один шаг, пробуя самый гибкий вариант сигнатуры.
-    """
-    try:
-        return env.step(u_d, u_q)
-    except TypeError:
-        # Запасной вариант, если step() не принимает аргументы и использует внутренние ссылки.
-        _apply_voltage_command(env, u_d, u_q)
-        return env.step()
-
-
-def _extract_currents(env) -> Tuple[float, float]:
-    """
-    Считать i_d/i_q из среды или её модели двигателя.
-    """
-    if hasattr(env, "i_d") and hasattr(env, "i_q"):
-        return float(env.i_d), float(env.i_q)
-    if hasattr(env, "motor_state"):
-        state = env.motor_state
-        if hasattr(state, "i_d") and hasattr(state, "i_q"):
-            return float(state.i_d), float(state.i_q)
-    if hasattr(env, "motor") and hasattr(env.motor, "_currents") and hasattr(env.motor, "state"):
-        i_d, i_q, _, _ = env.motor._currents(env.motor.state)  # type: ignore[attr-defined]
-        return float(i_d), float(i_q)
-    # TODO: добавить маппинг API среды, чтобы отдавать dq-токи
-    raise ValueError("Unable to read i_d/i_q from environment; expose them as attributes or via motor model.")
-
-
-def _extract_mech_speed(env) -> float:
-    if hasattr(env, "omega_m"):
-        return float(env.omega_m)
-    if hasattr(env, "w_mech"):
-        return float(env.w_mech)
-    if hasattr(env, "motor_state") and hasattr(env.motor_state, "omega_m"):
-        return float(env.motor_state.omega_m)
-    if hasattr(env, "motor") and hasattr(env.motor, "state") and hasattr(env.motor.state, "omega_m"):
-        return float(env.motor.state.omega_m)
-    # TODO: добавить маппинг API среды, чтобы отдавать механическую скорость
-    raise ValueError("Unable to read mechanical speed from environment.")
-
-
-def _extract_torque(env) -> float | None:
-    if hasattr(env, "torque"):
-        return float(env.torque)
-    if hasattr(env, "torque_e"):
-        return float(env.torque_e)
-    if hasattr(env, "motor_state") and hasattr(env.motor_state, "torque"):
-        return float(env.motor_state.torque)
-    if hasattr(env, "last_torque"):
-        return float(env.last_torque)
-    # TODO: добавить маппинг API среды, чтобы отдавать электромагнитный момент
-    return None
-
-
 def run_rs_leq_test(env, u_d_step: float, total_time: float) -> Tuple[dict, dict]:
-    """
-    Запустить ступенчатый тест по d-оси для оценки Rs и эквивалентной индуктивности.
-
-    Возвращает кортеж (data, meta).
-    """
-    if not hasattr(env, "dt"):
-        raise ValueError("Environment must expose dt attribute.")
-    dt = float(env.dt)
+    """Run d-axis step test for Rs/Leq estimation (locked rotor)."""
+    iface = IdentSignalInterface(env)
+    dt = iface.dt
     profile = make_rs_leq_test_profile(dt, total_time, u_d_step)
 
-    if hasattr(env, "reset"):
-        env.reset()
+    iface.reset()
 
     t_series = profile["t"]
     u_d_ref = profile["u_d_ref"]
@@ -136,16 +36,18 @@ def run_rs_leq_test(env, u_d_step: float, total_time: float) -> Tuple[dict, dict
         logged_u_d[idx] = u_d_ref[idx]
         logged_u_q[idx] = u_q_ref[idx]
 
-        _lock_rotor(env)
-        _step_env(env, u_d_ref[idx], u_q_ref[idx])
-        _lock_rotor(env)
+        iface.lock_rotor(True)
+        iface.apply_voltage_step(u_d_ref[idx], u_q_ref[idx])
+        iface.lock_rotor(True)
 
-        i_d, i_q = _extract_currents(env)
-        w_mech = _extract_mech_speed(env)
+        i_d, i_q = iface.read_currents_dq()
+        w_mech = iface.read_mech_speed()
 
         logged_i_d[idx] = i_d
         logged_i_q[idx] = i_q
         logged_w_mech[idx] = w_mech
+
+    iface.lock_rotor(False)
 
     data = {
         "t": logged_t,
@@ -160,18 +62,14 @@ def run_rs_leq_test(env, u_d_step: float, total_time: float) -> Tuple[dict, dict
 
 
 def run_locked_rotor_q_test(env, u_q_step: float, total_time: float) -> Tuple[dict, dict]:
-    """
-    Ступенчатый тест по q-оси с закреплённым ротором для оценки Rr/Lr.
-    """
-    if not hasattr(env, "dt"):
-        raise ValueError("Environment must expose dt attribute.")
-    dt = float(env.dt)
+    """Run locked-rotor q-axis step test for Rr/Lr estimation."""
+    iface = IdentSignalInterface(env)
+    dt = iface.dt
     n_steps = int(np.floor(total_time / dt))
     if n_steps < 2:
         raise ValueError("total_time must span at least two steps")
 
-    if hasattr(env, "reset"):
-        env.reset()
+    iface.reset()
 
     u_d_ref = np.zeros(n_steps, dtype=float)
     u_q_ref = np.zeros(n_steps, dtype=float)
@@ -192,18 +90,20 @@ def run_locked_rotor_q_test(env, u_q_step: float, total_time: float) -> Tuple[di
         logged_u_d[idx] = u_d_ref[idx]
         logged_u_q[idx] = u_q_ref[idx]
 
-        _lock_rotor(env)
-        _step_env(env, u_d_ref[idx], u_q_ref[idx])
-        _lock_rotor(env)
+        iface.lock_rotor(True)
+        iface.apply_voltage_step(u_d_ref[idx], u_q_ref[idx])
+        iface.lock_rotor(True)
 
-        i_d, i_q = _extract_currents(env)
-        w_mech = _extract_mech_speed(env)
-        torque = _extract_torque(env)
+        i_d, i_q = iface.read_currents_dq()
+        w_mech = iface.read_mech_speed()
+        torque = iface.read_torque()
 
         logged_i_d[idx] = i_d
         logged_i_q[idx] = i_q
         logged_w_mech[idx] = w_mech
         logged_torque[idx] = torque if torque is not None else 0.0
+
+    iface.lock_rotor(False)
 
     data = {
         "t": logged_t,
@@ -219,18 +119,14 @@ def run_locked_rotor_q_test(env, u_q_step: float, total_time: float) -> Tuple[di
 
 
 def run_mech_runup_coast_test(env, torque_ref: float, runup_time: float, coast_time: float) -> Tuple[dict, dict]:
-    """
-    Механический тест: разгон с torque_ref, затем выбег.
-    """
-    if not hasattr(env, "dt"):
-        raise ValueError("Environment must expose dt attribute.")
-    dt = float(env.dt)
+    """Mechanical run-up under torque command followed by coast."""
+    iface = IdentSignalInterface(env)
+    dt = iface.dt
     n_run = int(np.floor(runup_time / dt))
     n_coast = int(np.floor(coast_time / dt))
     n_steps = max(n_run + n_coast, 2)
 
-    if hasattr(env, "reset"):
-        env.reset()
+    iface.reset()
 
     torque_cmd = np.zeros(n_steps, dtype=float)
     torque_cmd[:n_run] = torque_ref
@@ -243,12 +139,16 @@ def run_mech_runup_coast_test(env, torque_ref: float, runup_time: float, coast_t
     for idx, t in enumerate(t_series):
         logged_t[idx] = t
         logged_torque_cmd[idx] = torque_cmd[idx]
-        # TODO: адаптировать под реальный API подачи момента; здесь используем приближение через q-ось по напряжению/току.
-        _step_env(env, 0.0, torque_cmd[idx])
-        logged_omega[idx] = _extract_mech_speed(env)
+        iface.apply_torque_step(torque_cmd[idx])
+        logged_omega[idx] = iface.read_mech_speed()
 
     data = {"t": logged_t, "omega": logged_omega, "torque_cmd": logged_torque_cmd}
-    meta = {"torque_ref": torque_ref, "runup_time": runup_time, "coast_time": coast_time}
+    meta = {
+        "torque_ref": torque_ref,
+        "runup_time": runup_time,
+        "coast_time": coast_time,
+        "torque_command_mode": iface.torque_command_mode or "unknown",
+    }
     return data, meta
 
 

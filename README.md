@@ -119,17 +119,19 @@ The Digital Twin Bench is a reproducible experiment suite for induction motor co
 
 All classical controllers (PID/FOC/MIC) share the same inner current regulation layer; differences are in the outer-loop logic. The AI voltage policy bypasses the inner current loop by design.
 
-Stub policies such as `nn_stub` and `quick_stub` intentionally emit constant actions to smoke-test the pipeline; identical leaderboard scores are expected.
+Stub policies such as `nn_stub` and `quick_stub` intentionally emit constant actions to smoke-test the pipeline; identical leaderboard scores are expected. They are sanity checks and should not be used for performance comparisons.
 
 Scores are comparable only within identical experiment conditions (testsuite, dt, limits, noise, identification).
 
-### Digital Twin Bench (WIP)
+Identification uses a single signal interface (dq voltage commands + dq current/omega/torque reads). Hardware integrations should implement `set_voltage_dq`, `read_currents_dq`, `read_mech_speed`, `lock_rotor`, and optionally `set_torque_command`/`set_iq_ref`; no direct access to model internals is used.
+
+### Digital Twin Bench
 
 New bench scaffold (in progress) for reproducible digital twin experiments:
 - `sim/` (servo load model added in Stage 1)
 - `bench/`, `candidates/`, `docs/`, `logs/` (bench core, candidates, docs, logs)
 
-### Stages 1-9: quick checks and demos
+### Stages 1-10: quick checks and demos
 
 Stage 1:
 - quick check: `python -m pytest tests/test_load_model.py`
@@ -171,6 +173,10 @@ Stage 9:
 - demo (batch baselines + identification): `python candidates/runner.py --batch-dir candidates/examples --with-identification`
 - tests: `python -m pytest tests/test_baseline_policies.py`
 
+Stage 10:
+- validation (conditions hash + action trace): `python -m bench.validation --run-a logs/<run_a> --run-b logs/<run_b> --compare-actions`
+- tests: `python -m pytest tests/test_scoring_leaderboard.py`
+
 ### Stage 11: Auto search (random)
 
 PID search:
@@ -182,7 +188,7 @@ MIC search:
 Each run writes `search_summary.json` with baseline score, best score, percent improvement, and best parameters.
 Stage 11 results summary: `docs/stage11_report.md`.
 
-### Tuned baselines (Stage 11)
+### Tuned baselines (Stage 12)
 
 Persisted tuned baselines for downstream stages and papers:
 - `candidates/examples/pid_tuned_stage11.json` (PIDSpeedPolicy)

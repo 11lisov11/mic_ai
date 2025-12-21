@@ -57,6 +57,9 @@ class DirectVoltageEnv:
         self.i_d = 0.0
         self.i_q = 0.0
         self.w_mech = 0.0
+        self.torque_e = 0.0
+        self.load_torque = 0.0
+        self._rotor_locked = False
 
     def reset(self):
         self.motor = InductionMotorModel(self.env_config.motor)
@@ -67,11 +70,35 @@ class DirectVoltageEnv:
         self.i_d = 0.0
         self.i_q = 0.0
         self.w_mech = 0.0
+        self.torque_e = 0.0
+        self.load_torque = 0.0
+        self._rotor_locked = False
         return asdict(self.motor.state)
 
     def set_voltage_dq(self, u_d: float, u_q: float) -> None:
         self.u_d_ref = float(u_d)
         self.u_q_ref = float(u_q)
+
+    def set_torque_command(self, torque_cmd: float) -> None:
+        # Open-loop approximation: map torque command to q-axis voltage.
+        self.set_voltage_dq(0.0, float(torque_cmd))
+
+    def set_load_torque(self, torque: float) -> None:
+        self.load_torque = float(torque)
+
+    def lock_rotor(self, enabled: bool = True) -> None:
+        self._rotor_locked = bool(enabled)
+        if self._rotor_locked:
+            self.motor.state.omega_m = 0.0
+
+    def read_currents_dq(self) -> tuple[float, float]:
+        return float(self.i_d), float(self.i_q)
+
+    def read_mech_speed(self) -> float:
+        return float(self.w_mech)
+
+    def read_torque(self) -> float:
+        return float(self.torque_e)
 
     def step(self, u_d: float | None = None, u_q: float | None = None):
         if u_d is not None or u_q is not None:
@@ -79,13 +106,19 @@ class DirectVoltageEnv:
             self.u_q_ref = float(self.u_q_ref if u_q is None else u_q)
 
         v_abc, (v_d, v_q) = self.inverter.output(self.u_d_ref, self.u_q_ref, self.theta_e)
-        _, i_d, i_q, _, omega_m = self.motor.step(
-            v_d, v_q, load_torque=0.0, dt=self.dt, omega_syn=0.0
+        if self._rotor_locked:
+            self.motor.state.omega_m = 0.0
+        _, i_d, i_q, torque_e, omega_m = self.motor.step(
+            v_d, v_q, load_torque=self.load_torque, dt=self.dt, omega_syn=0.0
         )
+        if self._rotor_locked:
+            self.motor.state.omega_m = 0.0
+            omega_m = 0.0
 
         self.i_d = float(i_d)
         self.i_q = float(i_q)
         self.w_mech = float(omega_m)
+        self.torque_e = float(torque_e)
         self.t += self.dt
         return v_abc, (v_d, v_q)
 

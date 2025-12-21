@@ -6,7 +6,14 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from mic_ai.ai.ai_voltage_config import get_reward_weights, get_success_config, load_ai_voltage_config
+from mic_ai.ai.ai_voltage_config import (
+    get_curriculum_config,
+    get_reward_weights,
+    get_success_config,
+    load_ai_voltage_config,
+)
+from mic_ai.ai.foc_baseline import run_foc_baseline as run_foc_baseline_ai
+from mic_ai.ai.foc_baseline import save_foc_baseline
 
 OUTPUT_DIR = Path("outputs/demo_ai")
 
@@ -121,10 +128,69 @@ def _success_score(
 
 def run_foc_baseline(motor_config: dict, n_episodes: int) -> Dict[str, object]:
     """
-    Placeholder interface for future FOC baseline evaluation.
-    Returns a stub dict to keep report structure stable.
+    Run FOC baseline episodes for a motor config and return summary + optional log path.
     """
-    return {"implemented": False, "config": motor_config, "n_episodes": n_episodes}
+    if not isinstance(motor_config, dict):
+        raise ValueError("motor_config must be a dict")
+    config_name = (
+        motor_config.get("config_name")
+        or motor_config.get("env_config")
+        or motor_config.get("env_config_path")
+        or motor_config.get("config_path")
+    )
+    if not config_name:
+        raise ValueError("motor_config must include env config path (config_name/env_config)")
+
+    cfg = load_ai_voltage_config()
+    curriculum_cfg = motor_config.get("curriculum") or get_curriculum_config(cfg)
+    episode_steps = int(motor_config.get("episode_steps", motor_config.get("steps", 200)))
+    log_path = motor_config.get("log_path") or motor_config.get("episodes_path")
+    force = bool(motor_config.get("force", False))
+
+    v_limit = motor_config.get("v_limit")
+    sigma_omega = motor_config.get("sigma_omega")
+    sigma_i_abc = motor_config.get("sigma_i_abc")
+    env_cfg_override = motor_config.get("env_cfg_override")
+
+    episodes: List[Dict[str, float]]
+    episodes_file = ""
+    if log_path:
+        out_path = Path(log_path)
+        episodes_file = str(out_path)
+        if force or not out_path.is_file():
+            save_foc_baseline(
+                str(config_name),
+                curriculum_cfg,
+                out_path,
+                n_episodes_eval=int(n_episodes),
+                episode_steps=episode_steps,
+                v_limit=v_limit,
+                sigma_omega=sigma_omega,
+                sigma_i_abc=sigma_i_abc,
+                env_cfg_override=env_cfg_override,
+            )
+        episodes = _load_episodes(out_path)
+    else:
+        episodes = run_foc_baseline_ai(
+            str(config_name),
+            curriculum_cfg,
+            n_episodes_eval=int(n_episodes),
+            episode_steps=episode_steps,
+            v_limit=v_limit,
+            sigma_omega=sigma_omega,
+            sigma_i_abc=sigma_i_abc,
+            env_cfg_override=env_cfg_override,
+        )
+
+    summary = summarize_baseline(episodes)
+    return {
+        "implemented": True,
+        "config": motor_config,
+        "n_episodes": int(n_episodes),
+        "episodes_file": episodes_file,
+        "summary": summary,
+        "episodes": episodes,
+    }
 
 
 def build_ai_voltage_report(
@@ -152,6 +218,23 @@ def build_ai_voltage_report(
             path = Path(baseline_runs.get(motor_key, "")) if isinstance(baseline_runs, dict) else None
             eps = _load_episodes(path) if path else []
             baseline_block[motor_key] = summarize_baseline(eps) | {"episodes_file": str(path) if path else ""}
+    else:
+        eval_cfg = cfg.get("eval", {}) if isinstance(cfg, dict) else {}
+        n_baseline = int(eval_cfg.get("episodes", 5)) if isinstance(eval_cfg, dict) else 5
+        for motor_key in ("motor1", "motor2"):
+            motor_info = motor_runs.get(motor_key, {}) if isinstance(motor_runs, dict) else {}
+            config_name = motor_info.get("env_config") or f"config/env_demo_true_{motor_key}.py"
+            out_path = OUTPUT_DIR / f"foc_baseline_{motor_key}.json"
+            baseline_info = run_foc_baseline(
+                {
+                    "config_name": str(config_name),
+                    "episode_steps": int(motor_info.get("episode_steps", 200)),
+                    "log_path": out_path,
+                },
+                n_episodes=n_baseline,
+            )
+            baseline_block[motor_key] = baseline_info["summary"] | {"episodes_file": str(out_path)}
+
     report["baseline"] = baseline_block if baseline_block else {"implemented": False}
 
     for motor_key in ("motor1", "motor2"):

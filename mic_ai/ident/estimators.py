@@ -9,6 +9,7 @@ from typing import Callable, Tuple
 import numpy as np
 
 from .motor_params import MotorParamsEstimated
+from .signal_interface import IdentSignalInterface
 
 try:
     from scipy.optimize import least_squares
@@ -175,43 +176,6 @@ def refine_params_with_model(
         lower = np.array([low_rs, low_ls, low_lr, low_lm], dtype=float)
         upper = np.array([up_rs, up_ls, up_lr, up_lm], dtype=float)
 
-    def _extract_id(env_model) -> float:
-        if hasattr(env_model, "i_d"):
-            return float(env_model.i_d)
-        if hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "i_d"):
-            return float(env_model.motor_state.i_d)
-        if hasattr(env_model, "motor") and hasattr(env_model.motor, "_currents") and hasattr(env_model.motor, "state"):
-            i_d_val, _, _, _ = env_model.motor._currents(env_model.motor.state)  # type: ignore[attr-defined]
-            return float(i_d_val)
-        # TODO: адаптировать под реальный API env_model для получения i_d
-        raise ValueError("Cannot extract i_d from env_model; expose .i_d or motor currents.")
-
-    def _apply_voltage(env_model, u_d_val: float, u_q_val: float = 0.0) -> None:
-        if hasattr(env_model, "set_voltage_dq"):
-            env_model.set_voltage_dq(u_d_val, u_q_val)
-        elif hasattr(env_model, "base_controller") and hasattr(env_model.base_controller, "set_voltage_dq"):
-            env_model.base_controller.set_voltage_dq(u_d_val, u_q_val)
-        else:
-            # TODO: адаптировать под реальный setter напряжения env_model
-            if hasattr(env_model, "u_d_ref") or hasattr(env_model, "u_q_ref"):
-                if hasattr(env_model, "u_d_ref"):
-                    env_model.u_d_ref = float(u_d_val)
-                if hasattr(env_model, "u_q_ref"):
-                    env_model.u_q_ref = float(u_q_val)
-            else:
-                raise ValueError(
-                    "Cannot apply dq voltage to env_model. Expose set_voltage_dq(), base_controller.set_voltage_dq(), "
-                    "or u_d_ref/u_q_ref attributes."
-                )
-
-        if hasattr(env_model, "step"):
-            try:
-                env_model.step(u_d_val, u_q_val)
-            except TypeError:
-                env_model.step()
-        else:
-            raise ValueError("env_model does not implement step()")
-
     def _build_estimated(theta: np.ndarray) -> MotorParamsEstimated:
         if use_rr:
             Rs, Rr, Ls, Lr, Lm = theta
@@ -229,13 +193,14 @@ def refine_params_with_model(
     def residuals(theta: np.ndarray) -> np.ndarray:
         est_params = _build_estimated(theta)
         env_model = env_model_factory(est_params)
-        if hasattr(env_model, "reset"):
-            env_model.reset()
+        iface = IdentSignalInterface(env_model)
+        iface.reset()
 
         i_model = np.zeros_like(i_d_meas)
         for idx, u in enumerate(u_d):
-            _apply_voltage(env_model, float(u), 0.0)
-            i_model[idx] = _extract_id(env_model)
+            iface.apply_voltage_step(float(u), 0.0)
+            i_d_val, _ = iface.read_currents_dq()
+            i_model[idx] = i_d_val
         return i_model - i_d_meas
 
     result = least_squares(residuals, x0=x0, bounds=(lower, upper), method="trf", max_nfev=120)
@@ -250,82 +215,6 @@ def _param_bounds(val: float | None, fallback: float) -> tuple[float, float, flo
     return start, lower, upper
 
 
-def _apply_voltage_generic(env_model, u_d: float, u_q: float = 0.0) -> None:
-    if hasattr(env_model, "set_voltage_dq"):
-        env_model.set_voltage_dq(u_d, u_q)
-    elif hasattr(env_model, "base_controller") and hasattr(env_model.base_controller, "set_voltage_dq"):
-        env_model.base_controller.set_voltage_dq(u_d, u_q)
-    else:
-        if hasattr(env_model, "u_d_ref") or hasattr(env_model, "u_q_ref"):
-            if hasattr(env_model, "u_d_ref"):
-                env_model.u_d_ref = float(u_d)
-            if hasattr(env_model, "u_q_ref"):
-                env_model.u_q_ref = float(u_q)
-        else:
-            raise ValueError(
-                "Cannot apply dq voltage to env_model. Expose set_voltage_dq(), base_controller.set_voltage_dq(), "
-                "or u_d_ref/u_q_ref attributes."
-            )
-    # TODO: адаптировать под проектный API, если установка напряжений отличается
-
-
-def _step_env_generic(env_model, u_d: float, u_q: float = 0.0) -> None:
-    _apply_voltage_generic(env_model, u_d, u_q)
-    if hasattr(env_model, "step"):
-        try:
-            env_model.step(u_d, u_q)
-        except TypeError:
-            env_model.step()
-    else:
-        raise ValueError("env_model must implement step()")
-
-
-def _extract_i_d(env_model) -> float:
-    if hasattr(env_model, "i_d"):
-        return float(env_model.i_d)
-    if hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "i_d"):
-        return float(env_model.motor_state.i_d)
-    if hasattr(env_model, "motor") and hasattr(env_model.motor, "_currents") and hasattr(env_model.motor, "state"):
-        i_d_val, _, _, _ = env_model.motor._currents(env_model.motor.state)  # type: ignore[attr-defined]
-        return float(i_d_val)
-    raise ValueError("Cannot extract i_d from env_model")
-
-
-def _extract_i_q(env_model) -> float:
-    if hasattr(env_model, "i_q"):
-        return float(env_model.i_q)
-    if hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "i_q"):
-        return float(env_model.motor_state.i_q)
-    if hasattr(env_model, "motor") and hasattr(env_model.motor, "_currents") and hasattr(env_model.motor, "state"):
-        _, i_q_val, _, _ = env_model.motor._currents(env_model.motor.state)  # type: ignore[attr-defined]
-        return float(i_q_val)
-    raise ValueError("Cannot extract i_q from env_model")
-
-
-def _extract_torque(env_model) -> float | None:
-    if hasattr(env_model, "torque"):
-        return float(env_model.torque)
-    if hasattr(env_model, "torque_e"):
-        return float(env_model.torque_e)
-    if hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "torque"):
-        return float(env_model.motor_state.torque)
-    if hasattr(env_model, "last_torque"):
-        return float(env_model.last_torque)
-    return None
-
-
-def _extract_omega(env_model) -> float:
-    if hasattr(env_model, "omega_m"):
-        return float(env_model.omega_m)
-    if hasattr(env_model, "w_mech"):
-        return float(env_model.w_mech)
-    if hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "omega_m"):
-        return float(env_model.motor_state.omega_m)
-    if hasattr(env_model, "motor") and hasattr(env_model.motor, "state") and hasattr(env_model.motor.state, "omega_m"):
-        return float(env_model.motor.state.omega_m)
-    raise ValueError("Cannot extract omega from env_model")
-
-
 def _simulate_rs_leq(env_model, data: dict) -> dict:
     if "u_d" not in data or "t" not in data:
         raise ValueError("rs_leq data must contain 't' and 'u_d'")
@@ -333,20 +222,21 @@ def _simulate_rs_leq(env_model, data: dict) -> dict:
     i_d_model = np.zeros_like(u_d)
     psi_d_model = np.zeros_like(u_d)
 
-    if hasattr(env_model, "reset"):
-        env_model.reset()
+    iface = IdentSignalInterface(env_model)
+    iface.reset()
 
     for idx, u in enumerate(u_d):
-        _step_env_generic(env_model, float(u), 0.0)
-        i_d_model[idx] = _extract_i_d(env_model)
-        # Дополнительно сохраняем поток, если доступен
+        iface.lock_rotor(True)
+        iface.apply_voltage_step(float(u), 0.0)
+        iface.lock_rotor(True)
+        i_d_val, _ = iface.read_currents_dq()
+        i_d_model[idx] = i_d_val
         if hasattr(env_model, "psi_d"):
             psi_d_model[idx] = float(env_model.psi_d)
-        elif hasattr(env_model, "motor_state") and hasattr(env_model.motor_state, "psi_ds"):
-            psi_d_model[idx] = float(env_model.motor_state.psi_ds)
         else:
             psi_d_model[idx] = 0.0
 
+    iface.lock_rotor(False)
     return {"i_d_model": i_d_model, "psi_d_model": psi_d_model}
 
 
@@ -358,26 +248,19 @@ def _simulate_locked_rotor_q(env_model, data: dict) -> dict:
     i_q_model = np.zeros_like(u_q)
     torque_model = np.zeros_like(u_q)
 
-    if hasattr(env_model, "reset"):
-        env_model.reset()
-    # Пытаемся эмулировать закреплённый ротор, принудительно обнуляя скорость на каждом шаге
-    def _lock_rotor():
-        if hasattr(env_model, "motor") and hasattr(env_model.motor, "state"):
-            env_model.motor.state.omega_m = 0.0  # type: ignore[attr-defined]
-        if hasattr(env_model, "omega_m"):
-            try:
-                env_model.omega_m = 0.0  # type: ignore[assignment]
-            except Exception:
-                pass
+    iface = IdentSignalInterface(env_model)
+    iface.reset()
 
     for idx, (ud_val, uq_val) in enumerate(zip(u_d, u_q)):
-        _lock_rotor()
-        _step_env_generic(env_model, float(ud_val), float(uq_val))
-        _lock_rotor()
-        i_q_model[idx] = _extract_i_q(env_model)
-        torque = _extract_torque(env_model)
+        iface.lock_rotor(True)
+        iface.apply_voltage_step(float(ud_val), float(uq_val))
+        iface.lock_rotor(True)
+        _, i_q_val = iface.read_currents_dq()
+        torque = iface.read_torque()
+        i_q_model[idx] = i_q_val
         torque_model[idx] = torque if torque is not None else 0.0
 
+    iface.lock_rotor(False)
     return {"i_q_model": i_q_model, "torque_model": torque_model}
 
 
@@ -387,13 +270,12 @@ def _simulate_mech_runup_coast(env_model, data: dict) -> dict:
     torque_cmd = np.asarray(data["torque_cmd"], dtype=float)
     omega_model = np.zeros_like(torque_cmd)
 
-    if hasattr(env_model, "reset"):
-        env_model.reset()
+    iface = IdentSignalInterface(env_model)
+    iface.reset()
 
     for idx, tq in enumerate(torque_cmd):
-        # TODO: адаптировать команду момента под реальный API; здесь используем возбуждение по q-оси.
-        _step_env_generic(env_model, 0.0, float(tq))
-        omega_model[idx] = _extract_omega(env_model)
+        iface.apply_torque_step(float(tq))
+        omega_model[idx] = iface.read_mech_speed()
 
     return {"omega_model": omega_model}
 
