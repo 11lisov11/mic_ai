@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import torch
 
+from config.env import NAMEPLATE_N_RATED
 from mic_ai.ai.ai_env import AiEnvConfig, MicAiAIEnv
 from mic_ai.ai.ai_voltage_config import (
     get_curriculum_config,
@@ -94,6 +95,7 @@ def build_env(
     motor_key: str | None = None,
     ident_path: str | None = None,
     override_i_max: float | None = None,
+    omega_ref_override: float | None = None,
     env_cfg_override: object | None = None,
 ) -> MicAiAIEnv:
     env_sim = make_env_from_config(str(env_config_path))
@@ -104,7 +106,8 @@ def build_env(
     if ident_path:
         env_cfg = load_and_apply_ident(env_cfg, ident_path)
         env_sim.env_config = env_cfg
-    omega_ref = float(2.0 * np.pi * 10.0 / max(env_cfg.motor.p, 1))
+    omega_ref_default = float(2.0 * np.pi * 10.0 / max(env_cfg.motor.p, 1))
+    omega_ref = float(omega_ref_override) if omega_ref_override is not None else omega_ref_default
     i_base = float(getattr(env_cfg.motor, "I_n", 1.0))
     steps = int(max(episode_steps, 1))
     omega_ref_max = max(abs(omega_ref) * 1.2, 1e-3)
@@ -198,6 +201,24 @@ def plot_curves(path: Path, episodes: np.ndarray, curves: Dict[str, np.ndarray])
     plt.close(fig)
 
 
+def _parse_csv_floats(raw: str | None) -> List[float] | None:
+    if raw is None:
+        return None
+    items = [item.strip() for item in raw.split(",") if item.strip()]
+    if not items:
+        return None
+    return [float(item) for item in items]
+
+
+def _parse_csv_ints(raw: str | None) -> List[int] | None:
+    if raw is None:
+        return None
+    items = [item.strip() for item in raw.split(",") if item.strip()]
+    if not items:
+        return None
+    return [int(item) for item in items]
+
+
 def _run_eval_episodes(
     agent: PPOVoltageAgent, env: MicAiAIEnv, episodes: int, episode_steps: int, log_path: Path
 ) -> Tuple[Path, List[Dict[str, float]]]:
@@ -257,6 +278,10 @@ def train_ai_voltage(
     override_voltage_scale: float | None = None,
     override_w_power: float | None = None,
     override_w_action: float | None = None,
+    omega_ref_override: float | None = None,
+    curriculum_omega_pu: List[float] | None = None,
+    curriculum_boundaries: List[int] | None = None,
+    override_i_max: float | None = None,
 ) -> Dict[str, object]:
     env_path = resolve_config_path(config_name)
     motor_key = _motor_key_from_config(config_name)
@@ -266,6 +291,10 @@ def train_ai_voltage(
     if override_w_action is not None:
         reward_weights["w_action"] = float(override_w_action)
     curriculum_cfg = get_curriculum_config(AI_VOLTAGE_CFG)
+    if curriculum_omega_pu:
+        curriculum_cfg["omega_pu_stages"] = [float(x) for x in curriculum_omega_pu]
+    if curriculum_boundaries:
+        curriculum_cfg["stage_episode_boundaries"] = [int(x) for x in curriculum_boundaries]
     exploration_cfg = get_exploration_config(AI_VOLTAGE_CFG)
     voltage_scale = get_voltage_scale(AI_VOLTAGE_CFG, motor_key) if override_voltage_scale is None else float(override_voltage_scale)
     env = build_env(
@@ -276,6 +305,8 @@ def train_ai_voltage(
         voltage_scale=voltage_scale,
         motor_key=motor_key,
         ident_path=ident_path,
+        override_i_max=override_i_max,
+        omega_ref_override=omega_ref_override,
     )
 
     hidden_sizes = (64, 64) if fast else (128, 128)
@@ -676,6 +707,15 @@ if __name__ == "__main__":
     parser.add_argument("--voltage-scale", type=float, default=None, help="Override voltage_scale (per-unit of base limit).")
     parser.add_argument("--w-power", type=float, default=None, help="Override reward weight for input power (P_in).")
     parser.add_argument("--w-action", type=float, default=None, help="Override reward weight for action magnitude.")
+    parser.add_argument("--i-max", type=float, default=None, help="Override hard current limit (A) for training.")
+    parser.add_argument("--omega-ref", type=float, default=None, help="Override omega_ref in rad/s.")
+    parser.add_argument("--omega-ref-pu", type=float, default=None, help="Override omega_ref in per-unit of rated speed.")
+    parser.add_argument("--curriculum-omega-pu", default=None, help="Comma-separated omega_pu stages (e.g., 0.3,0.5,0.7).")
+    parser.add_argument(
+        "--curriculum-boundaries",
+        default=None,
+        help="Comma-separated episode boundaries for curriculum stages (e.g., 50,100,150).",
+    )
     parser.add_argument(
         "--demo-all",
         action="store_true",
@@ -687,6 +727,17 @@ if __name__ == "__main__":
         main()
     else:
         max_seconds = None if args.time_budget_min is None else float(args.time_budget_min) * 60.0
+        omega_ref_override = None
+        if args.omega_ref is not None and args.omega_ref_pu is not None:
+            parser.error("Use only one of --omega-ref or --omega-ref-pu.")
+        if args.omega_ref is not None:
+            omega_ref_override = float(args.omega_ref)
+        elif args.omega_ref_pu is not None:
+            omega_nom = 2.0 * np.pi * float(NAMEPLATE_N_RATED) / 60.0
+            omega_ref_override = float(args.omega_ref_pu) * omega_nom
+
+        curriculum_omega_pu = _parse_csv_floats(args.curriculum_omega_pu)
+        curriculum_boundaries = _parse_csv_ints(args.curriculum_boundaries)
         train_ai_voltage(
             args.config,
             num_episodes=args.episodes,
@@ -700,4 +751,8 @@ if __name__ == "__main__":
             override_voltage_scale=args.voltage_scale,
             override_w_power=args.w_power,
             override_w_action=args.w_action,
+            omega_ref_override=omega_ref_override,
+            curriculum_omega_pu=curriculum_omega_pu,
+            curriculum_boundaries=curriculum_boundaries,
+            override_i_max=args.i_max,
         )

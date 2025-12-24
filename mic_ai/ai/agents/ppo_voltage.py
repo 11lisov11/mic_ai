@@ -109,9 +109,11 @@ class PPOVoltageAgent:
         return action.squeeze(0).cpu().numpy().astype(np.float32), float(logprob.item()), float(value.item())
 
     def store(self, state: Dict[str, float], action: np.ndarray, logprob: float, reward: float, done: bool, value: float) -> None:
+        state_arr = np.asarray([state.get(k, 0.0) for k in self.feature_keys], dtype=np.float32)
+        state_arr = np.nan_to_num(state_arr, nan=0.0, posinf=0.0, neginf=0.0)
         self.buffer.append(
             Transition(
-                state=np.asarray([state.get(k, 0.0) for k in self.feature_keys], dtype=np.float32),
+                state=state_arr,
                 action=np.asarray(action, dtype=np.float32),
                 logprob=float(logprob),
                 reward=float(reward),
