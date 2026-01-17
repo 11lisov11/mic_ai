@@ -1,0 +1,31 @@
+{
+  "foc_baseline_score": 115.71942709253534,
+  "improvement_pct": 9.601242434195767,
+  "mic_baseline_score": 106.27742171829641,
+  "mic_best_score": 96.07346880631015,
+  "params": {
+    "k_vd": 0.6,
+    "k_vq": 1.4
+  },
+  "seed_runs": [
+    {
+      "best_params": {
+        "k_vd": 0.6,
+        "k_vq": 1.4
+      },
+      "best_score": 96.07346880631015,
+      "seed": 1,
+      "suite_dir": "outputs\\experiments_opt_seed1\\suite_20260105_125117"
+    },
+    {
+      "best_params": {
+        "k_vd": 0.6,
+        "k_vq": 1.4
+      },
+      "best_score": 96.07346880631015,
+      "seed": 2,
+      "suite_dir": "outputs\\experiments_opt_seed2\\suite_20260105_125454"
+    }
+  ],
+  "timestamp": "20260105_125901"
+}

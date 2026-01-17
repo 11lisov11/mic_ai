@@ -57,10 +57,17 @@ class AiEnvConfig:
     w_ai_id_power: float = 2.0
     w_ai_id_smooth: float = 0.05
     w_ai_id_mag: float = 0.0
+    id_ref_alpha: float = 1.0
+    id_ref_rate_limit: float | None = None
+    id_ref_gate_speed_tol: float | None = None
+    id_ref_gate_speed_tol_rel: float | None = None
+    id_ref_gate_min_scale: float = 0.0
+    id_ref_gate_exponent: float = 1.0
     id_ref_min: float = 0.0
     id_ref_max: float | None = None
     ai_id_ref_relative: bool = False
     ai_id_speed_tol: float = 0.5
+    ai_id_speed_tol_rel: float | None = None
     foc_assist_reward_mode: str = "baseline"
     w_foc_speed: float = 1.0
     w_foc_power: float = 0.5
@@ -84,6 +91,7 @@ class AiEnvConfig:
     reward_max: float = 0.5
     reward_min_td3: float = -5.0
     reward_max_td3: float = 0.0
+    override_omega_ref: bool = True
 
 
 class MicAiAIEnv:
@@ -226,6 +234,13 @@ class MicAiAIEnv:
         if self._v_max is None or self._v_max <= 0:
             self._v_max = 1.0
 
+    def set_scenario(self, name: str) -> None:
+        env_cfg = getattr(self.base_env, "env", None)
+        if env_cfg is None or not hasattr(env_cfg, "sim"):
+            return
+        sim_cfg = replace(env_cfg.sim, scenario_name=str(name))
+        self.base_env.env = replace(env_cfg, sim=sim_cfg)
+
     def _reset_direct_voltage(self) -> None:
         self.base_env.reset()
         self._t = 0.0
@@ -235,7 +250,7 @@ class MicAiAIEnv:
 
     def _prepare_gym_env(self) -> None:
         # Override scenarios to use constant references during AI training.
-        if hasattr(self.base_env, "omega_ref_func"):
+        if bool(getattr(self.cfg, "override_omega_ref", True)) and hasattr(self.base_env, "omega_ref_func"):
             self.base_env.omega_ref_func = lambda _t: self.cfg.omega_ref
         if hasattr(self.base_env, "load_torque_func") and self.control_mode != "ai_voltage":
             if getattr(self.cfg, "load_torque_override", None) is not None:
@@ -245,6 +260,13 @@ class MicAiAIEnv:
                 self.base_env.load_torque_func = lambda _t: 0.0
 
     def _omega_ref_from_env(self, t: float) -> float:
+        if not bool(getattr(self.cfg, "override_omega_ref", True)):
+            omega_ref_func = getattr(self.base_env, "omega_ref_func", None)
+            if omega_ref_func is not None:
+                try:
+                    return float(omega_ref_func(t))
+                except Exception:
+                    return float(self.cfg.omega_ref)
         boundaries = list(self._omega_piecewise_steps)
         multipliers = list(self._omega_piecewise_multipliers)
         step_idx = self.step_count
@@ -672,12 +694,48 @@ class MicAiAIEnv:
         id_max_cfg = getattr(self.cfg, "id_ref_max", None)
         id_max = float(id_max_cfg) if id_max_cfg is not None else float(current_limit)
         id_max = float(np.clip(id_max, id_min, current_limit))
+        gate_scale = 1.0
+        gate_tol_abs = getattr(self.cfg, "id_ref_gate_speed_tol", None)
+        gate_tol_rel = getattr(self.cfg, "id_ref_gate_speed_tol_rel", None)
+        if gate_tol_abs is not None or gate_tol_rel is not None:
+            t_now = float(getattr(self.base_env, "t", 0.0))
+            omega_ref_prev = self._omega_ref_from_env(t_now)
+            omega_prev = float(getattr(getattr(getattr(self.base_env, "motor", None), "state", None), "omega_m", 0.0))
+            omega_ref_scale = max(abs(omega_ref_prev), 1e-6)
+            gate_tol = 0.0
+            if gate_tol_abs is not None:
+                gate_tol = max(gate_tol, float(gate_tol_abs))
+            if gate_tol_rel is not None:
+                gate_tol = max(gate_tol, float(gate_tol_rel) * omega_ref_scale)
+            if gate_tol > 0.0:
+                err_prev = abs(omega_ref_prev - omega_prev)
+                gate_scale = max(0.0, 1.0 - err_prev / gate_tol)
+                gate_exp = float(getattr(self.cfg, "id_ref_gate_exponent", 1.0))
+                if gate_exp != 1.0:
+                    gate_scale = gate_scale**gate_exp
+                gate_min = float(getattr(self.cfg, "id_ref_gate_min_scale", 0.0))
+                gate_scale = max(gate_scale, gate_min)
         if bool(getattr(self.cfg, "ai_id_ref_relative", False)):
-            delta = id_ref_norm * float(getattr(self.cfg, "delta_id_max", 0.5))
+            delta = id_ref_norm * float(getattr(self.cfg, "delta_id_max", 0.5)) * gate_scale
             id_ref_cmd = self._id_ref_base + delta * max(1.0, abs(self._id_ref_base))
-            id_ref_cmd = float(np.clip(id_ref_cmd, id_min, id_max))
         else:
-            id_ref_cmd = id_min + 0.5 * (id_ref_norm + 1.0) * (id_max - id_min)
+            id_ref_raw = id_min + 0.5 * (id_ref_norm + 1.0) * (id_max - id_min)
+            id_ref_cmd = self._id_ref_base + gate_scale * (id_ref_raw - self._id_ref_base)
+        id_ref_cmd = float(np.clip(id_ref_cmd, id_min, id_max))
+
+        alpha = float(getattr(self.cfg, "id_ref_alpha", 1.0))
+        if 0.0 < alpha < 1.0:
+            id_ref_cmd = alpha * id_ref_cmd + (1.0 - alpha) * float(self._prev_id_ref)
+
+        rate = getattr(self.cfg, "id_ref_rate_limit", None)
+        if rate is not None:
+            rate = float(rate)
+            if rate > 0.0:
+                max_delta = rate * self.dt
+                prev = float(self._prev_id_ref)
+                id_ref_cmd = prev + float(np.clip(id_ref_cmd - prev, -max_delta, max_delta))
+
+        id_ref_cmd = float(np.clip(id_ref_cmd, id_min, id_max))
 
         controller.params = replace(controller.params, id_ref=float(id_ref_cmd))
         obs_raw, _reward, done_env, info = self.base_env.step(None)
@@ -687,6 +745,7 @@ class MicAiAIEnv:
         i_d_next, i_q_next = abc_to_dq(*i_abc, theta_e)
         info["omega_meas"] = omega_meas
         info["id_ref_cmd"] = float(id_ref_cmd)
+        info["id_ref_gate_scale"] = float(gate_scale)
         info["action_id_ref_norm"] = float(id_ref_norm)
         return obs_raw, bool(done_env), info, (i_d_next, i_q_next, float(id_ref_cmd))
 
@@ -1129,6 +1188,9 @@ class MicAiAIEnv:
             p_in_norm = min(p_in_pos / p_base, 10.0)
 
             speed_tol = float(getattr(self.cfg, "ai_id_speed_tol", getattr(self.cfg, "ai_voltage_speed_tol", 0.5)))
+            speed_tol_rel = getattr(self.cfg, "ai_id_speed_tol_rel", None)
+            if speed_tol_rel is not None:
+                speed_tol = max(speed_tol, float(speed_tol_rel) * omega_ref_scale)
             w_speed = float(getattr(self.cfg, "w_ai_id_speed", 1.0))
             w_power = float(getattr(self.cfg, "w_ai_id_power", 2.0))
             w_smooth = float(getattr(self.cfg, "w_ai_id_smooth", 0.05))

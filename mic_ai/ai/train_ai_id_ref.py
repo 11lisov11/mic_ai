@@ -39,6 +39,11 @@ CHECKPOINT_DIR = OUTPUT_DIR / "checkpoints"
 RESULTS_ROOT = Path("results_run")
 
 
+def _parse_scenarios(text: str) -> List[str]:
+    names = [item.strip() for item in str(text).split(",") if item.strip()]
+    return names
+
+
 def _prepare_output_file(path: Path) -> Path:
     path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,8 +63,17 @@ def build_env(
     w_smooth: float,
     w_mag: float,
     override_load_torque: bool,
+    override_omega_ref: bool,
     ai_id_ref_relative: bool,
     delta_id_max: float,
+    id_ref_alpha: float,
+    id_ref_rate_limit: float | None,
+    ai_id_speed_tol: float,
+    ai_id_speed_tol_rel: float | None,
+    id_ref_gate_speed_tol: float | None,
+    id_ref_gate_speed_tol_rel: float | None,
+    id_ref_gate_min_scale: float,
+    id_ref_gate_exponent: float,
     load_torque: float | None,
     omega_ref_override: float | None,
 ) -> MicAiAIEnv:
@@ -72,6 +86,8 @@ def build_env(
         omega_ref = float(omega_ref_override)
     i_base = float(getattr(env_cfg.motor, "I_n", 1.0))
     i_limit = float(max(getattr(getattr(env_cfg, "foc", None), "iq_limit", i_base * 8.0), i_base * 8.0, 5.0))
+    id_ref_base = float(getattr(getattr(env_cfg, "foc", None), "id_ref", 0.0) or 0.0)
+    id_ref_max = max(i_base * 1.5, id_ref_base, id_ref_base * 1.2)
 
     cfg = load_ai_voltage_config()
     curriculum_cfg = get_curriculum_config(cfg)
@@ -96,18 +112,26 @@ def build_env(
         w_ai_id_power=float(w_power),
         w_ai_id_smooth=float(w_smooth),
         w_ai_id_mag=float(w_mag),
+        id_ref_alpha=float(id_ref_alpha),
+        id_ref_rate_limit=None if id_ref_rate_limit is None else float(id_ref_rate_limit),
+        id_ref_gate_speed_tol=None if id_ref_gate_speed_tol is None else float(id_ref_gate_speed_tol),
+        id_ref_gate_speed_tol_rel=None if id_ref_gate_speed_tol_rel is None else float(id_ref_gate_speed_tol_rel),
+        id_ref_gate_min_scale=float(id_ref_gate_min_scale),
+        id_ref_gate_exponent=float(id_ref_gate_exponent),
         delta_id_max=float(delta_id_max),
-        ai_id_speed_tol=0.5,
+        ai_id_speed_tol=float(ai_id_speed_tol),
+        ai_id_speed_tol_rel=None if ai_id_speed_tol_rel is None else float(ai_id_speed_tol_rel),
         curriculum_omega_pu=tuple(float(x) for x in curriculum_stages),
         curriculum_stage_episodes=tuple(int(x) for x in stage_boundaries),
         omega_piecewise_steps=tuple(int(x) for x in piecewise_steps),
         omega_piecewise_multipliers=tuple(float(x) for x in piecewise_multipliers),
         id_ref_min=0.0,
-        id_ref_max=float(i_base * 1.5),
+        id_ref_max=float(id_ref_max),
         ai_id_ref_relative=bool(ai_id_ref_relative),
-        i_hard_limit=float(i_limit * 1.2),
+        i_hard_limit=float(i_limit * 2.0),
         load_torque_override=None if load_torque is None else float(load_torque),
         override_load_torque=bool(override_load_torque),
+        override_omega_ref=bool(override_omega_ref),
     )
 
     base_env = InductionMotorEnv(env_cfg)
@@ -128,13 +152,24 @@ def train(
     w_power: float,
     w_smooth: float,
     w_mag: float,
+    id_ref_alpha: float,
+    id_ref_rate_limit: float | None,
+    ai_id_speed_tol: float,
+    ai_id_speed_tol_rel: float | None,
+    id_ref_gate_speed_tol: float | None,
+    id_ref_gate_speed_tol_rel: float | None,
+    id_ref_gate_min_scale: float,
+    id_ref_gate_exponent: float,
     fast: bool,
     time_budget_min: float | None,
     override_load_torque: bool,
+    override_omega_ref: bool,
     ai_id_ref_relative: bool,
     delta_id_max: float,
     load_torque: float | None,
     omega_ref_override: float | None,
+    scenarios: List[str] | None,
+    scenario_sample: str,
 ) -> Dict[str, str]:
     env = build_env(
         env_config,
@@ -144,11 +179,24 @@ def train(
         w_smooth=w_smooth,
         w_mag=w_mag,
         override_load_torque=override_load_torque,
+        override_omega_ref=override_omega_ref,
         ai_id_ref_relative=ai_id_ref_relative,
         delta_id_max=delta_id_max,
+        id_ref_alpha=id_ref_alpha,
+        id_ref_rate_limit=id_ref_rate_limit,
+        ai_id_speed_tol=ai_id_speed_tol,
+        ai_id_speed_tol_rel=ai_id_speed_tol_rel,
+        id_ref_gate_speed_tol=id_ref_gate_speed_tol,
+        id_ref_gate_speed_tol_rel=id_ref_gate_speed_tol_rel,
+        id_ref_gate_min_scale=id_ref_gate_min_scale,
+        id_ref_gate_exponent=id_ref_gate_exponent,
         load_torque=load_torque,
         omega_ref_override=omega_ref_override,
     )
+
+    scenarios = [s for s in (scenarios or []) if s]
+    scenario_sample = str(scenario_sample or "random").lower()
+    rng = np.random.default_rng()
 
     hidden_sizes = (64, 64) if fast else (128, 128)
     train_epochs = 3 if fast else 5
@@ -184,6 +232,14 @@ def train(
             print(f"[{env_name}] time budget reached at ep {ep}")
             break
 
+        scenario_name = ""
+        if scenarios:
+            if scenario_sample == "cycle":
+                scenario_name = scenarios[ep % len(scenarios)]
+            else:
+                scenario_name = str(rng.choice(scenarios))
+            env.set_scenario(scenario_name)
+
         obs = env.reset()
         done = False
         total_reward = 0.0
@@ -213,6 +269,7 @@ def train(
             "mean_reward": float(total_reward / max(steps, 1)),
             "actor_loss": float(losses.get("actor_loss", 0.0)),
             "value_loss": float(losses.get("value_loss", 0.0)),
+            "scenario": scenario_name,
         }
         episodes_log.append(entry)
 
@@ -259,14 +316,26 @@ def main() -> None:
     p.add_argument("--w-power", type=float, default=6.0)
     p.add_argument("--w-smooth", type=float, default=0.05)
     p.add_argument("--w-mag", type=float, default=0.0)
+    p.add_argument("--ai-id-speed-tol", type=float, default=0.5)
+    p.add_argument("--ai-id-speed-tol-rel", type=float, default=None, help="Relative speed tol (e.g., 0.05).")
+    p.add_argument("--id-ref-alpha", type=float, default=1.0)
+    p.add_argument("--id-ref-rate-limit", type=float, default=None, help="Max d(id_ref)/dt, A/s.")
+    p.add_argument("--id-ref-gate-speed-tol", type=float, default=None, help="Gate id_ref when |e_omega| exceeds tol.")
+    p.add_argument("--id-ref-gate-speed-tol-rel", type=float, default=None, help="Relative gate tol (e.g., 0.05).")
+    p.add_argument("--id-ref-gate-min-scale", type=float, default=0.0)
+    p.add_argument("--id-ref-gate-exponent", type=float, default=1.0)
     p.add_argument("--fast", action="store_true")
     p.add_argument("--time-budget-min", type=float, default=None)
     p.add_argument("--override-load-torque", action="store_true", help="Force zero load during training.")
+    p.add_argument("--no-override-omega-ref", dest="override_omega_ref", action="store_false", help="Use scenario omega_ref.")
     p.add_argument("--relative", action="store_true", help="Interpret action as delta around base id_ref.")
     p.add_argument("--delta-id-max", type=float, default=0.3, help="Relative id_ref delta scale.")
     p.add_argument("--load-torque", type=float, default=None, help="Override constant load torque, N*m.")
     p.add_argument("--omega-ref", type=float, default=None, help="Override omega_ref, rad/s.")
     p.add_argument("--omega-ref-pu", type=float, default=0.8, help="Omega_ref as pu of base omega (2*pi*10/p).")
+    p.add_argument("--scenarios", type=str, default="", help="Comma-separated scenario list (e.g., speed_step,ramp,load_step,start_stop).")
+    p.add_argument("--scenario-sample", type=str, default="random", choices=["random", "cycle"])
+    p.set_defaults(override_omega_ref=True)
     args = p.parse_args()
     omega_ref_override = None
     if args.omega_ref is not None:
@@ -276,6 +345,13 @@ def main() -> None:
         omega_base = float(2.0 * np.pi * 10.0 / max(env_cfg.motor.p, 1))
         omega_ref_override = float(args.omega_ref_pu) * omega_base
 
+    scenarios = _parse_scenarios(args.scenarios)
+    override_omega_ref = bool(args.override_omega_ref)
+    override_load_torque = bool(args.override_load_torque)
+    if scenarios:
+        override_omega_ref = False
+        override_load_torque = False
+
     train(
         env_config=args.config,
         episodes=args.episodes,
@@ -284,13 +360,24 @@ def main() -> None:
         w_power=args.w_power,
         w_smooth=args.w_smooth,
         w_mag=args.w_mag,
+        id_ref_alpha=float(args.id_ref_alpha),
+        id_ref_rate_limit=None if args.id_ref_rate_limit is None else float(args.id_ref_rate_limit),
+        ai_id_speed_tol=float(args.ai_id_speed_tol),
+        ai_id_speed_tol_rel=None if args.ai_id_speed_tol_rel is None else float(args.ai_id_speed_tol_rel),
+        id_ref_gate_speed_tol=None if args.id_ref_gate_speed_tol is None else float(args.id_ref_gate_speed_tol),
+        id_ref_gate_speed_tol_rel=None if args.id_ref_gate_speed_tol_rel is None else float(args.id_ref_gate_speed_tol_rel),
+        id_ref_gate_min_scale=float(args.id_ref_gate_min_scale),
+        id_ref_gate_exponent=float(args.id_ref_gate_exponent),
         fast=bool(args.fast),
         time_budget_min=args.time_budget_min,
-        override_load_torque=bool(args.override_load_torque),
+        override_load_torque=override_load_torque,
+        override_omega_ref=override_omega_ref,
         ai_id_ref_relative=bool(args.relative),
         delta_id_max=float(args.delta_id_max),
         load_torque=None if args.load_torque is None else float(args.load_torque),
         omega_ref_override=omega_ref_override,
+        scenarios=scenarios,
+        scenario_sample=str(args.scenario_sample),
     )
 
 

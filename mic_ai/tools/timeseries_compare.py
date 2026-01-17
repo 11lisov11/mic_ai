@@ -173,6 +173,12 @@ def _build_ai_env(
     v_scale: float | None,
     ai_id_relative: bool,
     delta_id_max: float,
+    id_ref_alpha: float,
+    id_ref_rate_limit: float | None,
+    id_ref_gate_speed_tol: float | None,
+    id_ref_gate_speed_tol_rel: float | None,
+    id_ref_gate_min_scale: float,
+    id_ref_gate_exponent: float,
 ) -> MicAiAIEnv:
     i_base = float(getattr(env_cfg.motor, "I_n", 1.0))
     iq_limit = float(getattr(getattr(env_cfg, "foc", None), "iq_limit", i_base * 8.0))
@@ -200,6 +206,12 @@ def _build_ai_env(
             w_ai_id_smooth=0.0,
             ai_id_ref_relative=bool(ai_id_relative),
             delta_id_max=float(delta_id_max),
+            id_ref_alpha=float(id_ref_alpha),
+            id_ref_rate_limit=None if id_ref_rate_limit is None else float(id_ref_rate_limit),
+            id_ref_gate_speed_tol=None if id_ref_gate_speed_tol is None else float(id_ref_gate_speed_tol),
+            id_ref_gate_speed_tol_rel=None if id_ref_gate_speed_tol_rel is None else float(id_ref_gate_speed_tol_rel),
+            id_ref_gate_min_scale=float(id_ref_gate_min_scale),
+            id_ref_gate_exponent=float(id_ref_gate_exponent),
             id_ref_min=0.0,
             id_ref_max=float(i_base * 1.5),
             curriculum_omega_pu=(1.0,),
@@ -287,8 +299,30 @@ def _simulate_ai(
     v_scale: float | None,
     ai_id_relative: bool,
     delta_id_max: float,
+    id_ref_alpha: float,
+    id_ref_rate_limit: float | None,
+    id_ref_gate_speed_tol: float | None,
+    id_ref_gate_speed_tol_rel: float | None,
+    id_ref_gate_min_scale: float,
+    id_ref_gate_exponent: float,
 ) -> Dict[str, np.ndarray]:
-    env = _build_ai_env(env_cfg, omega_ref, load_func, dt, t_end, ai_mode, v_scale, ai_id_relative, delta_id_max)
+    env = _build_ai_env(
+        env_cfg,
+        omega_ref,
+        load_func,
+        dt,
+        t_end,
+        ai_mode,
+        v_scale,
+        ai_id_relative,
+        delta_id_max,
+        id_ref_alpha,
+        id_ref_rate_limit,
+        id_ref_gate_speed_tol,
+        id_ref_gate_speed_tol_rel,
+        id_ref_gate_min_scale,
+        id_ref_gate_exponent,
+    )
     obs = env.reset()
 
     steps = int(max(t_end / dt, 1))
@@ -388,6 +422,12 @@ def main() -> None:
     parser.add_argument("--ai-mode", choices=["ai_voltage", "ai_id_ref", "foc_assist"], default="ai_id_ref")
     parser.add_argument("--ai-id-relative", action="store_true", help="Use relative id_ref around base for ai_id_ref.")
     parser.add_argument("--delta-id-max", type=float, default=0.1)
+    parser.add_argument("--id-ref-alpha", type=float, default=1.0)
+    parser.add_argument("--id-ref-rate-limit", type=float, default=None, help="Max d(id_ref)/dt, A/s.")
+    parser.add_argument("--id-ref-gate-speed-tol", type=float, default=None)
+    parser.add_argument("--id-ref-gate-speed-tol-rel", type=float, default=None, help="Relative gate tol (e.g., 0.05).")
+    parser.add_argument("--id-ref-gate-min-scale", type=float, default=0.0)
+    parser.add_argument("--id-ref-gate-exponent", type=float, default=1.0)
     parser.add_argument("--omega-ref", type=float, default=None, help="Absolute omega_ref, rad/s.")
     parser.add_argument("--omega-ref-pu", type=float, default=0.8)
     parser.add_argument("--t-end", type=float, default=None)
@@ -459,6 +499,12 @@ def main() -> None:
         v_scale,
         bool(args.ai_id_relative),
         float(args.delta_id_max),
+        float(args.id_ref_alpha),
+        None if args.id_ref_rate_limit is None else float(args.id_ref_rate_limit),
+        None if args.id_ref_gate_speed_tol is None else float(args.id_ref_gate_speed_tol),
+        None if args.id_ref_gate_speed_tol_rel is None else float(args.id_ref_gate_speed_tol_rel),
+        float(args.id_ref_gate_min_scale),
+        float(args.id_ref_gate_exponent),
     )
 
     out_dir = Path(args.out_dir)
