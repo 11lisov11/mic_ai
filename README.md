@@ -1,7 +1,13 @@
-﻿# MIC_AI (асинхронный электропривод)
+# MIC_AI - цифровой двойник асинхронного электропривода
 
-Этот репозиторий содержит цифровой двойник асинхронного двигателя, базовый FOC и модуль AI‑оптимизации.
-Цель: запуск симуляции и построение корректных, читабельных графиков по токам, моменту и мощности.
+Репозиторий содержит модель асинхронного двигателя, базовый FOC и алгоритмы MIC (AI) для снижения энергопотребления при сохранении точности управления. Основная цель - воспроизводимые симуляции и корректные графики для научной публикации.
+
+## Что внутри
+
+- Цифровой двойник АД и инвертора
+- Базовый регулятор FOC
+- MIC-регулирование на базе AI (в том числе rule-based режим)
+- Инструменты для сравнения FOC vs MIC и построения графиков
 
 ## Быстрый старт
 
@@ -11,12 +17,34 @@
 python -m pip install -r requirements.txt
 ```
 
-2) Графики для фиксированных нагрузок (холостой ход и 5 Н·м):
+2) Сравнение FOC vs MIC без RL-чекпойнтов (rule-based MIC):
+
+```
+python -m mic_ai.tools.drive_characteristics_ai \
+  --env-config config/env_demo_true_motor1_nominal.py \
+  --mic-id-ref-low 1.0 \
+  --mic-id-ref-high 1.4 \
+  --mic-id-ref-speed-tol-rel 0.05 \
+  --mic-id-ref-omega-min 0.1 \
+  --omega-ref-pu 0.8 \
+  --load-points 6 \
+  --t-end 2.0 \
+  --dt 0.001 \
+  --window-frac 0.25 \
+  --speed-tol 0.05 \
+  --out-dir outputs/drive_characteristics_nominal_rule
+```
+
+Выход:
+- `outputs/drive_characteristics_nominal_rule/load_characteristics.*`
+- `outputs/drive_characteristics_nominal_rule/working_characteristics.*`
+
+3) Сравнение с RL (опционально, если есть чекпойнт):
 
 ```
 python -m mic_ai.tools.drive_characteristics_ai \
   --env-config config/env_demo_true_motor1.py \
-  --ai-checkpoint outputs/ai_id_ref/checkpoints/env_demo_true_motor1/best_actor.pth \
+  --ai-checkpoint path/to/best_actor.pth \
   --ai-mode ai_id_ref \
   --ai-id-relative \
   --delta-id-max 0.1 \
@@ -29,52 +57,16 @@ python -m mic_ai.tools.drive_characteristics_ai \
   --out-dir outputs/drive_characteristics
 ```
 
-Выход:
-- `outputs/drive_characteristics/load_characteristics.*`
-- `outputs/drive_characteristics/working_characteristics.*`
-
-3) Временные ряды для постоянной нагрузки 5 Н·м:
-
-```
-python -m mic_ai.tools.timeseries_compare \
-  --env-config config/env_demo_true_motor1.py \
-  --ai-checkpoint outputs/ai_id_ref/checkpoints/env_demo_true_motor1/best_actor.pth \
-  --ai-mode ai_id_ref \
-  --ai-id-relative \
-  --delta-id-max 0.1 \
-  --omega-ref-pu 0.8 \
-  --t-end 1.2 \
-  --dt 0.001 \
-  --load-profile step \
-  --load-steps "0:5" \
-  --out-dir outputs/timeseries_load_5
-```
-
-4) Временные ряды для холостого хода:
-
-```
-python -m mic_ai.tools.timeseries_compare \
-  --env-config config/env_demo_true_motor1.py \
-  --ai-checkpoint outputs/ai_id_ref/checkpoints/env_demo_true_motor1/best_actor.pth \
-  --ai-mode ai_id_ref \
-  --ai-id-relative \
-  --delta-id-max 0.1 \
-  --omega-ref-pu 0.8 \
-  --t-end 1.2 \
-  --dt 0.001 \
-  --load-profile step \
-  --load-steps "0:0" \
-  --out-dir outputs/timeseries_load_0
-```
-
 Дополнительные инструкции: `docs/analysis_tools_ru.md`.
 
 ## Один номинальный режим (скорость + момент)
 
+Требуется RL-чекпойнт.
+
 ```
 python -m mic_ai.tools.nominal_case \
   --env-config config/env_demo_true_motor1.py \
-  --ai-checkpoint outputs/ai_id_ref/checkpoints/env_demo_true_motor1/best_actor.pth \
+  --ai-checkpoint path/to/best_actor.pth \
   --ai-mode ai_id_ref \
   --ai-id-relative \
   --delta-id-max 0.1 \
@@ -93,3 +85,14 @@ python -m mic_ai.tools.nominal_case \
   `I_rms(t) = sqrt((i_a^2 + i_b^2 + i_c^2) / 3)`
 - Механическая мощность:
   `P_мех(t) = omega(t) * M_эл(t)`
+
+## Структура репозитория
+
+- `config/` - конфигурации среды и параметров двигателя
+- `mic_ai/` - основной пакет (AI, метрики, инструменты)
+- `simulation/` - окружение симуляции
+- `outputs/` - результаты вычислений (игнорируются в git)
+
+## Примечания
+
+- RL-чекпойнты в репозиторий не включены.

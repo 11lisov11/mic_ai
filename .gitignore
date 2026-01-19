@@ -22,3 +22,6 @@ outputs/**/*.tex
 outputs/**/*.md
 outputs/**/*.pth
 results_run/
+motor_phys_ai/outputs/**
+!motor_phys_ai/outputs/.gitkeep
+!motor_phys_ai/outputs/runs_phys/.gitkeep

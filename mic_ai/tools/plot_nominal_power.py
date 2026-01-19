@@ -61,18 +61,7 @@ def main() -> None:
 
     ax.plot(foc["t"], p_foc, color="black", label="FOC")
     ax.plot(mic["t"], p_mic, color="0.35", linestyle="--", label="MIC")
-    ax.axvspan(foc["t"][start], foc["t"][-1], color="0.9", alpha=0.4)
-    ax.text(
-        0.98,
-        0.93,
-        f"Экономия в установившемся режиме:\n{saving_pct:.1f}%",
-        fontsize=9,
-        ha="right",
-        va="top",
-        transform=ax.transAxes,
-        bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none"},
-    )
-    ax.set_ylabel("Pэл, Вт")
+    ax.set_ylabel("P_эл, Вт")
     ax.set_xlabel("t, с")
     ax.legend(frameon=False)
 

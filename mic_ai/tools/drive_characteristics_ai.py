@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import argparse
@@ -114,6 +115,61 @@ def _simulate_foc_case(
     p_mech = np.zeros(steps, dtype=float)
 
     for k in range(steps):
+        obs, _r, done, info = env.step(None)
+        t[k] = float(env.t)
+        omega[k] = float(obs[0]) if hasattr(obs, "__len__") else float(info.get("omega_meas", 0.0))
+        i_abc = np.asarray(info.get("i_abc", (0.0, 0.0, 0.0)), dtype=float)
+        v_abc = np.asarray(info.get("v_abc", (0.0, 0.0, 0.0)), dtype=float)
+        torque = float(info.get("torque_e", obs[2] if hasattr(obs, "__len__") else 0.0))
+        i_rms[k] = calc_i_rms(i_abc)
+        p_el[k] = calc_p_el(v_abc, i_abc)
+        p_mech[k] = calc_p_mech(omega[k], torque)
+        if done:
+            t = t[: k + 1]
+            omega = omega[: k + 1]
+            i_rms = i_rms[: k + 1]
+            p_el = p_el[: k + 1]
+            p_mech = p_mech[: k + 1]
+            break
+    return {"t": t, "omega": omega, "i_rms": i_rms, "p_el": p_el, "p_mech": p_mech}
+
+
+def _simulate_mic_rule_case(
+    env_cfg: object,
+    omega_ref: float,
+    load_torque: float,
+    dt: float,
+    t_end: float,
+    id_ref_low: float,
+    id_ref_high: float,
+    speed_tol_rel: float,
+    omega_min_pu: float,
+    omega_nom: float,
+) -> Dict[str, np.ndarray]:
+    env = InductionMotorEnv(env_cfg)
+    env.omega_ref_func = lambda _t, ref=omega_ref: ref
+    env.load_torque_func = lambda _t, load=load_torque: load
+    obs = env.reset()
+    env.omega_ref_func = lambda _t, ref=omega_ref: ref
+    env.load_torque_func = lambda _t, load=load_torque: load
+
+    steps = int(max(t_end / dt, 1))
+    t = np.zeros(steps, dtype=float)
+    omega = np.zeros(steps, dtype=float)
+    i_rms = np.zeros(steps, dtype=float)
+    p_el = np.zeros(steps, dtype=float)
+    p_mech = np.zeros(steps, dtype=float)
+
+    for k in range(steps):
+        omega_ref_k = float(omega_ref)
+        omega_meas = float(getattr(getattr(env.motor, "state", None), "omega_m", 0.0))
+        omega_ref_scale = max(abs(omega_ref_k), 1e-6)
+        err = abs(omega_ref_k - omega_meas)
+        id_ref_target = float(id_ref_high)
+        if abs(omega_ref_k) >= float(omega_min_pu) * float(omega_nom) and err <= float(speed_tol_rel) * omega_ref_scale:
+            id_ref_target = float(id_ref_low)
+        env.controller.params = replace(env.controller.params, id_ref=id_ref_target)
+
         obs, _r, done, info = env.step(None)
         t[k] = float(env.t)
         omega[k] = float(obs[0]) if hasattr(obs, "__len__") else float(info.get("omega_meas", 0.0))
@@ -431,7 +487,7 @@ def _plot_working_characteristics(
     axes[1].set_ylabel("P_эл, Вт")
     axes[2].set_ylabel("P_мех, Вт")
     for ax in axes:
-        ax.set_xlabel("ω_ref, рад/с")
+        ax.set_xlabel("ω_зад, рад/с")
 
     from matplotlib.lines import Line2D
 
@@ -460,7 +516,12 @@ def _plot_working_characteristics(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Load and working characteristics for FOC vs MIC AI.")
     parser.add_argument("--env-config", default="config/env_demo_true_motor1.py")
-    parser.add_argument("--ai-checkpoint", required=True, help="Path to MIC AI (RL) checkpoint .pth")
+    parser.add_argument("--ai-checkpoint", default=None, help="Path to MIC AI (RL) checkpoint .pth")
+    parser.add_argument("--mic-id-ref", type=float, default=None, help="Use fixed id_ref for MIC curve.")
+    parser.add_argument("--mic-id-ref-low", type=float, default=None, help="Low id_ref for MIC rule.")
+    parser.add_argument("--mic-id-ref-high", type=float, default=None, help="High id_ref for MIC rule.")
+    parser.add_argument("--mic-id-ref-speed-tol-rel", type=float, default=0.05, help="Speed error tol (rel).")
+    parser.add_argument("--mic-id-ref-omega-min", type=float, default=0.1, help="Min omega_ref pu for low id_ref.")
     parser.add_argument("--out-dir", default="outputs/drive_characteristics")
     parser.add_argument(
         "--ai-mode",
@@ -490,13 +551,24 @@ def main() -> None:
     parser.add_argument("--speed-tol-abs", type=float, default=None, help="Absolute speed tolerance for valid points, rad/s.")
     args = parser.parse_args()
 
+    mic_id_ref = None if args.mic_id_ref is None else float(args.mic_id_ref)
+    mic_id_ref_low = None if args.mic_id_ref_low is None else float(args.mic_id_ref_low)
+    mic_id_ref_high = None if args.mic_id_ref_high is None else float(args.mic_id_ref_high)
+    mic_rule = False
+    if mic_id_ref_low is not None or mic_id_ref_high is not None:
+        if mic_id_ref_low is None or mic_id_ref_high is None:
+            raise ValueError("Provide both --mic-id-ref-low and --mic-id-ref-high.")
+        mic_rule = True
+    use_ai = mic_id_ref is None and not mic_rule
+    ai_mode = str(args.ai_mode).lower()
+
     env_path = resolve_config_path(args.env_config)
     env_cfg = make_env_from_config(str(env_path)).env_config
     if args.i_max is not None:
         env_cfg = replace(env_cfg, foc=replace(env_cfg.foc, iq_limit=float(args.i_max)))
-    motor_key = _motor_key_from_config(str(env_path))
     v_scale = None
-    if str(args.ai_mode).lower() == "ai_voltage":
+    if use_ai and ai_mode == "ai_voltage":
+        motor_key = _motor_key_from_config(str(env_path))
         vdc = float(getattr(getattr(env_cfg, "inverter", None), "Vdc", 0.0) or 0.0)
         ai_cfg = load_ai_voltage_config()
         v_scale = (
@@ -527,24 +599,28 @@ def main() -> None:
     speed_pu = [float(x) for x in str(args.speed_pu).split(",") if str(x).strip()]
     speeds = np.asarray(speed_pu, dtype=float) * omega_nom
 
-    ckpt = Path(args.ai_checkpoint)
-    if not ckpt.exists():
-        raise FileNotFoundError(f"AI checkpoint not found: {ckpt}")
-    state = torch.load(ckpt, map_location="cpu")
-    hidden = _infer_hidden_sizes(state) or (128, 128)
-    ai_mode = str(args.ai_mode).lower()
-    if ai_mode == "ai_id_ref":
-        feature_keys = ID_FEATURE_KEYS
-        action_dim = 1
-    elif ai_mode == "foc_assist":
-        feature_keys = FOC_FEATURE_KEYS
-        action_dim = 2
-    else:
-        feature_keys = VOLT_FEATURE_KEYS
-        action_dim = 2
-    agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
-    agent.net.load_state_dict(state)
-    agent.set_action_std(1e-6)
+    agent = None
+    ckpt = None
+    if use_ai:
+        if args.ai_checkpoint is None:
+            raise ValueError("Provide --ai-checkpoint or use --mic-id-ref / --mic-id-ref-low+--mic-id-ref-high.")
+        ckpt = Path(args.ai_checkpoint)
+        if not ckpt.exists():
+            raise FileNotFoundError(f"AI checkpoint not found: {ckpt}")
+        state = torch.load(ckpt, map_location="cpu")
+        hidden = _infer_hidden_sizes(state) or (128, 128)
+        if ai_mode == "ai_id_ref":
+            feature_keys = ID_FEATURE_KEYS
+            action_dim = 1
+        elif ai_mode == "foc_assist":
+            feature_keys = FOC_FEATURE_KEYS
+            action_dim = 2
+        else:
+            feature_keys = VOLT_FEATURE_KEYS
+            action_dim = 2
+        agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
+        agent.net.load_state_dict(state)
+        agent.set_action_std(1e-6)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -557,19 +633,36 @@ def main() -> None:
     for load in loads:
         foc_vals = _simulate_foc_case(env_cfg, omega_ref, float(load), dt, t_end)
         foc_stats = _summarize_window(foc_vals, args.window_frac)
-        mic_vals = _simulate_ai_case(
-            agent,
-            env_cfg,
-            omega_ref,
-            float(load),
-            dt,
-            t_end,
-            v_scale,
-            args.ai_mode,
-            False,
-            bool(args.ai_id_relative),
-            float(args.delta_id_max),
-        )
+        if mic_rule:
+            mic_vals = _simulate_mic_rule_case(
+                env_cfg,
+                omega_ref,
+                float(load),
+                dt,
+                t_end,
+                float(mic_id_ref_low),
+                float(mic_id_ref_high),
+                float(args.mic_id_ref_speed_tol_rel),
+                float(args.mic_id_ref_omega_min),
+                float(omega_nom),
+            )
+        elif mic_id_ref is not None:
+            foc_mic = replace(env_cfg.foc, id_ref=float(mic_id_ref))
+            mic_vals = _simulate_foc_case(replace(env_cfg, foc=foc_mic), omega_ref, float(load), dt, t_end)
+        else:
+            mic_vals = _simulate_ai_case(
+                agent,
+                env_cfg,
+                omega_ref,
+                float(load),
+                dt,
+                t_end,
+                v_scale,
+                args.ai_mode,
+                False,
+                bool(args.ai_id_relative),
+                float(args.delta_id_max),
+            )
         mic_stats = _summarize_window(mic_vals, args.window_frac)
         foc_load_stats.append(foc_stats)
         mic_load_stats.append(mic_stats)
@@ -643,19 +736,36 @@ def main() -> None:
         for speed in speeds:
             foc_vals = _simulate_foc_case(env_cfg, float(speed), float(load), dt, t_end)
             foc_stats = _summarize_window(foc_vals, args.window_frac)
-            mic_vals = _simulate_ai_case(
-                agent,
-                env_cfg,
-                float(speed),
-                float(load),
-                dt,
-                t_end,
-                v_scale,
-                args.ai_mode,
-                False,
-                bool(args.ai_id_relative),
-                float(args.delta_id_max),
-            )
+            if mic_rule:
+                mic_vals = _simulate_mic_rule_case(
+                    env_cfg,
+                    float(speed),
+                    float(load),
+                    dt,
+                    t_end,
+                    float(mic_id_ref_low),
+                    float(mic_id_ref_high),
+                    float(args.mic_id_ref_speed_tol_rel),
+                    float(args.mic_id_ref_omega_min),
+                    float(omega_nom),
+                )
+            elif mic_id_ref is not None:
+                foc_mic = replace(env_cfg.foc, id_ref=float(mic_id_ref))
+                mic_vals = _simulate_foc_case(replace(env_cfg, foc=foc_mic), float(speed), float(load), dt, t_end)
+            else:
+                mic_vals = _simulate_ai_case(
+                    agent,
+                    env_cfg,
+                    float(speed),
+                    float(load),
+                    dt,
+                    t_end,
+                    v_scale,
+                    args.ai_mode,
+                    False,
+                    bool(args.ai_id_relative),
+                    float(args.delta_id_max),
+                )
             mic_stats = _summarize_window(mic_vals, args.window_frac)
             foc_valid, foc_err_abs, foc_err_rel = _speed_valid(
                 foc_stats["omega_ss"], float(speed), args.speed_tol, args.speed_tol_abs
@@ -720,9 +830,21 @@ def main() -> None:
     _save_csv(out_dir / "working_characteristics_filtered.csv", work_rows_filtered)
     _plot_working_characteristics(out_dir / "working_characteristics_valid.png", speeds, loads, foc_grid, mic_grid, valid_grid)
 
+    mic_policy = "ai"
+    if mic_rule:
+        mic_policy = "rule"
+    elif mic_id_ref is not None:
+        mic_policy = "fixed_id"
+
     meta = {
         "env_config": str(env_path),
-        "ai_checkpoint": str(ckpt.resolve()),
+        "ai_checkpoint": None if ckpt is None else str(ckpt.resolve()),
+        "mic_policy": mic_policy,
+        "mic_id_ref": None if mic_id_ref is None else float(mic_id_ref),
+        "mic_id_ref_low": None if mic_id_ref_low is None else float(mic_id_ref_low),
+        "mic_id_ref_high": None if mic_id_ref_high is None else float(mic_id_ref_high),
+        "mic_id_ref_speed_tol_rel": float(args.mic_id_ref_speed_tol_rel),
+        "mic_id_ref_omega_min": float(args.mic_id_ref_omega_min),
         "omega_ref_pu": float(args.omega_ref_pu),
         "ai_mode": str(args.ai_mode),
         "omega_nom_source": str(args.omega_nom_source),
