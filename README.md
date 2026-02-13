@@ -47,7 +47,7 @@ python -m mic_ai.tools.drive_characteristics_ai \
   --ai-id-relative \
   --delta-id-max 0.1 \
   --omega-ref-pu 0.8 \
-  --load-values 0,5 \
+  --load-values 0.5 \
   --t-end 1.2 \
   --dt 0.001 \
   --window-frac 0.25 \
