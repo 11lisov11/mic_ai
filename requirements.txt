@@ -8,8 +8,5 @@ scipy>=1.10
 tqdm>=4.66
 matplotlib>=3.7
 
-# Gym is optional; code has fallback stubs, but install for full API.
-gym>=0.26
-
 # Dev / tests
 pytest>=7.4
