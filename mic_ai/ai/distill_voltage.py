@@ -23,15 +23,18 @@ def _c_float(value: float) -> str:
     return f"{text}f"
 
 
-def load_teacher_policy(path: str) -> nn.Module:
+def load_teacher_policy(
+    path: str, state_dim: int = 6, action_dim: int = 2, hidden_sizes: tuple[int, ...] = (128, 128)
+) -> nn.Module:
     """
     Load a teacher PPO actor-critic from checkpoint.
 
     The checkpoint is expected to contain the state_dict produced by
     PPOVoltageAgent.actor_critic. State/action dimensions default to the
-    current ai_voltage setup (6 state features, 2 actions).
+    ai_voltage setup (6 state features, 2 actions), but can be overridden
+    for ai_id_ref or other modes.
     """
-    model = ActorCritic(state_dim=6, action_dim=2)
+    model = ActorCritic(state_dim=state_dim, action_dim=action_dim, hidden_sizes=hidden_sizes)
     state = torch.load(path, map_location="cpu")
     if isinstance(state, dict):
         try:

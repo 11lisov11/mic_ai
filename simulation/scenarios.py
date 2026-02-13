@@ -62,6 +62,26 @@ def get_scenario(name: str, env: EnvConfig) -> Scenario:
         def load_torque(t: float) -> float:
             return 0.0 if t < t_step else load_const
 
+    elif base_name == 'load_profile':
+        # Constant speed reference, load steps (no start/stop events).
+        target_pu = 0.8 if omega_pu is None else omega_pu
+        omega_target = target_pu * omega_nom
+        t1 = 0.2 * env.sim.t_end
+        t2 = 0.5 * env.sim.t_end
+        t3 = 0.8 * env.sim.t_end
+
+        def omega_ref(t: float) -> float:
+            return omega_target
+
+        def load_torque(t: float) -> float:
+            if t < t1:
+                return 0.5 * load_const
+            if t < t2:
+                return 1.0 * load_const
+            if t < t3:
+                return 1.5 * load_const
+            return 0.8 * load_const
+
     elif base_name == 'start_stop':
         t_up = max(env.sim.t_end * 0.2, env.sim.dt)
         t_down = max(env.sim.t_end * 0.2, env.sim.dt)
@@ -78,6 +98,17 @@ def get_scenario(name: str, env: EnvConfig) -> Scenario:
             if t < t_down_start + t_down:
                 return omega_target * (1.0 - (t - t_down_start) / t_down)
             return 0.0
+
+        def load_torque(t: float) -> float:
+            return load_const
+
+    elif base_name == 'hold':
+        # Constant speed reference and constant load torque (no start/stop events).
+        target_pu = 1.0 if omega_pu is None else omega_pu
+        omega_target = target_pu * omega_nom
+
+        def omega_ref(t: float) -> float:
+            return omega_target
 
         def load_torque(t: float) -> float:
             return load_const

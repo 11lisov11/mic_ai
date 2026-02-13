@@ -2,6 +2,8 @@
 
 Репозиторий содержит модель асинхронного двигателя, базовый FOC и алгоритмы MIC (AI) для снижения энергопотребления при сохранении точности управления. Основная цель - воспроизводимые симуляции и корректные графики для научной публикации.
 
+Материалы статьи (Markdown, DOCX, рисунки): `paper/pgups_2026/`.
+
 ## Что внутри
 
 - Цифровой двойник АД и инвертора
@@ -11,15 +13,15 @@
 
 ## Быстрый старт
 
-1) Установить зависимости:
+Установка зависимостей:
 
-```
+```bash
 python -m pip install -r requirements.txt
 ```
 
-2) Сравнение FOC vs MIC без RL-чекпойнтов (rule-based MIC):
+Сравнение FOC vs MIC без RL-чекпойнтов (rule-based MIC):
 
-```
+```bash
 python -m mic_ai.tools.drive_characteristics_ai \
   --env-config config/env_demo_true_motor1_nominal.py \
   --mic-id-ref-low 1.0 \
@@ -35,13 +37,9 @@ python -m mic_ai.tools.drive_characteristics_ai \
   --out-dir outputs/drive_characteristics_nominal_rule
 ```
 
-Выход:
-- `outputs/drive_characteristics_nominal_rule/load_characteristics.*`
-- `outputs/drive_characteristics_nominal_rule/working_characteristics.*`
+Сравнение с RL (опционально, если есть чекпойнт):
 
-3) Сравнение с RL (опционально, если есть чекпойнт):
-
-```
+```bash
 python -m mic_ai.tools.drive_characteristics_ai \
   --env-config config/env_demo_true_motor1.py \
   --ai-checkpoint path/to/best_actor.pth \
@@ -59,39 +57,46 @@ python -m mic_ai.tools.drive_characteristics_ai \
 
 Дополнительные инструкции: `docs/analysis_tools_ru.md`.
 
-## Один номинальный режим (скорость + момент)
+## Физические конфиги (v2)
 
-Требуется RL-чекпойнт.
+Для более реалистичной модели (потери инвертора/железа, dead-time, насыщение) доступны:
 
-```
-python -m mic_ai.tools.nominal_case \
-  --env-config config/env_demo_true_motor1.py \
-  --ai-checkpoint path/to/best_actor.pth \
-  --ai-mode ai_id_ref \
-  --ai-id-relative \
-  --delta-id-max 0.1 \
-  --omega-ref-rpm 1450 \
-  --load-torque 1.65 \
-  --t-end 6.0 \
-  --dt 0.001 \
-  --out-dir outputs/nominal_case
-```
+- `config/env_demo_true_motor1_physical.py`
+- `config/env_demo_true_motor2_physical.py`
+
+Тренировочные скрипты (`mic_ai/ai/train_ai_id_ref.py`, `mic_ai/ai/train_ai_voltage.py`) берут диапазоны рандомизации из конфига, если заданы `ai_omega_ref_pu_range` / `ai_load_mult_range`.
 
 ## Принятые метрики
 
-- Активная электрическая мощность:
-  `P_эл(t) = v_a i_a + v_b i_b + v_c i_c`
-- RMS-ток статора:
-  `I_rms(t) = sqrt((i_a^2 + i_b^2 + i_c^2) / 3)`
-- Механическая мощность:
-  `P_мех(t) = omega(t) * M_эл(t)`
+- Активная электрическая мощность: `P_эл(t) = v_a i_a + v_b i_b + v_c i_c`
+- RMS-ток статора: `I_rms(t) = sqrt((i_a^2 + i_b^2 + i_c^2) / 3)`
+- Механическая мощность: `P_мех(t) = omega(t) * M_эл(t)`
+
+## Публикация (PGUPS)
+
+- Исходник статьи: `paper/pgups_2026/article_mic_ieee_vak_pgups.md`
+- Рисунки: `paper/pgups_2026/fig/`
+- Готовый DOCX: `paper/pgups_2026/СТАТЬЯ_MIC_ПГУПС_2026.docx`
+
+Пересборка DOCX из Markdown (требуются доп. зависимости):
+
+```bash
+python -m pip install -r requirements-paper.txt
+python tools/build_publication_from_markdown.py --src-md paper/pgups_2026/article_mic_ieee_vak_pgups.md --out-docx paper/pgups_2026/СТАТЬЯ_MIC_ПГУПС_2026.docx
+```
 
 ## Структура репозитория
 
 - `config/` - конфигурации среды и параметров двигателя
 - `mic_ai/` - основной пакет (AI, метрики, инструменты)
+- `models/` - математическая модель двигателя/инвертора
+- `control/` - алгоритмы управления (FOC, V/f, варианты MIC)
 - `simulation/` - окружение симуляции
-- `outputs/` - результаты вычислений (игнорируются в git)
+- `tests/` - тесты (используются в CI)
+- `paper/` - материалы публикации (статья, рисунки)
+- `outputs/` - вычислительные артефакты/результаты прогонов (игнорируются в git)
+- `results_run/` - локальные прогоны обучения (игнорируются в git)
+- `archive/` - локальный архив/легаси (игнорируется в git)
 
 ## Примечания
 

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -30,6 +31,10 @@ class InductionMotorModel:
         self.Ls = params.Ls_sigma + params.Lm
         self.Lr = params.Lr_sigma + params.Lm
         self.denom = self.Ls * self.Lr - params.Lm ** 2
+        self.psi_sat = float(getattr(params, "psi_sat", 0.0) or 0.0)
+        self.sat_exp = float(getattr(params, "sat_exp", 2.0) or 2.0)
+        self.lm_min_scale = float(getattr(params, "lm_min_scale", 0.2) or 0.0)
+        self._sat_enabled = self.psi_sat > 0.0 and self.lm_min_scale >= 0.0
 
     def update_params(self, params: MotorParams) -> None:
         """Update motor parameters and refresh derived inductances."""
@@ -37,15 +42,40 @@ class InductionMotorModel:
         self.Ls = params.Ls_sigma + params.Lm
         self.Lr = params.Lr_sigma + params.Lm
         self.denom = self.Ls * self.Lr - params.Lm ** 2
+        self.psi_sat = float(getattr(params, "psi_sat", 0.0) or 0.0)
+        self.sat_exp = float(getattr(params, "sat_exp", 2.0) or 2.0)
+        self.lm_min_scale = float(getattr(params, "lm_min_scale", 0.2) or 0.0)
+        self._sat_enabled = self.psi_sat > 0.0 and self.lm_min_scale >= 0.0
+
+    def _lm_effective(self, state: MotorState) -> float:
+        if not self._sat_enabled:
+            return float(self.params.Lm)
+        psi_s = math.hypot(state.psi_ds, state.psi_qs)
+        if psi_s <= 0.0:
+            return float(self.params.Lm)
+        scale = 1.0 / (1.0 + (psi_s / self.psi_sat) ** self.sat_exp)
+        scale = max(scale, float(self.lm_min_scale))
+        return float(self.params.Lm) * scale
 
     def _currents(self, state: MotorState) -> Tuple[float, float, float, float]:
         """
         Рассчитать dq-токи статора и ротора по потокосцеплениям.
         """
-        i_ds = (state.psi_ds * self.Lr - state.psi_dr * self.params.Lm) / self.denom
-        i_qs = (state.psi_qs * self.Lr - state.psi_qr * self.params.Lm) / self.denom
-        i_dr = (state.psi_dr * self.Ls - state.psi_ds * self.params.Lm) / self.denom
-        i_qr = (state.psi_qr * self.Ls - state.psi_qs * self.params.Lm) / self.denom
+        lm_eff = self._lm_effective(state)
+        if lm_eff == float(self.params.Lm):
+            Ls = self.Ls
+            Lr = self.Lr
+            denom = self.denom
+        else:
+            Ls = self.params.Ls_sigma + lm_eff
+            Lr = self.params.Lr_sigma + lm_eff
+            denom = Ls * Lr - lm_eff ** 2
+        if denom == 0.0:
+            denom = 1e-9
+        i_ds = (state.psi_ds * Lr - state.psi_dr * lm_eff) / denom
+        i_qs = (state.psi_qs * Lr - state.psi_qr * lm_eff) / denom
+        i_dr = (state.psi_dr * Ls - state.psi_ds * lm_eff) / denom
+        i_qr = (state.psi_qr * Ls - state.psi_qs * lm_eff) / denom
         return i_ds, i_qs, i_dr, i_qr
 
     def step(

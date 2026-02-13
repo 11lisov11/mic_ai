@@ -1,0 +1,64 @@
+#ifndef UNO_Q_PROTOCOL_H
+#define UNO_Q_PROTOCOL_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Fixed-point scales (match tools/uno_q_protocol.py)
+#define UNO_Q_OMEGA_SCALE 1024
+#define UNO_Q_CURRENT_SCALE 1024
+#define UNO_Q_VDC_SCALE 256
+#define UNO_Q_POWER_SCALE 4
+
+#define UNO_Q_CRC16_POLY 0x1021u
+#define UNO_Q_CRC16_INIT 0xFFFFu
+
+#if defined(__GNUC__)
+#define UNO_Q_PACKED __attribute__((packed))
+#else
+#define UNO_Q_PACKED
+#endif
+
+typedef struct UNO_Q_PACKED {
+  uint32_t t_ms;
+  int16_t omega_meas_q10;
+  int16_t omega_ref_q10;
+  int16_t id_q10;
+  int16_t iq_q10;
+  uint16_t vdc_q8;
+  int16_t i_rms_q10;
+  int16_t p_in_q2;
+  uint16_t status;
+} unoq_telemetry_t;
+
+typedef struct UNO_Q_PACKED {
+  uint32_t t_ms;
+  uint8_t enable_ai;
+  int16_t id_ref_q10;
+  uint16_t crc;
+} unoq_command_t;
+
+static inline uint16_t unoq_crc16_ccitt(const uint8_t *data, size_t len) {
+  uint16_t crc = UNO_Q_CRC16_INIT;
+  for (size_t i = 0; i < len; ++i) {
+    crc ^= (uint16_t)(data[i] << 8);
+    for (uint8_t b = 0; b < 8; ++b) {
+      if (crc & 0x8000u) {
+        crc = (uint16_t)((crc << 1) ^ UNO_Q_CRC16_POLY);
+      } else {
+        crc = (uint16_t)(crc << 1);
+      }
+    }
+  }
+  return crc;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // UNO_Q_PROTOCOL_H

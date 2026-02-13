@@ -8,6 +8,15 @@ import numpy as np
 
 from config.env import EnvConfig, create_default_env
 from control.vector_foc import FocController
+from control.v3_ternary import V3Controller
+from control.scalar_vf import ScalarVfController
+from control.esc_foc import EscFocController
+from control.aff_foc import AffFocController
+from control.ebs_foc import EbsFocController
+from control.lmc_foc import LmcFocController
+from control.load_map_foc import LoadMapFocController, LoadMapParams
+from control.hybrid_v3_foc import HybridV3FocController
+from metrics.losses import estimate_p_loss, K_FE_DEFAULT, K_SW_DEFAULT
 from models.induction_motor import InductionMotorModel
 from models.inverter_ideal import IdealInverter
 from models.transformations import dq_to_abc
@@ -42,6 +51,23 @@ class SimDriver(BaseDriver):
         self._motor = InductionMotorModel(self._env.motor)
         self._inverter = IdealInverter(self._env.inverter)
         self._controller = FocController(self._env.foc, self._env.motor, self._dt)
+        self._scalar_controller = ScalarVfController(
+            self._env.scalar_vf, self._dt, self._env.motor.p, self._env.inverter.Vdc
+        )
+        omega_base = 2.0 * math.pi * self._env.scalar_vf.f_max / self._env.motor.p
+        self._v3_controller = V3Controller(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._esc_controller = EscFocController(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._aff_controller = AffFocController(self._env.foc, self._env.motor, self._dt)
+        self._ebs_controller = EbsFocController(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._lmc_controller = LmcFocController(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._lmap_controller = LoadMapFocController(self._env.foc, self._env.motor, self._dt)
+        self._hyb_controller = HybridV3FocController(
+            self._env.foc,
+            self._env.motor,
+            self._dt,
+            omega_base,
+            load_nom=float(self._env.sim.load_torque),
+        )
 
         self._theta_mech = 0.0
         self._theta_e = 0.0
@@ -61,6 +87,9 @@ class SimDriver(BaseDriver):
         i_nom = float(getattr(self._env.foc, "iq_limit", 0.0) or 0.0)
         if i_nom <= 0.0:
             i_nom = float(getattr(self._env.motor, "I_n", 0.0) or 0.0)
+        id_ref = float(getattr(self._env.foc, "id_ref", 0.0) or 0.0)
+        if i_nom > 0.0 and id_ref != 0.0:
+            i_nom = math.hypot(i_nom, id_ref) * 1.3
         omega_base = 2.0 * math.pi * self._env.scalar_vf.f_max / self._env.motor.p
 
         self._safety = SafetySupervisor(self._dt)
@@ -77,6 +106,8 @@ class SimDriver(BaseDriver):
         self._last_fault: Optional[str] = None
         self._stopped = False
         self._last_i_abc = (0.0, 0.0, 0.0)
+        self._k_fe = K_FE_DEFAULT
+        self._k_sw = K_SW_DEFAULT
 
     def reset(self, seed: Optional[int] = None) -> None:
         if seed is not None:
@@ -85,6 +116,23 @@ class SimDriver(BaseDriver):
         self._motor = InductionMotorModel(self._env.motor)
         self._inverter = IdealInverter(self._env.inverter)
         self._controller = FocController(self._env.foc, self._env.motor, self._dt)
+        self._scalar_controller = ScalarVfController(
+            self._env.scalar_vf, self._dt, self._env.motor.p, self._env.inverter.Vdc
+        )
+        omega_base = 2.0 * math.pi * self._env.scalar_vf.f_max / self._env.motor.p
+        self._v3_controller = V3Controller(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._esc_controller = EscFocController(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._aff_controller = AffFocController(self._env.foc, self._env.motor, self._dt)
+        self._ebs_controller = EbsFocController(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._lmc_controller = LmcFocController(self._env.foc, self._env.motor, self._dt, omega_base)
+        self._lmap_controller = LoadMapFocController(self._env.foc, self._env.motor, self._dt)
+        self._hyb_controller = HybridV3FocController(
+            self._env.foc,
+            self._env.motor,
+            self._dt,
+            omega_base,
+            load_nom=float(self._env.sim.load_torque),
+        )
 
         self._theta_mech = 0.0
         self._theta_e = 0.0
@@ -114,12 +162,30 @@ class SimDriver(BaseDriver):
 
     def set_mode(self, mode: str) -> None:
         mode_upper = str(mode).upper()
-        if mode_upper not in ("FOC", "MIC"):
-            raise ValueError(f"Unknown mode '{mode}' (expected 'FOC' or 'MIC').")
+        if mode_upper not in ("FOC", "MIC", "V3", "SCALAR", "ESC", "AFF", "EBS", "LMC", "LMAP", "HYBRID"):
+            raise ValueError(
+                f"Unknown mode '{mode}' (expected 'FOC', 'MIC', 'V3', 'SCALAR', 'ESC', 'AFF', 'EBS', 'LMC', 'LMAP' or 'HYBRID')."
+            )
         if mode_upper != self._mode:
             self._mode = mode_upper
             if self._mode == "FOC":
                 self._controller.reset()
+            elif self._mode == "V3":
+                self._v3_controller.reset()
+            elif self._mode == "SCALAR":
+                self._scalar_controller.reset()
+            elif self._mode == "ESC":
+                self._esc_controller.reset()
+            elif self._mode == "AFF":
+                self._aff_controller.reset()
+            elif self._mode == "EBS":
+                self._ebs_controller.reset()
+            elif self._mode == "LMC":
+                self._lmc_controller.reset()
+            elif self._mode == "LMAP":
+                self._lmap_controller.reset()
+            elif self._mode == "HYBRID":
+                self._hyb_controller.reset()
             self._pending_action = (0.0, 0.0)
 
     def set_limits(self, limits: Dict[str, float]) -> None:
@@ -159,6 +225,175 @@ class SimDriver(BaseDriver):
                 torque_e=0.0,
                 theta_mech=self._theta_mech,
             )
+        elif self._mode == "V3":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._v3_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "SCALAR":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._scalar_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "ESC":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._esc_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "AFF":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._aff_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "EBS":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._ebs_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "LMC":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._lmc_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "LMAP":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._lmap_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=load_torque,
+                theta_mech=self._theta_mech,
+            )
+        elif self._mode == "HYBRID":
+            omega_m_true = float(self._motor.state.omega_m)
+            omega_m_meas = omega_m_true
+            if self._sigma_omega > 0.0:
+                omega_m_meas = omega_m_true + float(self._rng.normal(0.0, self._sigma_omega))
+
+            if self._sigma_i_abc > 0.0:
+                i_abc_meas = tuple(
+                    float(x + self._rng.normal(0.0, self._sigma_i_abc)) for x in self._last_i_abc
+                )
+            else:
+                i_abc_meas = self._last_i_abc
+
+            v_d, v_q, theta_e, omega_syn, _info = self._hyb_controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=0.0,
+                theta_mech=self._theta_mech,
+                load_torque=load_torque,
+            )
         else:
             v_d, v_q = self._pending_action
             theta_e = self._theta_e
@@ -174,15 +409,49 @@ class SimDriver(BaseDriver):
             self._last_fault = self._safety.last_fault()
             return
 
-        v_abc, (v_d, v_q) = self._inverter.output(v_d, v_q, theta_e)
+        v_abc, (v_d, v_q) = self._inverter.output(v_d, v_q, theta_e, self._last_i_abc)
         state, i_d, i_q, torque_e, omega_m = self._motor.step(
             v_d, v_q, load_torque, self._dt, omega_syn=omega_syn
         )
 
         self._theta_mech += omega_m * self._dt
-        if self._mode == "FOC":
-            self._theta_e = float(self._controller.theta_e)
-            self._omega_syn = float(self._controller.omega_syn)
+        if self._mode in ("FOC", "V3", "SCALAR", "ESC", "AFF", "EBS", "LMC", "LMAP", "HYBRID"):
+            if self._mode == "FOC":
+                controller = self._controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            elif self._mode == "V3":
+                controller = self._v3_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            elif self._mode == "SCALAR":
+                controller = self._scalar_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_e)
+            elif self._mode == "ESC":
+                controller = self._esc_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            elif self._mode == "AFF":
+                controller = self._aff_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            elif self._mode == "EBS":
+                controller = self._ebs_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            elif self._mode == "LMC":
+                controller = self._lmc_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            elif self._mode == "LMAP":
+                controller = self._lmap_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
+            else:
+                controller = self._hyb_controller
+                self._theta_e = float(controller.theta_e)
+                self._omega_syn = float(controller.omega_syn)
         else:
             self._theta_e += omega_syn * self._dt
             self._omega_syn = float(omega_syn)
@@ -206,6 +475,24 @@ class SimDriver(BaseDriver):
             omega_m=omega_m,
             torque_e=torque_e,
         )
+
+        if self._mode == "EBS":
+            p_in = v_abc[0] * i_abc[0] + v_abc[1] * i_abc[1] + v_abc[2] * i_abc[2]
+            p_mech = torque_e * omega_m
+            p_loss = float(
+                estimate_p_loss(
+                    np.array([i_d]),
+                    np.array([i_q]),
+                    np.array([omega_syn]),
+                    rs=float(self._env.motor.Rs),
+                    lm=float(self._env.motor.Lm),
+                    f_sw=float(self._env.inverter.f_pwm),
+                    k_fe=self._k_fe,
+                    k_sw=self._k_sw,
+                )[0]
+            )
+            # Use loss-based budget for energy supervisor.
+            self._ebs_controller.update_energy(p_loss, p_mech, omega_ref, omega_m)
 
         aborted, reason = self._safety.check_abort(obs)
         if aborted:

@@ -64,12 +64,18 @@ class MotorParams:
     B: float
     p: int
     I_n: float = NAMEPLATE_I_N
+    psi_sat: float = 0.0
+    sat_exp: float = 2.0
+    lm_min_scale: float = 0.2
 
 
 @dataclass(frozen=True)
 class InverterParams:
     Vdc: float
     f_pwm: float
+    r_out: float = 0.0
+    dead_time: float = 0.0
+    v_drop: float = 0.0
 
 
 @dataclass(frozen=True)

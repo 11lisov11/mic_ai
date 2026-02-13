@@ -51,7 +51,9 @@ def _run_single_episode(
         omega_ref = float(np.nan_to_num(omega_ref_raw, nan=0.0, posinf=0.0, neginf=0.0))
         i_abc = np.nan_to_num(np.asarray(info.get("i_abc", (0.0, 0.0, 0.0)), dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
         i_rms = float(np.clip(np.sqrt(np.mean(np.square(i_abc))), 0.0, 1e6))
-        p_in = info.get("p_in")
+        p_in = info.get("p_in_total")
+        if p_in is None:
+            p_in = info.get("p_in")
         if p_in is None:
             v_abc = np.nan_to_num(np.asarray(info.get("v_abc", (0.0, 0.0, 0.0)), dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
             p_in = float(v_abc[0] * i_abc[0] + v_abc[1] * i_abc[1] + v_abc[2] * i_abc[2])

@@ -88,3 +88,158 @@ python -m mic_ai.tools.nominal_case \
   `I_rms(t) = sqrt((i_a^2 + i_b^2 + i_c^2) / 3)`
 - Механическая мощность:
   `P_мех(t) = omega(t) * M_эл(t)`
+
+## 4) Калибровка потерь (loss_inv_r, loss_core_k)
+
+Скрипт: `mic_ai/tools/calibrate_losses.py`.
+
+Назначение: по CSV с временными рядами оценить коэффициенты потерь для
+`p_in_total` (инвертор + железо), чтобы модель лучше совпадала с экспериментом.
+
+Пример (на данных scenario_compare):
+
+```
+python -m mic_ai.tools.calibrate_losses \
+  --dir outputs/scenario_compare_nominal_rule_id1p0 \
+  --pattern "*_foc.csv" \
+  --omega-col omega \
+  --i-rms-col i_rms \
+  --p-el-col p_el \
+  --p-mech-col p_mech \
+  --omega-exp 1.0 \
+  --psi-exp 0.0 \
+  --clip-negative \
+  --write-snippet outputs/loss_snippet.txt
+```
+
+Вставьте полученные параметры в конфиг (например `env_demo_true_motor1_physical.py`).
+
+Совет: если есть `Rs/Rr/B` и каналы `i_dr/i_qr`, можно вычесть медные и механические потери:
+
+```
+python -m mic_ai.tools.calibrate_losses \
+  --csv path/to/log.csv \
+  --config config/env_demo_true_motor1_physical.py \
+  --i-dr-col i_dr --i-qr-col i_qr \
+  --subtract-copper --subtract-mech
+```
+
+Подбор показателей степеней (grid search):
+
+```
+python -m mic_ai.tools.calibrate_losses \
+  --csv path/to/log.csv \
+  --psi-col psi_s \
+  --omega-exp-range 0.8,2.0 \
+  --psi-exp-range 1.5,2.5 \
+  --omega-exp-grid 5 \
+  --psi-exp-grid 5 \
+  --write-report outputs/loss_report.json
+```
+
+## 5) Guardrails-проверка (регрессии)
+
+Скрипт: `mic_ai/tools/guardrails_check.py`.
+
+Проверяет, что:
+- ошибка скорости не хуже FOC (err_ok)
+- экономия мощности выше порога
+
+Пример:
+
+```
+python -m mic_ai.tools.guardrails_check \
+  --summary outputs/bench_v3_physical/summary.json \
+  --min-power-saving-pct 0.0
+```
+
+## 6) Бенчмарк 1 командой
+
+Скрипт: `mic_ai/tools/run_benchmark.py`.
+
+Пример (rule-based MIC + V3, потери учтены):
+
+```
+python -m mic_ai.tools.run_benchmark \
+  --env-config config/env_demo_true_motor1_physical.py \
+  --out-dir outputs/bench_v3_physical \
+  --mic-id-ref-low 1.0 --mic-id-ref-high 1.4 \
+  --include-v3 --use-total-power \
+  --min-power-saving-pct 0.0
+```
+
+Опционально можно сразу проверить регрессию по baseline:
+
+```
+python -m mic_ai.tools.run_benchmark \
+  --env-config config/env_demo_true_motor1_physical.py \
+  --out-dir outputs/bench_v3_physical \
+  --mic-id-ref-low 1.0 --mic-id-ref-high 1.4 \
+  --include-v3 --use-total-power \
+  --min-power-saving-pct 0.0 \
+  --baseline-summary benchmarks/baseline_summary_physical_motor1.json \
+  --compare-max-err-rel 0.1 \
+  --compare-max-power-rel 0.1
+```
+
+## 7) Сравнение summary с базовой линией (регрессии)
+
+Скрипт: `mic_ai/tools/compare_summary.py`.
+
+Назначение: сравнить `summary.json` текущего прогона с эталоном и проверить,
+что ошибка/потребление не выросли больше допусков.
+
+Пример:
+
+```
+python -m mic_ai.tools.compare_summary \
+  --baseline benchmarks/baseline_summary_physical_motor1.json \
+  --current outputs/bench_v3_physical/summary.json \
+  --max-err-rel 0.1 \
+  --max-power-rel 0.1 \
+  --no-require-err-ok \
+  --report outputs/bench_v3_physical/compare_report.json
+```
+
+## 8) Подбор id_ref по сетке (минимум мощности)
+
+Скрипт: `mic_ai/tools/id_ref_sweep.py`.
+
+Пример:
+
+```
+python -m mic_ai.tools.id_ref_sweep \
+  --env-config config/env_demo_true_motor1_physical.py \
+  --scenario speed_step:0.2 \
+  --id-ref-min 0.2 --id-ref-max 2.0 --id-ref-steps 12 \
+  --t-end 1.2 --dt 0.001 \
+  --use-total-power \
+  --out-dir outputs/id_ref_sweep_motor1
+```
+
+## 9) Таблица id_ref (LUT) по скорости и нагрузке
+
+Скрипт: `mic_ai/tools/id_ref_lut.py`.
+
+Назначение: построить LUT `id_ref(omega_ref, load_torque)` с ограничением
+на ошибку скорости относительно базового FOC (`foc.id_ref`). В LUT всегда
+добавляется базовый `id_ref`, чтобы можно было вернуться к эталону.
+
+Пример (диапазоны в pu по скорости, базовая нагрузка 0.4 Н*м):
+
+```
+python -m mic_ai.tools.id_ref_lut \
+  --env-config config/env_demo_true_motor1_physical.py \
+  --omega-ref-range 0.3,1.1 --omega-ref-pu --omega-ref-steps 5 \
+  --load-range 0.2,0.6 --load-steps 5 \
+  --id-ref-min 0.2 --id-ref-max 1.2 --id-ref-steps 10 \
+  --use-total-power \
+  --error-tol-rel 0.0 \
+  --out-dir outputs/id_ref_lut_motor1
+```
+
+После генерации добавьте в конфиг:
+
+```
+id_ref_lut_path = "outputs/id_ref_lut_motor1/id_ref_lut.json"
+```

@@ -13,6 +13,7 @@ from typing import Any
 
 from models.induction_motor import InductionMotorModel
 from models.inverter_ideal import IdealInverter
+from models.transformations import dq_to_abc
 from mic_ai.ident.motor_params import MotorParamsTrue
 
 
@@ -105,7 +106,8 @@ class DirectVoltageEnv:
             self.u_d_ref = float(self.u_d_ref if u_d is None else u_d)
             self.u_q_ref = float(self.u_q_ref if u_q is None else u_q)
 
-        v_abc, (v_d, v_q) = self.inverter.output(self.u_d_ref, self.u_q_ref, self.theta_e)
+        i_abc_prev = dq_to_abc(self.i_d, self.i_q, self.theta_e)
+        v_abc, (v_d, v_q) = self.inverter.output(self.u_d_ref, self.u_q_ref, self.theta_e, i_abc_prev)
         if self._rotor_locked:
             self.motor.state.omega_m = 0.0
         _, i_d, i_q, torque_e, omega_m = self.motor.step(
@@ -134,6 +136,19 @@ def _load_config_module(path: Path) -> types.ModuleType:
     return module
 
 
+def _extract_config_extras(config_module: types.ModuleType) -> dict:
+    extras: dict[str, object] = {}
+    for name, value in vars(config_module).items():
+        if name.startswith("_") or name == "ENV":
+            continue
+        if isinstance(value, types.ModuleType):
+            continue
+        if callable(value):
+            continue
+        extras[name] = value
+    return extras
+
+
 def _resolve_env_config(config_module: types.ModuleType) -> Any:
     if hasattr(config_module, "ENV"):
         return getattr(config_module, "ENV")
@@ -149,7 +164,16 @@ def make_env_from_config(config_path: str) -> DirectVoltageEnv:
         raise FileNotFoundError(f"Config path does not exist: {path}")
     config_module = _load_config_module(path)
     env_config = _resolve_env_config(config_module)
+    extras = _extract_config_extras(config_module)
+    # Attach extra config values (e.g. ai_* overrides) for downstream access.
+    for name, value in extras.items():
+        if not hasattr(env_config, name):
+            try:
+                object.__setattr__(env_config, name, value)
+            except Exception:
+                pass
     env = DirectVoltageEnv(env_config)
+    env.extras = extras
 
     # Протягиваем необязательные подсказки для идентификации из конфигурационного модуля в экземпляр env
     for name in (

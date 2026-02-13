@@ -5,23 +5,19 @@ __pycache__/
 *.npz
 .pytest_cache/
 .venv/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
 out/
 reports/
-outputs/figures/
-outputs/results/
-outputs/demo_ai/
-outputs/ident/
-outputs/**/*.json
-outputs/**/*.npz
-outputs/**/*.png
-outputs/**/*.pdf
-outputs/**/*.svg
-outputs/**/*.csv
-outputs/**/*.txt
-outputs/**/*.tex
-outputs/**/*.md
-outputs/**/*.pth
 results_run/
-motor_phys_ai/outputs/**
-!motor_phys_ai/outputs/.gitkeep
-!motor_phys_ai/outputs/runs_phys/.gitkeep
+archive/
+
+# Generated artifacts. Note: `outputs/` is also a small python package (plots/styles).
+outputs/**
+!outputs/__init__.py
+!outputs/*.py
+
+# Large legacy examples (keep locally, don't publish).
+docs/legacy_examples/

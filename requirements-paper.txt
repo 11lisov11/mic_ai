@@ -1,0 +1,5 @@
+# Extra dependencies for paper/figure build tools (DOCX + plots).
+pandas>=2.0
+python-docx>=1.1
+lxml>=5.0
+latex2mathml>=3.77.0

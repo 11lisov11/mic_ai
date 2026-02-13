@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 import time
+import random
 
 # Ensure project root on path for direct script execution (python mic_ai/ai/train_ai_voltage.py ...)
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,7 +35,7 @@ from mic_ai.ident.apply import load_and_apply_ident
 from mic_ai.tools.ai_voltage_report import build_ai_voltage_report, print_summary
 from simulation.gym_env import InductionMotorEnv
 
-FEATURE_KEYS = [
+BASE_FEATURE_KEYS = [
     "omega_norm",
     "omega_ref_norm",
     "err_norm",
@@ -44,6 +45,7 @@ FEATURE_KEYS = [
     "last_action_vd",
     "last_action_vq",
 ]
+FEATURE_KEYS = list(BASE_FEATURE_KEYS)
 WORLD_INPUT_KEYS: List[str] = []
 WORLD_TARGET_KEYS: List[str] = []
 OUTPUT_DIR = Path("outputs/demo_ai")
@@ -96,6 +98,8 @@ def build_env(
     ident_path: str | None = None,
     override_i_max: float | None = None,
     omega_ref_override: float | None = None,
+    override_omega_ref: bool = True,
+    override_load_torque: bool = True,
     env_cfg_override: object | None = None,
 ) -> MicAiAIEnv:
     env_sim = make_env_from_config(str(env_config_path))
@@ -143,9 +147,6 @@ def build_env(
         v_max=float(voltage_scale) if voltage_scale is not None else 0.0,
         i_max=i_limit,
         reward_clip=5.0,
-        w_int_scale=0.0,
-        curiosity_beta=0.0,
-        wm_lr=1e-4,
         w_action_delta=0.0,
         w_action_activity=0.0,
         w_ai_voltage_speed=float(weights.get("w_speed", 0.3)),
@@ -164,11 +165,24 @@ def build_env(
         reward_max=1.0,
         reward_min_td3=-10.0,
         reward_max_td3=1.0,
+        sigma_omega=float(getattr(env_cfg, "ai_sigma_omega", 0.05)),
+        sigma_id=float(getattr(env_cfg, "ai_sigma_id", 0.03)),
+        sigma_iq=float(getattr(env_cfg, "ai_sigma_iq", 0.03)),
+        drift_every_episodes=int(getattr(env_cfg, "ai_drift_every_episodes", 5)),
+        drift_scale=float(getattr(env_cfg, "ai_drift_scale", 0.04)),
+        w_ext_scale=float(getattr(env_cfg, "ai_w_ext_scale", 1.0)),
+        w_int_scale=float(getattr(env_cfg, "ai_w_int_scale", 0.0)),
+        wm_lr=float(getattr(env_cfg, "ai_wm_lr", 1e-4)),
+        curiosity_beta=float(getattr(env_cfg, "ai_curiosity_beta", 0.0)),
+        override_omega_ref=bool(override_omega_ref),
+        override_load_torque=bool(override_load_torque),
     )
 
     base_env = InductionMotorEnv(env_cfg)
-    base_env.omega_ref_func = lambda _t, ref=omega_ref: ref
-    base_env.load_torque_func = lambda _t: getattr(env_cfg.sim, "load_torque", 0.0)
+    if override_omega_ref:
+        base_env.omega_ref_func = lambda _t, ref=omega_ref: ref
+    if override_load_torque:
+        base_env.load_torque_func = lambda _t: getattr(env_cfg.sim, "load_torque", 0.0)
 
     env = MicAiAIEnv(
         base_env,
@@ -219,12 +233,54 @@ def _parse_csv_ints(raw: str | None) -> List[int] | None:
     return [int(item) for item in items]
 
 
+def _parse_scenarios(text: str | None) -> List[str]:
+    if not text:
+        return []
+    return [item.strip() for item in str(text).split(",") if item.strip()]
+
+
+def _parse_range(text: str | None) -> tuple[float, float] | None:
+    if not text:
+        return None
+    raw = str(text).strip().replace(":", ",")
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    if len(parts) != 2:
+        return None
+    try:
+        lo = float(parts[0])
+        hi = float(parts[1])
+    except ValueError:
+        return None
+    if hi < lo:
+        lo, hi = hi, lo
+    return lo, hi
+
+
+def _normalize_range(value: object | None) -> tuple[float, float] | None:
+    if value is None:
+        return None
+    if isinstance(value, (tuple, list)) and len(value) == 2:
+        try:
+            lo = float(value[0])
+            hi = float(value[1])
+        except Exception:
+            return None
+        if hi < lo:
+            lo, hi = hi, lo
+        return lo, hi
+    if isinstance(value, str):
+        return _parse_range(value)
+    return None
+
+
 def _run_eval_episodes(
     agent: PPOVoltageAgent, env: MicAiAIEnv, episodes: int, episode_steps: int, log_path: Path
 ) -> Tuple[Path, List[Dict[str, float]]]:
     """
     Run evaluation episodes with deterministic policy and persist metrics.
     """
+    prev_std = agent.action_std_override
+    agent.set_action_std(1e-6)
     logs: List[Dict[str, float]] = []
     for ep in range(episodes):
         obs = env.reset()
@@ -259,6 +315,7 @@ def _run_eval_episodes(
     eval_path = _prepare_output_file(Path(log_path))
     with eval_path.open("w", encoding="utf-8") as f:
         json.dump(logs, f, indent=2)
+    agent.action_std_override = prev_std
     return eval_path, logs
 
 
@@ -282,7 +339,21 @@ def train_ai_voltage(
     curriculum_omega_pu: List[float] | None = None,
     curriculum_boundaries: List[int] | None = None,
     override_i_max: float | None = None,
+    omega_ref_range: tuple[float, float] | None = None,
+    load_torque_range: tuple[float, float] | None = None,
+    scenarios: List[str] | None = None,
+    scenario_sample: str = "random",
+    seed: int | None = None,
+    include_energy_obs: bool = False,
+    update_every_episodes: int = 1,
+    eval_interval: int = 0,
+    eval_episodes: int = 3,
+    eval_episode_steps: int | None = None,
 ) -> Dict[str, object]:
+    if seed is not None:
+        random.seed(int(seed))
+        np.random.seed(int(seed))
+        torch.manual_seed(int(seed))
     env_path = resolve_config_path(config_name)
     motor_key = _motor_key_from_config(config_name)
     reward_weights = get_reward_weights(AI_VOLTAGE_CFG, motor_key)
@@ -297,6 +368,9 @@ def train_ai_voltage(
         curriculum_cfg["stage_episode_boundaries"] = [int(x) for x in curriculum_boundaries]
     exploration_cfg = get_exploration_config(AI_VOLTAGE_CFG)
     voltage_scale = get_voltage_scale(AI_VOLTAGE_CFG, motor_key) if override_voltage_scale is None else float(override_voltage_scale)
+    feature_keys = list(BASE_FEATURE_KEYS)
+    if include_energy_obs:
+        feature_keys += ["p_in_norm", "p_el_filt"]
     env = build_env(
         env_path,
         episode_steps=episode_steps,
@@ -307,13 +381,15 @@ def train_ai_voltage(
         ident_path=ident_path,
         override_i_max=override_i_max,
         omega_ref_override=omega_ref_override,
+        override_omega_ref=not bool(scenarios),
+        override_load_torque=not bool(scenarios),
     )
 
     hidden_sizes = (64, 64) if fast else (128, 128)
     train_epochs = 3 if fast else 5
     minibatch_frac = 0.5 if fast else 0.25
     agent = PPOVoltageAgent(
-        feature_keys=FEATURE_KEYS,
+        feature_keys=feature_keys,
         action_dim=2,
         device=device,
         hidden_sizes=hidden_sizes,
@@ -379,6 +455,10 @@ def train_ai_voltage(
     t0 = time.perf_counter()
     consecutive_success = 0
 
+    scenarios = [s for s in (scenarios or []) if s]
+    scenario_sample = str(scenario_sample or "random").lower()
+    rng = np.random.default_rng(seed)
+    update_every = max(int(update_every_episodes), 1)
     for ep in range(num_episodes):
         if max_seconds is not None and (time.perf_counter() - t0) >= float(max_seconds):
             print(f"[{env_path.stem}] time budget reached: {float(max_seconds):.1f}s at ep {ep}")
@@ -397,6 +477,26 @@ def train_ai_voltage(
         env.cfg.w_ai_voltage_power = w_power_base * eff_scale
         env.cfg.i_soft_limit = i_soft_start + (i_soft_final - i_soft_start) * eff_scale
         env.cfg.ai_voltage_speed_tol = speed_tol_start + (speed_tol_final - speed_tol_start) * eff_scale
+
+        if scenarios:
+            if scenario_sample == "cycle":
+                scenario_name = scenarios[ep % len(scenarios)]
+            else:
+                scenario_name = str(rng.choice(scenarios))
+            env.set_scenario(scenario_name)
+            env.cfg.override_omega_ref = False
+            env.cfg.override_load_torque = False
+        else:
+            if omega_ref_range is not None:
+                env.cfg.override_omega_ref = False
+                omega_ref_val = float(rng.uniform(omega_ref_range[0], omega_ref_range[1]))
+                env.cfg.omega_ref = omega_ref_val
+                env.cfg.omega_ref_max = max(env.cfg.omega_ref_max, abs(omega_ref_val), 1e-6)
+                env.base_env.omega_ref_func = lambda _t, ref=omega_ref_val: ref
+            if load_torque_range is not None:
+                env.cfg.override_load_torque = False
+                load_val = float(rng.uniform(load_torque_range[0], load_torque_range[1]))
+                env.base_env.load_torque_func = lambda _t, load=load_val: load
 
         obs = env.reset()
         done = False
@@ -428,7 +528,9 @@ def train_ai_voltage(
 
         with torch.no_grad():
             last_value = float(agent.net(agent._to_tensor(obs).unsqueeze(0))[2].item())
-        losses = agent.update(last_value=last_value)
+        losses = {"actor_loss": agent.last_actor_loss, "value_loss": agent.last_value_loss}
+        if (ep + 1) % update_every == 0 or ep == num_episodes - 1:
+            losses = agent.update(last_value=last_value)
 
         metrics_env = env.episode_metrics()
         steps = int(metrics_env.get("steps", step_counter))
@@ -457,6 +559,8 @@ def train_ai_voltage(
             "delta_speed": float(metrics_env.get("delta_speed", 0.0)),
             "momentum_mean": float(metrics_env.get("momentum_mean", 0.0)),
             "omega_ref_trace": omega_ref_series,
+            "omega_ref": float(omega_ref_series[0]) if omega_ref_series else float(env.cfg.omega_ref),
+            "load_torque": float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)),
             "exploration_sigma": sigma,
             "done_reason": str(last_info.get("done_reason", "")) if last_info else "",
         }
@@ -514,6 +618,16 @@ def train_ai_voltage(
             f"loss_pi {entry['actor_loss']:.4f} loss_v {entry['value_loss']:.4f} | sigma {sigma:.3f}"
         )
 
+        if eval_interval > 0 and (ep + 1) % int(eval_interval) == 0:
+            eval_steps = int(eval_episode_steps) if eval_episode_steps is not None else int(episode_steps)
+            _run_eval_episodes(
+                agent,
+                env,
+                episodes=int(eval_episodes),
+                episode_steps=eval_steps,
+                log_path=run_dir / f"eval_ep{ep:03d}.json",
+            )
+
     # Persist episode logs
     episodes_path = _prepare_output_file(Path(episodes_log_path))
     learning_path = _prepare_output_file(Path(learning_log_path))
@@ -568,6 +682,27 @@ def train_ai_voltage(
         delta_speed=np.array(arr_delta_speed, dtype=np.float32),
     )
     torch.save(agent.net.state_dict(), run_dir / "ppo_actor_critic.pth")
+    run_config = {
+        "env_config": str(env_path),
+        "episodes": int(num_episodes),
+        "episode_steps": int(episode_steps),
+        "reward_weights": reward_weights,
+        "voltage_scale": float(voltage_scale),
+        "omega_ref_override": None if omega_ref_override is None else float(omega_ref_override),
+        "omega_ref_range": omega_ref_range,
+        "load_torque_range": load_torque_range,
+        "scenarios": scenarios or [],
+        "scenario_sample": str(scenario_sample),
+        "seed": None if seed is None else int(seed),
+        "device": str(device),
+        "include_energy_obs": bool(include_energy_obs),
+        "update_every_episodes": int(update_every),
+        "feature_keys": feature_keys,
+        "eval_interval": int(eval_interval),
+        "eval_episodes": int(eval_episodes),
+        "eval_episode_steps": int(eval_episode_steps) if eval_episode_steps is not None else None,
+    }
+    (run_dir / "run_config.json").write_text(json.dumps(run_config, indent=2), encoding="utf-8")
 
     last_actor_path = motor_ckpt_dir / "last_actor.pth"
     torch.save(agent.net.state_dict(), last_actor_path)
@@ -624,7 +759,7 @@ def train_ai_voltage(
     }
 
 
-def main() -> None:
+def main(seed: int | None = None) -> None:
     n_eval = int(AI_VOLTAGE_CFG.get("eval", {}).get("episodes", 5))
     curriculum_cfg = get_curriculum_config(AI_VOLTAGE_CFG)
 
@@ -637,6 +772,7 @@ def main() -> None:
         learning_log_path=PLOTS_DIR / "ai_voltage_learning_env_demo_true_motor1.npz",
         results_dir=None,
         device="cpu",
+        seed=seed,
     )
 
     # motor2
@@ -648,6 +784,7 @@ def main() -> None:
         learning_log_path=PLOTS_DIR / "ai_voltage_learning_env_demo_true_motor2.npz",
         results_dir=None,
         device="cpu",
+        seed=seed,
     )
 
     motor_runs = {"motor1": motor1_result, "motor2": motor2_result}
@@ -710,6 +847,12 @@ if __name__ == "__main__":
     parser.add_argument("--i-max", type=float, default=None, help="Override hard current limit (A) for training.")
     parser.add_argument("--omega-ref", type=float, default=None, help="Override omega_ref in rad/s.")
     parser.add_argument("--omega-ref-pu", type=float, default=None, help="Override omega_ref in per-unit of rated speed.")
+    parser.add_argument("--omega-ref-range", type=str, default=None, help="Random omega_ref range, e.g., 20,120 (rad/s).")
+    parser.add_argument("--omega-ref-pu-range", type=str, default=None, help="Random omega_ref range in pu, e.g., 0.2,1.2.")
+    parser.add_argument("--load-torque-range", type=str, default=None, help="Random load torque range, N*m (min,max).")
+    parser.add_argument("--load-mult-range", type=str, default=None, help="Random load multiplier of env load (min,max).")
+    parser.add_argument("--scenarios", type=str, default="", help="Comma-separated scenario list (e.g., speed_step,ramp,load_step,start_stop).")
+    parser.add_argument("--scenario-sample", type=str, default="random", choices=["random", "cycle"])
     parser.add_argument("--curriculum-omega-pu", default=None, help="Comma-separated omega_pu stages (e.g., 0.3,0.5,0.7).")
     parser.add_argument(
         "--curriculum-boundaries",
@@ -721,10 +864,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Run full two-motor demo + baseline + report (default when no config given).",
     )
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility.")
+    parser.add_argument("--include-energy-obs", action="store_true", help="Add p_in_norm and p_el_filt to observations.")
+    parser.add_argument("--update-every-episodes", type=int, default=1, help="PPO update frequency in episodes.")
+    parser.add_argument("--eval-interval", type=int, default=0, help="Run eval episodes every N episodes.")
+    parser.add_argument("--eval-episodes", type=int, default=3)
+    parser.add_argument("--eval-episode-steps", type=int, default=None)
     args = parser.parse_args()
 
     if args.demo_all or args.config is None:
-        main()
+        main(seed=args.seed)
     else:
         max_seconds = None if args.time_budget_min is None else float(args.time_budget_min) * 60.0
         omega_ref_override = None
@@ -738,6 +887,33 @@ if __name__ == "__main__":
 
         curriculum_omega_pu = _parse_csv_floats(args.curriculum_omega_pu)
         curriculum_boundaries = _parse_csv_ints(args.curriculum_boundaries)
+        omega_ref_range = _parse_range(args.omega_ref_range)
+        omega_ref_pu_range = _parse_range(args.omega_ref_pu_range)
+        load_range = _parse_range(args.load_torque_range)
+        load_mult_range = _parse_range(args.load_mult_range)
+        scenarios = _parse_scenarios(args.scenarios)
+        if omega_ref_range is None and omega_ref_pu_range is not None:
+            omega_nom = 2.0 * np.pi * float(NAMEPLATE_N_RATED) / 60.0
+            omega_ref_range = (omega_ref_pu_range[0] * omega_nom, omega_ref_pu_range[1] * omega_nom)
+        env_cfg = make_env_from_config(str(resolve_config_path(args.config))).env_config
+        if load_range is None and load_mult_range is not None:
+            base_load = float(getattr(env_cfg.sim, "load_torque", 0.0))
+            load_range = (load_mult_range[0] * base_load, load_mult_range[1] * base_load)
+
+        cfg_omega_range = _normalize_range(getattr(env_cfg, "ai_omega_ref_range", None))
+        cfg_omega_pu_range = _normalize_range(getattr(env_cfg, "ai_omega_ref_pu_range", None))
+        cfg_load_range = _normalize_range(getattr(env_cfg, "ai_load_torque_range", None))
+        cfg_load_mult = _normalize_range(getattr(env_cfg, "ai_load_mult_range", None))
+        if omega_ref_range is None and cfg_omega_range is not None:
+            omega_ref_range = cfg_omega_range
+        if omega_ref_range is None and cfg_omega_pu_range is not None:
+            omega_nom = 2.0 * np.pi * float(NAMEPLATE_N_RATED) / 60.0
+            omega_ref_range = (cfg_omega_pu_range[0] * omega_nom, cfg_omega_pu_range[1] * omega_nom)
+        if load_range is None and cfg_load_range is not None:
+            load_range = cfg_load_range
+        if load_range is None and cfg_load_mult is not None:
+            base_load = float(getattr(env_cfg.sim, "load_torque", 0.0))
+            load_range = (cfg_load_mult[0] * base_load, cfg_load_mult[1] * base_load)
         train_ai_voltage(
             args.config,
             num_episodes=args.episodes,
@@ -755,4 +931,14 @@ if __name__ == "__main__":
             curriculum_omega_pu=curriculum_omega_pu,
             curriculum_boundaries=curriculum_boundaries,
             override_i_max=args.i_max,
+            omega_ref_range=omega_ref_range,
+            load_torque_range=load_range,
+            scenarios=scenarios,
+            scenario_sample=str(args.scenario_sample),
+            seed=args.seed,
+            include_energy_obs=bool(args.include_energy_obs),
+            update_every_episodes=int(args.update_every_episodes),
+            eval_interval=int(args.eval_interval),
+            eval_episodes=int(args.eval_episodes),
+            eval_episode_steps=None if args.eval_episode_steps is None else int(args.eval_episode_steps),
         )

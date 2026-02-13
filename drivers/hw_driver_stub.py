@@ -44,6 +44,9 @@ class HwDriverStub(BaseDriver):
         i_nom = float(getattr(self._env.foc, "iq_limit", 0.0) or 0.0)
         if i_nom <= 0.0:
             i_nom = float(getattr(self._env.motor, "I_n", 0.0) or 0.0)
+        id_ref = float(getattr(self._env.foc, "id_ref", 0.0) or 0.0)
+        if i_nom > 0.0 and id_ref != 0.0:
+            i_nom = math.hypot(i_nom, id_ref) * 1.3
         omega_base = 2.0 * math.pi * self._env.scalar_vf.f_max / self._env.motor.p
 
         self._safety = SafetySupervisor(self._dt)
@@ -76,8 +79,10 @@ class HwDriverStub(BaseDriver):
 
     def set_mode(self, mode: str) -> None:
         mode_upper = str(mode).upper()
-        if mode_upper not in ("FOC", "MIC"):
-            raise ValueError(f"Unknown mode '{mode}' (expected 'FOC' or 'MIC').")
+        if mode_upper not in ("FOC", "MIC", "V3", "SCALAR", "ESC", "AFF", "EBS", "LMC", "LMAP", "HYBRID"):
+            raise ValueError(
+                f"Unknown mode '{mode}' (expected 'FOC', 'MIC', 'V3', 'SCALAR', 'ESC', 'AFF', 'EBS', 'LMC', 'LMAP' or 'HYBRID')."
+            )
         self._mode = mode_upper
 
     def set_limits(self, limits: Dict[str, float]) -> None:
@@ -97,7 +102,7 @@ class HwDriverStub(BaseDriver):
             omega_base = 2.0 * math.pi * self._env.scalar_vf.f_max / self._env.motor.p
             self._omega_ref = 0.8 * omega_base
 
-        if self._mode == "FOC":
+        if self._mode in ("FOC", "V3", "SCALAR", "ESC", "AFF", "EBS", "LMC", "LMAP", "HYBRID"):
             error = self._omega_ref - self._omega
             self._pi_iq += error * self._pi_ki * self._dt
             vq_cmd = self._pi_kp * error + self._pi_iq

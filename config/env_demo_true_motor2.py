@@ -40,7 +40,6 @@ ai_delta_iq_max = 0.8
 ai_sigma_omega = 0.05
 ai_sigma_id = 0.03
 ai_sigma_iq = 0.03
-ai_drift_every_episodes = 5
 ai_drift_scale = 0.04
 ai_w_ext_scale = 1.0
 ai_w_int_scale = 0.5
@@ -50,5 +49,20 @@ baseline_speed_err = 2.68643
 baseline_current_rms = 2.46702
 ext_scale = 5.153
 ai_v_max = 1.0
+
+# Domain randomization defaults for generalization.
+ai_omega_ref_pu_range = (0.3, 1.1)
+ai_load_mult_range = (0.5, 1.5)
+ai_drift_every_episodes = 1
+ai_drift_params = ("Rs", "Rr", "Lm", "Ls_sigma", "Lr_sigma", "J", "B")
+ai_drift_ranges = {
+    "Rs": (0.7, 1.3),
+    "Rr": (0.7, 1.3),
+    "Lm": (0.8, 1.2),
+    "Ls_sigma": (0.7, 1.3),
+    "Lr_sigma": (0.7, 1.3),
+    "J": (0.5, 1.5),
+    "B": (0.5, 2.0),
+}
 
 __all__ = ["ENV"]

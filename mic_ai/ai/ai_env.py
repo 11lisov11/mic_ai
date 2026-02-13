@@ -55,8 +55,12 @@ class AiEnvConfig:
     ai_voltage_speed_tol: float = 0.5
     w_ai_id_speed: float = 1.0
     w_ai_id_power: float = 2.0
+    w_ai_id_current: float = 0.0
     w_ai_id_smooth: float = 0.05
     w_ai_id_mag: float = 0.0
+    w_ai_id_shaft: float = 0.0
+    w_ai_id_eta: float = 0.0
+    ai_id_eta_clip: float = 1.2
     id_ref_alpha: float = 1.0
     id_ref_rate_limit: float | None = None
     id_ref_gate_speed_tol: float | None = None
@@ -139,9 +143,14 @@ class MicAiAIEnv:
         self._cum_r_int = 0.0
         self._cum_p_in = 0.0
         self._cum_p_in_pos = 0.0
+        self._cum_p_shaft_pos = 0.0
+        self._cum_p_shaft_target_pos = 0.0
+        self._cum_eta_inst = 0.0
         self._cum_i_rms_abc = 0.0
         self._p_el_filt = 0.0
-        self._p_el_filt = 0.0
+        self._p_in_norm = 0.0
+        self._p_shaft_norm = 0.0
+        self._eta_inst = 0.0
         # Use a single source of truth for episode length; allow optional alias episode_max_steps on config.
         self.episode_max_steps = int(max(getattr(ai_config, "episode_max_steps", ai_config.episode_steps), 1))
         self.cfg.episode_steps = self.episode_max_steps
@@ -325,6 +334,10 @@ class MicAiAIEnv:
             "prev_delta_id_norm": float(self._prev_action_id_rel),
             "u_dc_norm": float(self._u_dc_norm),
             "load_torque_norm": load_norm,
+            "p_in_norm": float(self._p_in_norm),
+            "p_el_filt": float(self._p_el_filt),
+            "p_shaft_norm": float(self._p_shaft_norm),
+            "eta_norm": float(self._eta_inst),
             "sin_theta_e": _clip(math.sin(theta_e), low=-1e3, high=1e3),
             "cos_theta_e": _clip(math.cos(theta_e), low=-1e3, high=1e3),
             "last_action_vd": float(self._prev_vd_norm),
@@ -358,14 +371,38 @@ class MicAiAIEnv:
         if env_cfg is None or not hasattr(env_cfg, "motor"):
             return
         motor = getattr(env_cfg, "motor")
+        drift_params = getattr(env_cfg, "ai_drift_params", None)
+        if isinstance(drift_params, str):
+            drift_params = [item.strip() for item in drift_params.split(",") if item.strip()]
+        if drift_params is None:
+            drift_params = ("Lm", "Rr", "B")
+        drift_ranges = getattr(env_cfg, "ai_drift_ranges", None)
         try:
-            drift = 1.0 + self.cfg.drift_scale * (2.0 * np.random.rand() - 1.0)
-            motor_drifted = replace(
-                motor,
-                Lm=float(motor.Lm * drift),
-                Rr=float(motor.Rr * drift),
-                B=float(motor.B * drift),
-            )
+            updates = {}
+            for name in drift_params:
+                if not hasattr(motor, name):
+                    continue
+                base_val = float(getattr(motor, name))
+                if not math.isfinite(base_val) or base_val == 0.0:
+                    continue
+                scale = None
+                if isinstance(drift_ranges, dict) and name in drift_ranges:
+                    span = drift_ranges.get(name)
+                    if isinstance(span, (list, tuple)) and len(span) == 2:
+                        lo = float(span[0])
+                        hi = float(span[1])
+                        if hi < lo:
+                            lo, hi = hi, lo
+                        scale = lo + (hi - lo) * float(np.random.rand())
+                if scale is None:
+                    scale = 1.0 + self.cfg.drift_scale * (2.0 * np.random.rand() - 1.0)
+                new_val = base_val * float(scale)
+                if base_val > 0.0:
+                    new_val = max(new_val, 1e-9)
+                updates[name] = float(new_val)
+            if not updates:
+                return
+            motor_drifted = replace(motor, **updates)
             env_cfg_drifted = replace(env_cfg, motor=motor_drifted)
             # Recreate gym env if possible.
             from simulation.gym_env import InductionMotorEnv
@@ -404,7 +441,14 @@ class MicAiAIEnv:
         self._cum_r_int = 0.0
         self._cum_p_in = 0.0
         self._cum_p_in_pos = 0.0
+        self._cum_p_shaft_pos = 0.0
+        self._cum_p_shaft_target_pos = 0.0
+        self._cum_eta_inst = 0.0
         self._cum_i_rms_abc = 0.0
+        self._p_el_filt = 0.0
+        self._p_in_norm = 0.0
+        self._p_shaft_norm = 0.0
+        self._eta_inst = 0.0
         self._hard_terminated = False
         self._overcurrent_steps = 0
         stages = tuple(getattr(self.cfg, "curriculum_omega_pu", (0.3, 0.5, 0.7)))
@@ -561,7 +605,7 @@ class MicAiAIEnv:
         controller.theta_e = theta_e_prev + omega_syn * self.dt
         controller.omega_syn = omega_syn
 
-        v_abc, (v_d_out, v_q_out) = inverter.output(v_d, v_q, theta_e_prev)
+        v_abc, (v_d_out, v_q_out) = inverter.output(v_d, v_q, theta_e_prev, i_abc_prev)
         state, i_d_next, i_q_next, torque_e, omega_m_next = motor.step(
             v_d_out, v_q_out, load_torque=load_torque, dt=self.dt, omega_syn=omega_syn
         )
@@ -646,13 +690,30 @@ class MicAiAIEnv:
         controller.theta_e = theta_e_prev + omega_syn * self.dt
         controller.omega_syn = omega_syn
 
-        v_abc, (v_d_out, v_q_out) = inverter.output(v_d, v_q, theta_e_prev)
+        v_abc, (v_d_out, v_q_out) = inverter.output(v_d, v_q, theta_e_prev, i_abc_prev)
         state, i_d_next, i_q_next, torque_e, omega_m_next = motor.step(
             v_d_out, v_q_out, load_torque=load_torque, dt=self.dt, omega_syn=omega_syn
         )
 
         theta_mech += omega_m_next * self.dt
         i_abc_next = dq_to_abc(i_d_next, i_q_next, theta_e_prev)
+        try:
+            i_rms = math.sqrt((i_abc_next[0] ** 2 + i_abc_next[1] ** 2 + i_abc_next[2] ** 2) / 3.0)
+        except Exception:
+            i_rms = 0.0
+        p_in = float(v_abc[0] * i_abc_next[0] + v_abc[1] * i_abc_next[1] + v_abc[2] * i_abc_next[2])
+        p_in = float(np.nan_to_num(p_in, nan=0.0, posinf=0.0, neginf=0.0))
+        loss_inv_r = float(getattr(self.base_env, "loss_inv_r", 0.0) or 0.0)
+        loss_core_k = float(getattr(self.base_env, "loss_core_k", 0.0) or 0.0)
+        loss_core_omega_exp = float(getattr(self.base_env, "loss_core_omega_exp", 1.0) or 1.0)
+        loss_core_psi_exp = float(getattr(self.base_env, "loss_core_psi_exp", 2.0) or 2.0)
+        p_inv = 3.0 * loss_inv_r * (i_rms ** 2) if loss_inv_r > 0.0 else 0.0
+        p_core = 0.0
+        if loss_core_k > 0.0:
+            psi_s = math.hypot(getattr(state, "psi_ds", 0.0), getattr(state, "psi_qs", 0.0))
+            omega_core = abs(omega_syn)
+            p_core = float(loss_core_k) * (omega_core ** loss_core_omega_exp) * (psi_s ** loss_core_psi_exp)
+        p_in_total = p_in + p_inv + p_core
 
         self.base_env.theta_mech = theta_mech
         self.base_env.last_currents_abc = tuple(float(x) for x in i_abc_next)
@@ -723,7 +784,14 @@ class MicAiAIEnv:
             id_ref_cmd = self._id_ref_base + gate_scale * (id_ref_raw - self._id_ref_base)
         id_ref_cmd = float(np.clip(id_ref_cmd, id_min, id_max))
 
-        alpha = float(getattr(self.cfg, "id_ref_alpha", 1.0))
+        # Guardrail: during transients (gate_scale << 1), avoid prolonged flux reduction.
+        # This keeps speed tracking close to the FOC baseline while still allowing
+        # efficiency optimization in steady windows (gate_scale -> 1).
+        if gate_scale < 0.5:
+            id_ref_cmd = max(id_ref_cmd, float(self._id_ref_base))
+            alpha = 1.0
+        else:
+            alpha = float(getattr(self.cfg, "id_ref_alpha", 1.0))
         if 0.0 < alpha < 1.0:
             id_ref_cmd = alpha * id_ref_cmd + (1.0 - alpha) * float(self._prev_id_ref)
 
@@ -739,11 +807,14 @@ class MicAiAIEnv:
 
         controller.params = replace(controller.params, id_ref=float(id_ref_cmd))
         obs_raw, _reward, done_env, info = self.base_env.step(None)
+        t_now = float(getattr(self.base_env, "t", 0.0))
+        load_torque = self._load_torque_from_env(t_now)
         omega_meas = float(obs_raw[0] if len(obs_raw) > 0 else info.get("omega_meas", 0.0))
         theta_e = float(info.get("theta_e", 0.0))
         i_abc = info.get("i_abc", (0.0, 0.0, 0.0))
         i_d_next, i_q_next = abc_to_dq(*i_abc, theta_e)
         info["omega_meas"] = omega_meas
+        info["load_torque"] = float(load_torque)
         info["id_ref_cmd"] = float(id_ref_cmd)
         info["id_ref_gate_scale"] = float(gate_scale)
         info["action_id_ref_norm"] = float(id_ref_norm)
@@ -801,7 +872,7 @@ class MicAiAIEnv:
         omega_syn = float(p_val * omega_ref_base)
         theta_e = theta_e_prev + omega_syn * self.dt
 
-        v_abc, (v_d_out, v_q_out) = inverter.output(v_d_cmd, v_q_cmd, theta_e_prev)
+        v_abc, (v_d_out, v_q_out) = inverter.output(v_d_cmd, v_q_cmd, theta_e_prev, i_abc_prev)
         state, i_d_next, i_q_next, torque_e, omega_m_next = motor.step(
             v_d_out, v_q_out, load_torque=load_torque, dt=self.dt, omega_syn=omega_syn
         )
@@ -814,6 +885,24 @@ class MicAiAIEnv:
 
         theta_mech += omega_m_next * self.dt
         i_abc_next = dq_to_abc(i_d_next, i_q_next, theta_e_prev)
+
+        try:
+            i_rms = math.sqrt((i_abc_next[0] ** 2 + i_abc_next[1] ** 2 + i_abc_next[2] ** 2) / 3.0)
+        except Exception:
+            i_rms = 0.0
+        p_in = float(v_abc[0] * i_abc_next[0] + v_abc[1] * i_abc_next[1] + v_abc[2] * i_abc_next[2])
+        p_in = float(np.nan_to_num(p_in, nan=0.0, posinf=0.0, neginf=0.0))
+        loss_inv_r = float(getattr(self.base_env, "loss_inv_r", 0.0) or 0.0)
+        loss_core_k = float(getattr(self.base_env, "loss_core_k", 0.0) or 0.0)
+        loss_core_omega_exp = float(getattr(self.base_env, "loss_core_omega_exp", 1.0) or 1.0)
+        loss_core_psi_exp = float(getattr(self.base_env, "loss_core_psi_exp", 2.0) or 2.0)
+        p_inv = 3.0 * loss_inv_r * (i_rms ** 2) if loss_inv_r > 0.0 else 0.0
+        p_core = 0.0
+        if loss_core_k > 0.0:
+            psi_s = math.hypot(getattr(state, "psi_ds", 0.0), getattr(state, "psi_qs", 0.0))
+            omega_core = abs(omega_syn)
+            p_core = float(loss_core_k) * (omega_core ** loss_core_omega_exp) * (psi_s ** loss_core_psi_exp)
+        p_in_total = p_in + p_inv + p_core
 
         self.base_env.theta_mech = theta_mech
         self.base_env.last_currents_abc = tuple(float(x) for x in i_abc_next)
@@ -833,6 +922,12 @@ class MicAiAIEnv:
             "omega_meas": float(omega_m_next),
             "i_abc": self.base_env.last_currents_abc,
             "v_abc": v_abc,
+            "p_in": p_in,
+            "p_in_total": p_in_total,
+            "p_in_total_pos": max(0.0, p_in_total),
+            "p_inv_loss": p_inv,
+            "p_core_loss": p_core,
+            "i_rms": i_rms,
             "theta_e": theta_e_prev,
             "omega_syn": omega_syn,
             "action_vd_norm": v_d_cmd_norm,
@@ -870,7 +965,7 @@ class MicAiAIEnv:
             torque_e=torque_e,
             theta_mech=self._theta_mech,
         )
-        v_abc, (v_d_out, v_q_out) = self.base_env.inverter.output(v_d, v_q, theta_e)
+        v_abc, (v_d_out, v_q_out) = self.base_env.inverter.output(v_d, v_q, theta_e, self._last_currents_abc)
         state, i_d_next, i_q_next, torque_e, omega_m = self.base_env.motor.step(
             v_d_out, v_q_out, load_torque=0.0, dt=self.dt, omega_syn=omega_syn
         )
@@ -920,6 +1015,17 @@ class MicAiAIEnv:
         return float(v_d), float(v_q)
 
     def _extract_p_in(self, info: Dict[str, Any]) -> tuple[float, float]:
+        p_in_total = info.get("p_in_total")
+        if p_in_total is not None:
+            try:
+                p_in_total = float(p_in_total)
+            except Exception:
+                p_in_total = None
+        if p_in_total is not None:
+            p_in_total = float(np.nan_to_num(float(p_in_total), nan=0.0, posinf=0.0, neginf=0.0))
+            p_in_total = float(np.clip(p_in_total, -1e9, 1e9))
+            return p_in_total, max(0.0, p_in_total)
+
         p_in = info.get("p_in")
         if p_in is None:
             v_abc = info.get("v_abc", (0.0, 0.0, 0.0))
@@ -989,6 +1095,38 @@ class MicAiAIEnv:
             self._prev_vd_norm = vd_applied
             self._prev_vq_norm = vq_applied
 
+            omega_ref_scale = max(abs(omega_ref), 1e-6)
+            speed_err_abs = abs(omega_meas - omega_ref)
+            err_norm = speed_err_abs / omega_ref_scale
+            i_rms = math.sqrt(i_d_next**2 + i_q_next**2)
+            current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
+            i_rms_norm = i_rms / current_limit
+
+            i_soft_limit = float(getattr(self.cfg, "i_soft_limit", 0.0))
+            i_excess = max(0.0, float(i_rms) - max(i_soft_limit, 0.0))
+            i_excess_norm = i_excess / current_limit
+
+            v_abc = info.get("v_abc", (0.0, 0.0, 0.0))
+            i_abc = info.get("i_abc", (0.0, 0.0, 0.0))
+            try:
+                i_rms_abc = float(np.sqrt(np.mean(np.square(np.asarray(i_abc, dtype=float)))))
+            except Exception:
+                i_rms_abc = float(i_rms)
+            p_in, p_in_pos = self._extract_p_in(info)
+            p_base = max(float(self._v_nominal) * current_limit, 1e-6)
+            tau = float(getattr(self.cfg, "p_el_tau", 0.0))
+            if tau > 0.0:
+                alpha = math.exp(-self.dt / max(tau, 1e-6))
+                self._p_el_filt = alpha * self._p_el_filt + (1.0 - alpha) * p_in_pos
+            else:
+                self._p_el_filt = p_in_pos
+            p_in_norm = min(self._p_el_filt / p_base, 10.0)
+            self._p_in_norm = float(p_in_norm)
+            # Curriculum for efficiency: while far from the speed target, do not punish current.
+            speed_tol = float(getattr(self.cfg, "ai_voltage_speed_tol", 0.5))
+            if speed_err_abs > speed_tol:
+                i_excess_norm = 0.0
+
             obs_next = self._build_agent_obs(
                 omega=omega_meas,
                 omega_ref=omega_ref,
@@ -1011,36 +1149,6 @@ class MicAiAIEnv:
                     self._wm_buffer_y.clear()
             elif self.world_model is not None:
                 wm_loss = float(self.world_model.update(x_t, y_true))
-
-            omega_ref_scale = max(abs(omega_ref), 1e-6)
-            speed_err_abs = abs(omega_meas - omega_ref)
-            err_norm = speed_err_abs / omega_ref_scale
-            i_rms = math.sqrt(i_d_next**2 + i_q_next**2)
-            current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
-            i_rms_norm = i_rms / current_limit
-
-            i_soft_limit = float(getattr(self.cfg, "i_soft_limit", 0.0))
-            i_excess = max(0.0, float(i_rms) - max(i_soft_limit, 0.0))
-            i_excess_norm = i_excess / current_limit
-
-            v_abc = info.get("v_abc", (0.0, 0.0, 0.0))
-            i_abc = info.get("i_abc", (0.0, 0.0, 0.0))
-            try:
-                i_rms_abc = float(np.sqrt(np.mean(np.square(np.asarray(i_abc, dtype=float)))))
-            except Exception:
-                i_rms_abc = float(i_rms)
-            try:
-                p_in = float(v_abc[0] * i_abc[0] + v_abc[1] * i_abc[1] + v_abc[2] * i_abc[2])
-            except Exception:
-                p_in = 0.0
-            p_in = float(np.nan_to_num(p_in, nan=0.0, posinf=0.0, neginf=0.0))
-            p_in_pos = max(0.0, p_in)
-            p_base = max(float(self._v_nominal) * current_limit, 1e-6)
-            p_in_norm = p_in_pos / p_base
-            # Curriculum for efficiency: while far from the speed target, do not punish current.
-            speed_tol = float(getattr(self.cfg, "ai_voltage_speed_tol", 0.5))
-            if speed_err_abs > speed_tol:
-                i_excess_norm = 0.0
 
             w_speed = float(getattr(self.cfg, "w_ai_voltage_speed", 1.0))
             w_current = float(getattr(self.cfg, "w_ai_voltage_current", 0.1))
@@ -1093,6 +1201,7 @@ class MicAiAIEnv:
                     "p_in": p_in,
                     "p_in_pos": p_in_pos,
                     "p_in_norm": p_in_norm,
+                    "p_el_filt": self._p_el_filt,
                     "speed_error": omega_meas - omega_ref,
                     "i_d": float(i_d_next),
                     "i_q": float(i_q_next),
@@ -1123,6 +1232,7 @@ class MicAiAIEnv:
                     "p_in": p_in,
                     "p_in_pos": p_in_pos,
                     "p_in_norm": p_in_norm,
+                    "p_el_filt": self._p_el_filt,
                     "omega_ref": omega_ref,
                     "reward": reward,
                     "r_ext": reward,
@@ -1167,15 +1277,6 @@ class MicAiAIEnv:
             omega_syn = float(info.get("omega_syn", 0.0))
             load_torque = float(info.get("load_torque", 0.0))
 
-            obs_next = self._build_agent_obs(
-                omega=omega_meas,
-                omega_ref=omega_ref,
-                i_d=i_d_next,
-                i_q=i_q_next,
-                load_torque=load_torque,
-                omega_syn=omega_syn,
-            )
-
             omega_ref_scale = max(abs(omega_ref), 1e-6)
             speed_err_abs = abs(omega_meas - omega_ref)
             err_norm = speed_err_abs / omega_ref_scale
@@ -1185,7 +1286,42 @@ class MicAiAIEnv:
             current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
             p_in, p_in_pos = self._extract_p_in(info)
             p_base = max(float(self._v_nominal) * current_limit, 1e-6)
-            p_in_norm = min(p_in_pos / p_base, 10.0)
+            tau = float(getattr(self.cfg, "p_el_tau", 0.0))
+            if tau > 0.0:
+                alpha = math.exp(-self.dt / max(tau, 1e-6))
+                self._p_el_filt = alpha * self._p_el_filt + (1.0 - alpha) * p_in_pos
+            else:
+                self._p_el_filt = p_in_pos
+            p_in_norm = min(self._p_el_filt / p_base, 10.0)
+            self._p_in_norm = float(p_in_norm)
+
+            torque_e = float(info.get("torque_e", getattr(self.base_env, "last_torque", 0.0)))
+            p_shaft_raw = info.get("p_out")
+            if p_shaft_raw is None:
+                p_shaft_raw = torque_e * omega_meas
+            try:
+                p_shaft_raw = float(p_shaft_raw)
+            except Exception:
+                p_shaft_raw = 0.0
+            p_shaft_raw = float(np.nan_to_num(p_shaft_raw, nan=0.0, posinf=0.0, neginf=0.0))
+            p_shaft_pos = max(0.0, p_shaft_raw)
+            p_shaft_target_pos = max(0.0, float(omega_ref) * max(float(load_torque), 0.0))
+            self._p_shaft_norm = float(min(p_shaft_pos / p_base, 10.0))
+            eta_inst = 0.0
+            if p_in_pos > 1e-9:
+                eta_inst = p_shaft_pos / p_in_pos
+            eta_clip_info = float(max(getattr(self.cfg, "ai_id_eta_clip", 1.2), 1e-3))
+            eta_inst = float(np.clip(eta_inst, 0.0, eta_clip_info))
+            self._eta_inst = eta_inst
+
+            obs_next = self._build_agent_obs(
+                omega=omega_meas,
+                omega_ref=omega_ref,
+                i_d=i_d_next,
+                i_q=i_q_next,
+                load_torque=load_torque,
+                omega_syn=omega_syn,
+            )
 
             speed_tol = float(getattr(self.cfg, "ai_id_speed_tol", getattr(self.cfg, "ai_voltage_speed_tol", 0.5)))
             speed_tol_rel = getattr(self.cfg, "ai_id_speed_tol_rel", None)
@@ -1193,22 +1329,43 @@ class MicAiAIEnv:
                 speed_tol = max(speed_tol, float(speed_tol_rel) * omega_ref_scale)
             w_speed = float(getattr(self.cfg, "w_ai_id_speed", 1.0))
             w_power = float(getattr(self.cfg, "w_ai_id_power", 2.0))
+            w_current = float(getattr(self.cfg, "w_ai_id_current", 0.0))
             w_smooth = float(getattr(self.cfg, "w_ai_id_smooth", 0.05))
             w_mag = float(getattr(self.cfg, "w_ai_id_mag", 0.0))
+            w_shaft = float(getattr(self.cfg, "w_ai_id_shaft", 0.0))
+            w_eta = float(getattr(self.cfg, "w_ai_id_eta", 0.0))
+            eta_clip = float(max(getattr(self.cfg, "ai_id_eta_clip", 1.2), 1e-3))
             i_soft_limit = float(getattr(self.cfg, "i_soft_limit", 0.0))
             i_soft_penalty = float(getattr(self.cfg, "i_soft_penalty", 0.0))
             d_id = float(id_ref_cmd - float(self._prev_id_ref))
             d_id_norm = d_id / max(current_limit, 1e-6)
             id_dev = abs(float(id_ref_cmd) - float(self._id_ref_base))
             id_dev_norm = id_dev / max(current_limit, 1e-6)
+            shaft_deficit_norm = max(0.0, p_shaft_target_pos - p_shaft_pos) / p_base
 
             power_term = w_power * p_in_norm
+            current_term = w_current * (i_rms / current_limit)
+            shaft_term = w_shaft * shaft_deficit_norm
+            eta_term = 0.0
+            if p_shaft_target_pos > 0.05 * p_base:
+                eta_term = w_eta * max(0.0, 1.0 - eta_inst / eta_clip)
             if speed_err_abs > speed_tol:
                 power_term *= 0.0
+                current_term *= 0.0
+                shaft_term *= 0.0
+                eta_term *= 0.0
             i_excess = max(0.0, i_rms - max(i_soft_limit, 0.0))
             i_excess_norm = i_excess / current_limit
-            current_term = i_soft_penalty * i_excess_norm
-            cost = w_speed * err_norm + power_term + current_term + w_smooth * (d_id_norm**2) + w_mag * id_dev_norm
+            current_term += i_soft_penalty * i_excess_norm
+            cost = (
+                w_speed * err_norm
+                + power_term
+                + current_term
+                + shaft_term
+                + eta_term
+                + w_smooth * (d_id_norm**2)
+                + w_mag * id_dev_norm
+            )
             r_raw = float(getattr(self.cfg, "reward_max", 1.0)) - cost
             reward = float(np.clip(r_raw, float(getattr(self.cfg, "reward_min", -10.0)), float(getattr(self.cfg, "reward_max", 1.0))))
 
@@ -1228,6 +1385,9 @@ class MicAiAIEnv:
             self._cum_current_rms += i_rms
             self._cum_p_in += p_in
             self._cum_p_in_pos += p_in_pos
+            self._cum_p_shaft_pos += p_shaft_pos
+            self._cum_p_shaft_target_pos += p_shaft_target_pos
+            self._cum_eta_inst += eta_inst
             self._cum_r_ext += reward
             self._cum_r_int += 0.0
             self._last_obs_norm = obs_next
@@ -1243,8 +1403,14 @@ class MicAiAIEnv:
                     "p_in": p_in,
                     "p_in_pos": p_in_pos,
                     "p_in_norm": p_in_norm,
+                    "p_el_filt": self._p_el_filt,
+                    "p_shaft": p_shaft_raw,
+                    "p_shaft_pos": p_shaft_pos,
+                    "p_shaft_target_pos": p_shaft_target_pos,
+                    "eta_inst": eta_inst,
                     "id_ref_cmd": float(id_ref_cmd),
                     "d_id_norm": d_id_norm,
+                    "shaft_deficit_norm": shaft_deficit_norm,
                     "reward": reward,
                     "r_raw": r_raw,
                     "hard_over_i": hard_over_i,
@@ -1259,6 +1425,10 @@ class MicAiAIEnv:
                     "p_in": p_in,
                     "p_in_pos": p_in_pos,
                     "p_in_norm": p_in_norm,
+                    "p_el_filt": self._p_el_filt,
+                    "p_shaft_pos": p_shaft_pos,
+                    "p_shaft_target_pos": p_shaft_target_pos,
+                    "eta_inst": eta_inst,
                     "omega_ref": omega_ref,
                     "reward": reward,
                     "r_raw": r_raw,
@@ -1292,58 +1462,155 @@ class MicAiAIEnv:
 
             obs_next = self._build_agent_obs(omega=omega_meas, omega_ref=omega_ref, i_d=i_d_next, i_q=i_q_next, load_torque=load_torque)
 
-            speed_err = abs(omega_ref - omega_meas)
+            omega_ref_scale = max(abs(omega_ref), 1e-6)
+            speed_err_abs = abs(omega_ref - omega_meas)
+            err_norm = speed_err_abs / omega_ref_scale
             current_rms = math.sqrt(i_d_next**2 + i_q_next**2)
-            err_norm = speed_err / max(abs(omega_ref), 1e-6)
-            current_norm = current_rms / max(self._i_base, 1e-6)
-            reward = -self.cfg.w_speed_error * err_norm - self.cfg.w_current_rms * current_norm
-            reward = float(np.clip(reward, -self.cfg.reward_clip, 0.0))
+            current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
+            p_in, p_in_pos = self._extract_p_in(info)
+            p_base = max(float(self._v_nominal) * current_limit, 1e-6)
+            tau = float(getattr(self.cfg, "p_el_tau", 0.0))
+            if tau > 0.0:
+                alpha = math.exp(-self.dt / max(tau, 1e-6))
+                self._p_el_filt = alpha * self._p_el_filt + (1.0 - alpha) * p_in_pos
+            else:
+                self._p_el_filt = p_in_pos
+            p_in_norm = min(self._p_el_filt / p_base, 10.0)
+            self._p_in_norm = float(p_in_norm)
 
-            self._cum_speed_err += speed_err
+            torque_e = float(info.get("torque_e", getattr(self.base_env, "last_torque", 0.0)))
+            p_shaft_raw = info.get("p_out")
+            if p_shaft_raw is None:
+                p_shaft_raw = torque_e * omega_meas
+            try:
+                p_shaft_raw = float(p_shaft_raw)
+            except Exception:
+                p_shaft_raw = 0.0
+            p_shaft_raw = float(np.nan_to_num(p_shaft_raw, nan=0.0, posinf=0.0, neginf=0.0))
+            p_shaft_pos = max(0.0, p_shaft_raw)
+            p_shaft_target_pos = max(0.0, float(omega_ref) * max(float(load_torque), 0.0))
+            self._p_shaft_norm = float(min(p_shaft_pos / p_base, 10.0))
+
+            eta_inst = 0.0
+            if p_in_pos > 1e-9:
+                eta_inst = p_shaft_pos / p_in_pos
+            eta_clip = float(max(getattr(self.cfg, "ai_id_eta_clip", 1.2), 1e-3))
+            eta_inst = float(np.clip(eta_inst, 0.0, eta_clip))
+            self._eta_inst = eta_inst
+
+            speed_tol = float(getattr(self.cfg, "ai_id_speed_tol", getattr(self.cfg, "ai_voltage_speed_tol", 0.5)))
+            speed_tol_rel = getattr(self.cfg, "ai_id_speed_tol_rel", None)
+            if speed_tol_rel is not None:
+                speed_tol = max(speed_tol, float(speed_tol_rel) * omega_ref_scale)
+            w_speed = float(getattr(self.cfg, "w_ai_id_speed", 1.0))
+            w_power = float(getattr(self.cfg, "w_ai_id_power", 2.0))
+            w_current = float(getattr(self.cfg, "w_ai_id_current", 0.0))
+            w_smooth = float(getattr(self.cfg, "w_ai_id_smooth", 0.05))
+            w_mag = float(getattr(self.cfg, "w_ai_id_mag", 0.0))
+            w_shaft = float(getattr(self.cfg, "w_ai_id_shaft", 0.0))
+            w_eta = float(getattr(self.cfg, "w_ai_id_eta", 0.0))
+            i_soft_limit = float(getattr(self.cfg, "i_soft_limit", 0.0))
+            i_soft_penalty = float(getattr(self.cfg, "i_soft_penalty", 0.0))
+
+            d_iq = float(act_iq_norm - float(self._prev_delta_rel))
+            d_id = float(act_id_norm - float(self._prev_action_id_rel))
+            action_smooth = d_iq**2 + d_id**2
+            action_mag = abs(float(act_id_norm))
+            shaft_deficit_norm = max(0.0, p_shaft_target_pos - p_shaft_pos) / p_base
+            power_term = w_power * p_in_norm
+            current_term = w_current * (current_rms / current_limit)
+            shaft_term = w_shaft * shaft_deficit_norm
+            eta_term = 0.0
+            if p_shaft_target_pos > 0.05 * p_base:
+                eta_term = w_eta * max(0.0, 1.0 - eta_inst / eta_clip)
+            if speed_err_abs > speed_tol:
+                power_term *= 0.0
+                current_term *= 0.0
+                shaft_term *= 0.0
+                eta_term *= 0.0
+            i_excess = max(0.0, current_rms - max(i_soft_limit, 0.0))
+            current_term += i_soft_penalty * (i_excess / current_limit)
+            cost = (
+                w_speed * err_norm
+                + power_term
+                + current_term
+                + shaft_term
+                + eta_term
+                + w_smooth * action_smooth
+                + w_mag * action_mag
+            )
+            r_raw = float(getattr(self.cfg, "reward_max", 1.0)) - cost
+            reward = float(np.clip(r_raw, float(getattr(self.cfg, "reward_min", -10.0)), float(getattr(self.cfg, "reward_max", 1.0))))
+
+            hard_limit = max(current_limit, float(getattr(self.cfg, "i_hard_limit", current_limit)))
+            hard_over_i = current_rms > hard_limit
+            invalid_state = not (
+                math.isfinite(omega_meas)
+                and math.isfinite(i_d_next)
+                and math.isfinite(i_q_next)
+                and math.isfinite(p_in)
+            )
+            if invalid_state or hard_over_i:
+                reward = float(getattr(self.cfg, "reward_min", -10.0))
+                r_raw = reward
+
+            self._cum_speed_err += speed_err_abs
             self._cum_current_rms += current_rms
+            self._cum_p_in += p_in
+            self._cum_p_in_pos += p_in_pos
+            self._cum_p_shaft_pos += p_shaft_pos
+            self._cum_p_shaft_target_pos += p_shaft_target_pos
+            self._cum_eta_inst += eta_inst
             self._cum_r_ext += reward
 
             self._last_obs_norm = obs_next
-            self._prev_delta_rel = act_iq_norm
-            self._prev_action_id_rel = act_id_norm
+            self._prev_delta_rel = float(act_iq_norm)
+            self._prev_action_id_rel = float(act_id_norm)
             self.step_count += 1
-            env_cfg_sim = getattr(getattr(self.base_env, "env", None), "sim", None)
-            done_sim_time = False
-            if env_cfg_sim is not None and hasattr(env_cfg_sim, "t_end"):
-                done_sim_time = float(getattr(self.base_env, "t", 0.0)) >= float(getattr(env_cfg_sim, "t_end", 0.0))
-            done = done_env or done_sim_time or self.step_count >= self.cfg.episode_steps
+            done = self.step_count >= self.episode_max_steps or hard_over_i or invalid_state
 
-            reward_info = {
-                "speed_err": speed_err,
-                "speed_err_norm": err_norm,
-                "current_norm": current_norm,
-                "i_rms": current_rms,
-                "r_ext": reward,
-                "r_int": 0.0,
-            }
             info.update(
                 {
-                    **reward_info,
-                    "speed_error": omega_meas - omega_ref,
-                    "i_d": float(i_d_next),
-                    "i_q": float(i_q_next),
+                    "speed_err": speed_err_abs,
+                    "speed_err_norm": err_norm,
+                    "i_rms": current_rms,
+                    "p_in": p_in,
+                    "p_in_pos": p_in_pos,
+                    "p_in_norm": p_in_norm,
+                    "p_el_filt": self._p_el_filt,
+                    "p_shaft": p_shaft_raw,
+                    "p_shaft_pos": p_shaft_pos,
+                    "p_shaft_target_pos": p_shaft_target_pos,
+                    "eta_inst": eta_inst,
+                    "action_iq_norm": float(act_iq_norm),
+                    "action_id_norm": float(act_id_norm),
+                    "reward": reward,
+                    "r_raw": r_raw,
+                    "hard_over_i": hard_over_i,
+                    "invalid_state": invalid_state,
                     "t": float(getattr(self.base_env, "t", 0.0)),
-                    "action_iq_norm": act_iq_norm,
-                    "action_id_norm": act_id_norm,
                 }
             )
             self.history.append(
                 {
                     "obs": obs_next,
                     "speed_error": omega_meas - omega_ref,
-                    "speed_err_norm": reward_info.get("speed_err_norm", 0.0),
+                    "speed_err_norm": err_norm,
                     "i_rms": current_rms,
                     "current_rms": current_rms,
+                    "p_in": p_in,
+                    "p_in_pos": p_in_pos,
+                    "p_in_norm": p_in_norm,
+                    "p_el_filt": self._p_el_filt,
+                    "p_shaft_pos": p_shaft_pos,
+                    "p_shaft_target_pos": p_shaft_target_pos,
+                    "eta_inst": eta_inst,
                     "reward": reward,
+                    "r_raw": r_raw,
                     "r_ext": reward,
                     "r_int": 0.0,
                     "wm_loss": 0.0,
-                    "t": info["t"],
+                    "t": float(getattr(self.base_env, "t", 0.0)),
                     "action": (act_iq_norm, act_id_norm),
                 }
             )
@@ -1406,6 +1673,7 @@ class MicAiAIEnv:
             else:
                 self._p_el_filt = p_in_pos
             p_el_norm = min(self._p_el_filt / p_base, 10.0)
+            self._p_in_norm = float(p_el_norm)
 
             reward_mode = str(getattr(self.cfg, "foc_assist_reward_mode", "baseline")).lower()
             action_energy = delta_used**2 + delta_id_used**2
@@ -1716,6 +1984,10 @@ class MicAiAIEnv:
             "mean_i_rms_abc": self._cum_i_rms_abc / steps,
             "mean_p_in": self._cum_p_in / steps,
             "mean_p_in_pos": self._cum_p_in_pos / steps,
+            "mean_p_shaft_pos": self._cum_p_shaft_pos / steps,
+            "mean_p_shaft_target_pos": self._cum_p_shaft_target_pos / steps,
+            "mean_eta_inst": self._cum_eta_inst / steps,
+            "eta_energy": self._cum_p_shaft_pos / max(self._cum_p_in_pos, 1e-9),
             "total_reward": total_reward,
             "total_reward_raw": total_reward_raw,
             "mean_reward": total_reward / steps,

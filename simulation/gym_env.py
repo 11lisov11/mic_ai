@@ -7,6 +7,7 @@ from __future__ import annotations
 import math
 import types
 from typing import Any, Dict, Optional, Tuple
+from dataclasses import replace
 
 import numpy as np
 
@@ -37,6 +38,9 @@ except ImportError:  # минимальный запасной вариант, �
 from config.env import ENV, EnvConfig
 from control.scalar_vf import ScalarVfController
 from control.vector_foc import FocController
+from control.v3_ternary import V3Controller
+from control.hybrid_v3_foc import HybridParams, HybridV3FocController
+from control.id_ref_lut import IdRefLut
 from models.induction_motor import InductionMotorModel
 from models.inverter_ideal import IdealInverter
 from models.transformations import dq_to_abc
@@ -57,6 +61,10 @@ class InductionMotorEnv(gym.Env):
         self.mode = env_config.sim.mode.lower()
         self.sigma_omega = max(float(getattr(env_config.sim, "sigma_omega", 0.0) or 0.0), 0.0)
         self.sigma_i_abc = max(float(getattr(env_config.sim, "sigma_i_abc", 0.0) or 0.0), 0.0)
+        self.loss_inv_r = float(getattr(env_config, "loss_inv_r", 0.0) or 0.0)
+        self.loss_core_k = float(getattr(env_config, "loss_core_k", 0.0) or 0.0)
+        self.loss_core_omega_exp = float(getattr(env_config, "loss_core_omega_exp", 1.0) or 1.0)
+        self.loss_core_psi_exp = float(getattr(env_config, "loss_core_psi_exp", 2.0) or 2.0)
 
         self.motor = InductionMotorModel(env_config.motor)
         self.inverter = IdealInverter(env_config.inverter)
@@ -67,8 +75,35 @@ class InductionMotorEnv(gym.Env):
             )
         elif self.mode == "foc":
             self.controller = FocController(env_config.foc, env_config.motor, self.dt)
+        elif self.mode == "v3":
+            omega_base = 2.0 * math.pi * env_config.scalar_vf.f_max / env_config.motor.p
+            self.controller = V3Controller(env_config.foc, env_config.motor, self.dt, omega_base)
+        elif self.mode == "hybrid":
+            omega_base = 2.0 * math.pi * env_config.scalar_vf.f_max / env_config.motor.p
+            hy_params = HybridParams(
+                err_tol_rel=float(getattr(env_config, "hybrid_err_tol_rel", 0.02)),
+                err_tol_abs=float(getattr(env_config, "hybrid_err_tol_abs", 0.0)),
+                min_omega_pu=float(getattr(env_config, "hybrid_min_omega_pu", 0.1)),
+                load_low_ratio=float(getattr(env_config, "hybrid_load_low_ratio", 0.6)),
+            )
+            self.controller = HybridV3FocController(
+                env_config.foc,
+                env_config.motor,
+                self.dt,
+                omega_base,
+                load_nom=float(max(abs(env_config.sim.load_torque), 1e-6)),
+                hybrid_params=hy_params,
+            )
         else:
             raise ValueError(f"Unknown control mode '{self.mode}'")
+
+        self._id_ref_lut = None
+        lut_path = getattr(env_config, "id_ref_lut_path", None)
+        if lut_path:
+            try:
+                self._id_ref_lut = IdRefLut.from_json(lut_path)
+            except Exception:
+                self._id_ref_lut = None
 
         self.omega_ref_func, self.load_torque_func = get_scenario(env_config.sim.scenario_name, env_config)
 
@@ -131,6 +166,13 @@ class InductionMotorEnv(gym.Env):
         omega_ref = self.omega_ref_func(t)
         load_torque = self.load_torque_func(t)
 
+        if self._id_ref_lut is not None and self.mode == "foc":
+            try:
+                id_ref = float(self._id_ref_lut.query(omega_ref, load_torque))
+                self.controller.params = replace(self.controller.params, id_ref=id_ref)
+            except Exception:
+                pass
+
         omega_ref = self._apply_action(action, omega_ref)
         
         # --- Унифицированный шаг управления ---
@@ -143,17 +185,28 @@ class InductionMotorEnv(gym.Env):
         else:
             i_abc_meas = i_abc_true
 
-        v_d, v_q, theta_e, omega_syn, ctrl_info = self.controller.step(
-            t=t,
-            omega_ref=omega_ref,
-            omega_m=omega_m_meas,
-            i_abc=i_abc_meas,
-            torque_e=self.last_torque,
-            theta_mech=self.theta_mech
-        )
+        if self.mode == "hybrid":
+            v_d, v_q, theta_e, omega_syn, ctrl_info = self.controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=self.last_torque,
+                theta_mech=self.theta_mech,
+                load_torque=load_torque,
+            )
+        else:
+            v_d, v_q, theta_e, omega_syn, ctrl_info = self.controller.step(
+                t=t,
+                omega_ref=omega_ref,
+                omega_m=omega_m_meas,
+                i_abc=i_abc_meas,
+                torque_e=self.last_torque,
+                theta_mech=self.theta_mech
+            )
         
         # Обновление инвертора и двигателя
-        v_abc, (v_d, v_q) = self.inverter.output(v_d, v_q, theta_e)
+        v_abc, (v_d, v_q) = self.inverter.output(v_d, v_q, theta_e, self.last_currents_abc)
         state, i_d, i_q, torque_e, omega_m = self.motor.step(
             v_d, v_q, load_torque, self.dt, omega_syn=omega_syn
         )
@@ -163,8 +216,26 @@ class InductionMotorEnv(gym.Env):
         
         self.last_torque = torque_e
         self.last_currents_abc = i_abc
-        
+
         obs, p_in, p_out = self._build_observation(omega_ref, torque_e, i_abc, v_abc, state.omega_m)
+
+        # Loss-aware power accounting (optional; defaults to zero extras).
+        try:
+            i_rms = math.sqrt((i_abc[0] ** 2 + i_abc[1] ** 2 + i_abc[2] ** 2) / 3.0)
+        except Exception:
+            i_rms = 0.0
+        p_inv = 3.0 * self.loss_inv_r * (i_rms ** 2) if self.loss_inv_r > 0.0 else 0.0
+        p_core = 0.0
+        if self.loss_core_k > 0.0:
+            psi_s = math.hypot(state.psi_ds, state.psi_qs)
+            omega_core = abs(omega_syn)
+            p_core = float(self.loss_core_k) * (omega_core ** self.loss_core_omega_exp) * (psi_s ** self.loss_core_psi_exp)
+        p_in_total = p_in + p_inv + p_core
+        p_mech_loss = float(self.motor.params.B) * (omega_m ** 2)
+        try:
+            _, _, i_dr, i_qr = self.motor._currents(state)
+        except Exception:
+            i_dr, i_qr = 0.0, 0.0
 
         self.t += self.dt
         done = self.t >= self.env.sim.t_end
@@ -174,6 +245,14 @@ class InductionMotorEnv(gym.Env):
             "torque_e": torque_e,
             "p_in": p_in,
             "p_out": p_out,
+            "p_in_total": p_in_total,
+            "p_in_total_pos": max(0.0, p_in_total),
+            "p_inv_loss": p_inv,
+            "p_core_loss": p_core,
+            "p_mech_loss": p_mech_loss,
+            "i_rms": i_rms,
+            "i_dr": float(i_dr),
+            "i_qr": float(i_qr),
             "i_abc": i_abc,
             "v_abc": v_abc,
             "theta_e": theta_e,

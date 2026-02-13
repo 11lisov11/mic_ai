@@ -13,7 +13,7 @@ class BaseDriver(ABC):
 
     @abstractmethod
     def set_mode(self, mode: str) -> None:
-        """Set control mode: "FOC" or "MIC"."""
+        """Set control mode: "FOC", "MIC", "V3", "SCALAR", "ESC", "AFF", "EBS", "LMC", "LMAP", or "HYBRID"."""
 
     @abstractmethod
     def set_limits(self, limits: Dict[str, float]) -> None:

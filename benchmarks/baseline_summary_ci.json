@@ -1,0 +1,16 @@
+[
+  {
+    "scenario": "speed_step:0.2",
+    "file_tag": "speed_step_0p2",
+    "foc_mean_err": 22.77390504002571,
+    "mic_mean_err": 22.77390504002571,
+    "err_ok": true,
+    "err_limit": 23.912600292026998,
+    "foc_p_el_pos": 38.406580322545594,
+    "mic_p_el_pos": 38.406580322545594,
+    "power_saving_pct": 0.0,
+    "foc_eta": 0.3025852724925884,
+    "mic_eta": 0.3025852724925884,
+    "eta_gain_pct": 0.0
+  }
+]
