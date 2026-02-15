@@ -121,7 +121,11 @@ class MicAiAIEnv:
 
         self.dt = float(getattr(base_env, "dt", ai_config.dt))
         self._omega_base = max(float(getattr(base_env, "omega_base", ai_config.omega_ref)), 1e-6)
-        self._omega_norm_base = max(abs(float(ai_config.omega_ref)), 1e-6)
+        # IMPORTANT: normalize omega-related observations by the physical base speed
+        # (derived from scalar_vf.f_max / pole pairs) instead of a training reference.
+        # Otherwise, when scenarios use nominal omega (e.g. hold:0.8 at 50 Hz), obs would
+        # saturate and the policy cannot generalize beyond the low-speed curriculum.
+        self._omega_norm_base = max(abs(float(self._omega_base)), 1e-6)
         self._omega_ref_max = float(ai_config.omega_ref_max) if ai_config.omega_ref_max is not None else self._omega_norm_base
         self._omega_nominal = self._omega_norm_base
         self._iq_to_speed_gain = 2.0
@@ -777,11 +781,21 @@ class MicAiAIEnv:
                 gate_min = float(getattr(self.cfg, "id_ref_gate_min_scale", 0.0))
                 gate_scale = max(gate_scale, gate_min)
         if bool(getattr(self.cfg, "ai_id_ref_relative", False)):
-            delta = id_ref_norm * float(getattr(self.cfg, "delta_id_max", 0.5)) * gate_scale
+            delta_raw = id_ref_norm * float(getattr(self.cfg, "delta_id_max", 0.5))
+            # Gate ONLY demagnetization (negative delta) during transients.
+            #
+            # Rationale: in some modes the energy-optimal strategy can require a *temporary flux increase*
+            # (positive Δi_d) to reduce slip and copper losses. Symmetric gating can block this behavior
+            # and prevent reaching the efficiency headroom. We still keep the guardrail below to avoid
+            # prolonged flux reduction when the speed error is large.
+            delta = delta_raw * gate_scale if delta_raw < 0.0 else delta_raw
             id_ref_cmd = self._id_ref_base + delta * max(1.0, abs(self._id_ref_base))
         else:
             id_ref_raw = id_min + 0.5 * (id_ref_norm + 1.0) * (id_max - id_min)
-            id_ref_cmd = self._id_ref_base + gate_scale * (id_ref_raw - self._id_ref_base)
+            if id_ref_raw < self._id_ref_base:
+                id_ref_cmd = self._id_ref_base + gate_scale * (id_ref_raw - self._id_ref_base)
+            else:
+                id_ref_cmd = id_ref_raw
         id_ref_cmd = float(np.clip(id_ref_cmd, id_min, id_max))
 
         # Guardrail: during transients (gate_scale << 1), avoid prolonged flux reduction.

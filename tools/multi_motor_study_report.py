@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+import shutil
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,33 +20,95 @@ class MotorCase:
     rated_power_kw: float
 
 
-MOTORS: Tuple[MotorCase, ...] = (
-    MotorCase(
-        key="air56",
-        label="АИР56 0,25 кВт",
-        config="config/env_research_air56_025kw.py",
-        run_dir=Path("outputs/research20260214/air56_ep000_eval_fixed2"),
-        rated_power_kw=0.25,
-    ),
-    MotorCase(
-        key="al31",
-        label="АЛ-31-4 0,6 кВт",
-        config="config/env_research_al31_4_06kw.py",
+MOTORS_META: Tuple[dict, ...] = (
+    {
+        "key": "air56",
+        "label": "АИР56 0,25 кВт",
+        "config": "config/env_research_air56_025kw.py",
+        "rated_power_kw": 0.25,
+        # Legacy (local) evaluation directories (not committed).
+        "legacy_run_dir": "outputs/research20260214/air56_ep000_eval_fixed2",
+    },
+    {
+        "key": "al31",
+        "label": "АЛ-31-4 0,6 кВт",
+        "config": "config/env_research_al31_4_06kw.py",
+        "rated_power_kw": 0.60,
         # Use the best checkpoint found in corrected evaluation runs.
-        run_dir=Path("outputs/research20260214/al31_ep019_eval_fixed"),
-        rated_power_kw=0.60,
-    ),
-    MotorCase(
-        key="ao2",
-        label="АО2-32-4 3,0 кВт",
-        config="config/env_research_ao2_32_4_3kw.py",
-        run_dir=Path("outputs/research20260214/ao2_ep001_eval_fixed3"),
-        rated_power_kw=3.00,
-    ),
+        "legacy_run_dir": "outputs/research20260214/al31_ep019_eval_fixed",
+    },
+    {
+        "key": "ao2",
+        "label": "АО2-32-4 3,0 кВт",
+        "config": "config/env_research_ao2_32_4_3kw.py",
+        "rated_power_kw": 3.00,
+        "legacy_run_dir": "outputs/research20260214/ao2_ep001_eval_fixed3",
+    },
 )
 
-OUT_DIR = Path("outputs/research20260214/multi_motor_study")
+DEFAULT_TRACES_ROOT = Path("paper/pgups_2026/data/traces")
+DEFAULT_OUT_DIR = Path("outputs/research20260214/multi_motor_study")
+DEFAULT_PAPER_DIR = Path("paper/pgups_2026")
 WINDOW_FRAC = 0.30
+
+
+def _infer_scenario_from_tag(file_tag: str) -> str:
+    """
+    Infer scenario name from a trace file tag.
+
+    Historically, evaluation runs stored a `summary.json` with explicit (scenario, file_tag) mapping.
+    For the committed paper traces we keep only `*_foc.csv` / `*_mic_ai.csv` files, so we reconstruct
+    the mapping from file names.
+    """
+
+    tag = str(file_tag).strip()
+    if tag.startswith("hold_"):
+        # hold_0p8 -> hold:0.8 (also support other values like hold_1p0)
+        pu = tag[len("hold_") :].replace("p", ".", 1)
+        return f"hold:{pu}"
+    return tag
+
+
+def _load_summary_items(run_dir: Path) -> List[Dict[str, str]]:
+    """
+    Load (scenario, file_tag) pairs for a given motor run directory.
+
+    Priority:
+    1) Use `summary.json` if present (legacy local runs).
+    2) Otherwise infer from the committed trace CSV names: `*_foc.csv` + `*_mic_ai.csv`.
+    """
+
+    summary_path = run_dir / "summary.json"
+    if summary_path.exists():
+        items = json.loads(summary_path.read_text(encoding="utf-8"))
+        out: List[Dict[str, str]] = []
+        for it in items:
+            scenario = str(it.get("scenario", "")).strip()
+            tag = str(it.get("file_tag", "")).strip()
+            if not scenario or not tag:
+                continue
+            out.append({"scenario": scenario, "file_tag": tag})
+        if out:
+            return out
+
+    foc_files = sorted(run_dir.glob("*_foc.csv"))
+    inferred: List[Dict[str, str]] = []
+    for foc_path in foc_files:
+        name = foc_path.name
+        tag = name[: -len("_foc.csv")]
+        mic_path = run_dir / f"{tag}_mic_ai.csv"
+        if not mic_path.exists():
+            continue
+        inferred.append({"scenario": _infer_scenario_from_tag(tag), "file_tag": tag})
+
+    if not inferred:
+        raise FileNotFoundError(f"Missing traces in {run_dir} (expected '*_foc.csv' + '*_mic_ai.csv').")
+
+    # Stable and publication-friendly ordering.
+    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_profile", "start_stop"]
+    order_idx = {name: i for i, name in enumerate(scenario_order)}
+    inferred.sort(key=lambda it: (order_idx.get(it["scenario"], 999), it["scenario"], it["file_tag"]))
+    return inferred
 
 
 def _ensure_plt():
@@ -332,7 +396,9 @@ def _plot_savings_heatmap(scenario_df: pd.DataFrame, out_base: Path) -> None:
 
     for i in range(pivot.shape[0]):
         for j in range(pivot.shape[1]):
-            ax.text(j, i, f"{data[i, j]:.1f}", ha="center", va="center", fontsize=9)
+            # Use comma as decimal separator (RU typographic convention).
+            txt = f"{data[i, j]:.1f}".replace(".", ",")
+            ax.text(j, i, txt, ha="center", va="center", fontsize=9)
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     cbar.set_label("Экономия, %")
@@ -438,20 +504,59 @@ def _plot_power_eta_time(timeseries: Dict[str, Dict[str, pd.DataFrame]], summary
 
 
 def main() -> None:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    parser = argparse.ArgumentParser(description="Build the multi-motor study summary used in the PGUPS paper.")
+    parser.add_argument(
+        "--traces-root",
+        default=str(DEFAULT_TRACES_ROOT),
+        help="Directory with per-motor trace subfolders (air56/al31/ao2).",
+    )
+    parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR), help="Directory for generated CSV/JSON and figures.")
+    parser.add_argument(
+        "--export-paper",
+        action="store_true",
+        help="Also overwrite paper assets under paper/pgups_2026/{data,fig}.",
+    )
+    parser.add_argument(
+        "--paper-dir",
+        default=str(DEFAULT_PAPER_DIR),
+        help="Paper directory (used when --export-paper is set).",
+    )
+    args = parser.parse_args()
+
+    traces_root = Path(args.traces_root)
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    paper_dir = Path(args.paper_dir) if bool(args.export_paper) else None
+    if paper_dir is not None:
+        (paper_dir / "data").mkdir(parents=True, exist_ok=True)
+        (paper_dir / "fig").mkdir(parents=True, exist_ok=True)
+
+    motors: List[MotorCase] = []
+    for meta in MOTORS_META:
+        key = str(meta["key"])
+        run_dir = traces_root / key
+        if not run_dir.exists():
+            run_dir = Path(str(meta["legacy_run_dir"]))
+        motors.append(
+            MotorCase(
+                key=key,
+                label=str(meta["label"]),
+                config=str(meta["config"]),
+                run_dir=run_dir,
+                rated_power_kw=float(meta["rated_power_kw"]),
+            )
+        )
 
     scenario_rows: List[Dict[str, object]] = []
     motor_rows: List[Dict[str, object]] = []
     mech_curves: Dict[str, Dict[str, pd.DataFrame]] = {}
     time_series_start_stop: Dict[str, Dict[str, pd.DataFrame]] = {}
 
-    for motor in MOTORS:
+    for motor in motors:
         if not motor.run_dir.exists():
             raise FileNotFoundError(f"Missing run dir: {motor.run_dir}")
-        summary_path = motor.run_dir / "summary.json"
-        if not summary_path.exists():
-            raise FileNotFoundError(summary_path)
-        summary_items = json.loads(summary_path.read_text(encoding="utf-8"))
+        summary_items = _load_summary_items(motor.run_dir)
 
         per_motor_rows: List[Dict[str, object]] = []
         foc_mech_parts: List[pd.DataFrame] = []
@@ -519,7 +624,8 @@ def main() -> None:
                 "motor_label": motor.label,
                 "rated_power_kw": motor.rated_power_kw,
                 "config": motor.config,
-                "run_dir": str(motor.run_dir),
+                # Store as POSIX-style relative path for cross-platform reproducibility.
+                "run_dir": motor.run_dir.as_posix(),
                 "avg_saving_full_pct": float(per_df["saving_full_pct"].mean()),
                 "avg_saving_steady_pct": float(per_df["saving_steady_pct"].mean()),
                 "min_saving_full_pct": float(per_df["saving_full_pct"].min()),
@@ -546,8 +652,8 @@ def main() -> None:
 
     scenario_df = pd.DataFrame(scenario_rows)
     summary_df = pd.DataFrame(motor_rows)
-    scenario_df.to_csv(OUT_DIR / "scenario_metrics_multi_motor.csv", index=False, encoding="utf-8")
-    summary_df.to_csv(OUT_DIR / "motor_summary_multi_motor.csv", index=False, encoding="utf-8")
+    scenario_df.to_csv(out_dir / "scenario_metrics_multi_motor.csv", index=False, encoding="utf-8")
+    summary_df.to_csv(out_dir / "motor_summary_multi_motor.csv", index=False, encoding="utf-8")
 
     regime_df = scenario_df.copy()
     regime_df["regime"] = np.where(regime_df["scenario"] == "hold:0.8", "steady", "periodic")
@@ -562,7 +668,7 @@ def main() -> None:
         )
         .sort_values(["motor_key", "regime"])
     )
-    regime_summary.to_csv(OUT_DIR / "regime_summary_multi_motor.csv", index=False, encoding="utf-8")
+    regime_summary.to_csv(out_dir / "regime_summary_multi_motor.csv", index=False, encoding="utf-8")
 
     # Simple bootstrap CI for pooled (motor, scenario) gains.
     def _bootstrap_ci(values: np.ndarray, n_boot: int = 5000, seed: int = 42) -> Tuple[float, float, float]:
@@ -633,14 +739,40 @@ def main() -> None:
             },
         },
     }
-    (OUT_DIR / "study_summary_multi_motor.json").write_text(json.dumps(study_summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    (out_dir / "study_summary_multi_motor.json").write_text(
+        json.dumps(study_summary, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
 
-    _plot_summary_bars(summary_df, OUT_DIR / "fig_multi_motor_summary_ru")
-    _plot_savings_heatmap(scenario_df, OUT_DIR / "fig_multi_motor_scenario_heatmap_ru")
-    _plot_mech_characteristics(mech_curves, summary_df, OUT_DIR / "fig_multi_motor_mech_ru")
-    _plot_power_eta_time(time_series_start_stop, summary_df, OUT_DIR / "fig_multi_motor_power_eta_time_ru")
+    _plot_summary_bars(summary_df, out_dir / "fig_multi_motor_summary_ru")
+    _plot_savings_heatmap(scenario_df, out_dir / "fig_multi_motor_scenario_heatmap_ru")
+    _plot_mech_characteristics(mech_curves, summary_df, out_dir / "fig_multi_motor_mech_ru")
+    _plot_power_eta_time(time_series_start_stop, summary_df, out_dir / "fig_multi_motor_power_eta_time_ru")
 
-    print(str((OUT_DIR / "study_summary_multi_motor.json").resolve()))
+    if paper_dir is not None:
+        # Copy data tables.
+        for name in (
+            "scenario_metrics_multi_motor.csv",
+            "motor_summary_multi_motor.csv",
+            "regime_summary_multi_motor.csv",
+            "study_summary_multi_motor.json",
+        ):
+            shutil.copy2(out_dir / name, paper_dir / "data" / name)
+
+        # Copy figures (all available formats for convenience).
+        fig_bases = [
+            "fig_multi_motor_summary_ru",
+            "fig_multi_motor_scenario_heatmap_ru",
+            "fig_multi_motor_mech_ru",
+            "fig_multi_motor_power_eta_time_ru",
+        ]
+        for base in fig_bases:
+            for ext in (".png", ".pdf", ".svg"):
+                src = out_dir / f"{base}{ext}"
+                if src.exists():
+                    shutil.copy2(src, paper_dir / "fig" / src.name)
+
+    print(str((out_dir / "study_summary_multi_motor.json").resolve()))
 
 
 if __name__ == "__main__":

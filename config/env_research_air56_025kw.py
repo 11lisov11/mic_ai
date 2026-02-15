@@ -39,7 +39,9 @@ _load_torque = 0.25 * _torque_nom
 _sim = replace(
     _base.sim,
     t_end=2.0,
-    dt=1e-3,
+    # NOTE: dt=1e-3 produced numerical artefacts (spurious negative p_el in steady windows)
+    # for this motor, which inflated Pвх+ metrics. We use a smaller dt for research figures.
+    dt=5e-4,
     save_prefix="research_air56_025kw",
     scenario_name="speed_step",
     load_torque=float(_load_torque),
@@ -86,4 +88,3 @@ ai_drift_ranges = {
 }
 
 __all__ = ["ENV"]
-

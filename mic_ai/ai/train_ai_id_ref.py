@@ -52,8 +52,10 @@ def build_feature_keys(include_energy_obs: bool) -> List[str]:
     return out
 
 
-# Backward-compatible alias used by scenario_compare defaults.
-FEATURE_KEYS = list(BASE_FEATURE_KEYS)
+# Default feature set for id_ref policies.
+# NOTE: Paper checkpoints were trained with energy-related observations enabled.
+# Keep this in sync so evaluation tools (e.g. scenario_compare) load those checkpoints by default.
+FEATURE_KEYS = build_feature_keys(include_energy_obs=True)
 
 OUTPUT_DIR = Path("outputs/ai_id_ref")
 EPISODE_LOG_DIR = OUTPUT_DIR / "episode_logs"
@@ -227,10 +229,12 @@ def build_env(
         # id_ref-supervision mode: normalize power and current to the realistic (iq,id) vector range.
         # Using i_base_nom*8 here makes p_in_norm almost zero for bigger motors and hurts learning,
         # while evaluation (scenario_compare) uses a much smaller i_max. Keep train/eval consistent.
-        id_ref_max_est = float(max(i_base_nom * 1.5, id_ref_base, id_ref_base * 1.2))
+        # Wider id_ref range improves learning for small motors where id_ref_base can be > I_n
+        # due to dq vs line-current scaling.
+        id_ref_max_est = float(max(i_base_nom * 1.5, id_ref_base, id_ref_base * 1.6))
         i_limit = float(max(math.hypot(iq_limit, id_ref_max_est), i_base_nom, 5.0))
         i_base = float(i_base_nom)
-    id_ref_max = max(i_base * 1.5, id_ref_base, id_ref_base * 1.2)
+    id_ref_max = max(i_base * 1.5, id_ref_base, id_ref_base * 1.6)
 
     cfg = load_ai_voltage_config()
     curriculum_cfg = get_curriculum_config(cfg)

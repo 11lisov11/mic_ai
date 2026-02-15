@@ -21,3 +21,6 @@ outputs/**
 
 # Large legacy examples (keep locally, don't publish).
 docs/legacy_examples/
+
+# Local intermediate DOCX builds (keep the official PGUPS file name in git).
+paper/pgups_2026/article_mic_ieee_vak_pgups.docx

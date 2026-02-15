@@ -262,7 +262,9 @@ def _build_ai_env(
     if control_mode == "ai_current":
         i_base = float(i_limit)
     id_ref_base = float(getattr(getattr(env_cfg, "foc", None), "id_ref", 0.0) or 0.0)
-    id_ref_max = max(i_base * 1.5, id_ref_base, id_ref_base * 1.2)
+    # Allow a wider id_ref range for small motors where id_ref_base can be > I_n
+    # (dq vs line-current scaling). This avoids artificially capping MIC's flux search.
+    id_ref_max = max(i_base * 1.5, id_ref_base, id_ref_base * 1.6)
     omega_ref_nom = float(2.0 * math.pi * 10.0 / max(env_cfg.motor.p, 1))
     steps = int(max(t_end / dt, 1))
     ai_cfg = AiEnvConfig(

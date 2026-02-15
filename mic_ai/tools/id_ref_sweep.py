@@ -6,6 +6,7 @@ Sweep id_ref for FOC and report energy vs speed error.
 
 import argparse
 import json
+import copy
 from dataclasses import replace
 from pathlib import Path
 from typing import Dict, List
@@ -15,6 +16,46 @@ import numpy as np
 from mic_ai.analysis.metrics import calc_i_rms, calc_p_el, calc_p_mech
 from mic_ai.core.env import make_env_from_config
 from simulation.gym_env import InductionMotorEnv
+
+
+def _clone_env_cfg(env_cfg: object) -> object:
+    """
+    EnvConfig instances are frozen dataclasses, but we attach extra attributes at runtime
+    (e.g. loss models, LUT paths) in make_env_from_config(). dataclasses.replace() will
+    drop those extras. For reproducible studies we keep them by cloning and setting
+    dataclass fields via object.__setattr__.
+    """
+
+    try:
+        return copy.copy(env_cfg)
+    except Exception:
+        return env_cfg
+
+
+def _set_attr(obj: object, name: str, value: object) -> bool:
+    try:
+        object.__setattr__(obj, name, value)
+        return True
+    except Exception:
+        try:
+            setattr(obj, name, value)
+            return True
+        except Exception:
+            return False
+
+
+def _clone_with_sim(env_cfg: object, sim_cfg: object) -> object:
+    env_cfg_s = _clone_env_cfg(env_cfg)
+    if not _set_attr(env_cfg_s, "sim", sim_cfg):
+        env_cfg_s = replace(env_cfg, sim=sim_cfg)
+    return env_cfg_s
+
+
+def _clone_with_foc(env_cfg: object, foc_cfg: object) -> object:
+    env_cfg_s = _clone_env_cfg(env_cfg)
+    if not _set_attr(env_cfg_s, "foc", foc_cfg):
+        env_cfg_s = replace(env_cfg, foc=foc_cfg)
+    return env_cfg_s
 
 
 def _steady_slice(n: int, window_frac: float) -> slice:
@@ -48,7 +89,9 @@ def _summarize(series: Dict[str, np.ndarray], window_frac: float) -> Dict[str, f
 def _simulate_foc(env_cfg: object, dt: float, t_end: float, id_ref: float, use_total_power: bool) -> Dict[str, np.ndarray]:
     sim_cfg = replace(env_cfg.sim, dt=dt, t_end=t_end)
     foc_cfg = replace(env_cfg.foc, id_ref=float(id_ref))
-    env = InductionMotorEnv(replace(env_cfg, sim=sim_cfg, foc=foc_cfg))
+    env_cfg_s = _clone_with_sim(env_cfg, sim_cfg)
+    env_cfg_s = _clone_with_foc(env_cfg_s, foc_cfg)
+    env = InductionMotorEnv(env_cfg_s)
     env.reset()
     steps = int(max(t_end / dt, 1))
     t = np.zeros(steps, dtype=float)
@@ -110,7 +153,7 @@ def main() -> None:
     dt = float(args.dt) if args.dt is not None else float(env_cfg.sim.dt)
     t_end = float(args.t_end) if args.t_end is not None else float(env_cfg.sim.t_end)
     sim_cfg = replace(env_cfg.sim, scenario_name=str(args.scenario), dt=dt, t_end=t_end)
-    env_cfg = replace(env_cfg, sim=sim_cfg)
+    env_cfg = _clone_with_sim(env_cfg, sim_cfg)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -119,18 +162,40 @@ def main() -> None:
     rows: List[Dict[str, float]] = []
     best = None
 
+    # Baseline error is taken from the configured fixed-flux FOC value.
+    base_id_ref = float(getattr(getattr(env_cfg, "foc", None), "id_ref", 0.0) or 0.0)
+    base_series = _simulate_foc(env_cfg, dt, t_end, base_id_ref, bool(args.use_total_power))
+    base_summary = _summarize(base_series, float(args.window_frac))
+    err_limit = max(base_summary["mean_abs_speed_err"] * (1.0 + float(args.error_tol_rel)), float(args.error_tol_abs))
+
     for id_ref in id_refs:
-        series = _simulate_foc(env_cfg, dt, t_end, float(id_ref), bool(args.use_total_power))
-        summary = _summarize(series, float(args.window_frac))
-        err_limit = max(summary["mean_abs_speed_err"] * (1.0 + float(args.error_tol_rel)), float(args.error_tol_abs))
-        row = {
-            "id_ref": float(id_ref),
-            "mean_err": float(summary["mean_abs_speed_err"]),
-            "mean_p_el_pos": float(summary["mean_p_el_pos"]),
-            "eta": float(summary["eta"]),
-            "err_limit": float(err_limit),
-            "err_ok": bool(summary["mean_abs_speed_err"] <= err_limit),
-        }
+        try:
+            series = _simulate_foc(env_cfg, dt, t_end, float(id_ref), bool(args.use_total_power))
+            summary = _summarize(series, float(args.window_frac))
+            mean_err = float(summary["mean_abs_speed_err"])
+            mean_p_el_pos = float(summary["mean_p_el_pos"])
+            eta = float(summary["eta"])
+            err_ok = bool(mean_err <= err_limit)
+            row = {
+                "id_ref": float(id_ref),
+                "mean_err": mean_err,
+                "mean_p_el_pos": mean_p_el_pos,
+                "eta": eta,
+                "err_limit": float(err_limit),
+                "err_ok": err_ok,
+            }
+        except Exception as e:
+            # Some extreme id_ref values may destabilize the numerical model.
+            # We keep the sweep running, but mark such points as invalid.
+            row = {
+                "id_ref": float(id_ref),
+                "mean_err": 1e9,
+                "mean_p_el_pos": 1e9,
+                "eta": 0.0,
+                "err_limit": float(err_limit),
+                "err_ok": False,
+                "error": f"{type(e).__name__}: {e}",
+            }
         rows.append(row)
         if row["err_ok"]:
             if best is None or row["mean_p_el_pos"] < best["mean_p_el_pos"]:
@@ -140,6 +205,13 @@ def main() -> None:
         "env_config": str(args.env_config),
         "scenario": str(args.scenario),
         "use_total_power": bool(args.use_total_power),
+        "baseline": {
+            "id_ref": float(base_id_ref),
+            "mean_err": float(base_summary["mean_abs_speed_err"]),
+            "mean_p_el_pos": float(base_summary["mean_p_el_pos"]),
+            "eta": float(base_summary["eta"]),
+            "err_limit": float(err_limit),
+        },
         "rows": rows,
         "best": best,
     }

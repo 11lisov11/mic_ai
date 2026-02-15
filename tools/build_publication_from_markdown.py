@@ -27,6 +27,22 @@ MML2OMML_CANDIDATES = [
 _MATH_XSLT: etree.XSLT | None = None
 
 
+_SUPERSCRIPT_MAP = str.maketrans(
+    {
+        "⁰": "0",
+        "¹": "1",
+        "²": "2",
+        "³": "3",
+        "⁴": "4",
+        "⁵": "5",
+        "⁶": "6",
+        "⁷": "7",
+        "⁸": "8",
+        "⁹": "9",
+    }
+)
+
+
 def _set_font(run, size: int = 12, bold: bool = False, italic: bool = False) -> None:
     run.font.name = "Times New Roman"
     run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
@@ -68,8 +84,27 @@ def _latex_to_omml(latex_expr: str) -> tuple[etree._Element | None, str | None]:
 def _add_run_text(p, text: str, *, size: int, bold: bool, italic: bool) -> None:
     if not text:
         return
-    run = p.add_run(text)
-    _set_font(run, size=size, bold=bold, italic=italic)
+    # Replace Unicode superscripts (¹²³...) with real superscript formatting
+    # to match the journal typography (and avoid "small raised" Unicode glyphs).
+    buf: list[str] = []
+
+    def flush_normal() -> None:
+        nonlocal buf
+        if not buf:
+            return
+        run = p.add_run("".join(buf))
+        _set_font(run, size=size, bold=bold, italic=italic)
+        buf = []
+
+    for ch in text:
+        if ch in _SUPERSCRIPT_MAP:
+            flush_normal()
+            run = p.add_run(ch.translate(_SUPERSCRIPT_MAP))
+            _set_font(run, size=size, bold=bold, italic=italic)
+            run.font.superscript = True
+        else:
+            buf.append(ch)
+    flush_normal()
 
 
 def _add_text_with_inline_math(p, text: str, *, size: int, bold: bool, italic: bool) -> None:
@@ -135,9 +170,9 @@ def _add_par(
     bold: bool = False,
     italic: bool = False,
     align: WD_ALIGN_PARAGRAPH = WD_ALIGN_PARAGRAPH.JUSTIFY,
-    first_line_cm: float = 1.0,
+    first_line_cm: float = 1.25,
     space_before: float = 0.0,
-    space_after: float = 6.0,
+    space_after: float = 0.0,
     line_spacing: float = 1.0,
 ) -> None:
     p = doc.add_paragraph()
@@ -150,6 +185,57 @@ def _add_par(
         _add_text_with_inline_math(p, text, size=size, bold=bold, italic=italic)
     else:
         _add_run_text(p, text, size=size, bold=bold, italic=italic)
+
+
+def _add_labelled_par(
+    doc: Document,
+    *,
+    label: str,
+    text: str,
+    size: int = 12,
+    align: WD_ALIGN_PARAGRAPH = WD_ALIGN_PARAGRAPH.JUSTIFY,
+    first_line_cm: float = 0.0,
+    space_before: float = 0.0,
+    space_after: float = 0.0,
+    line_spacing: float = 1.0,
+) -> None:
+    """Add paragraph where `label` is bold, the rest is regular."""
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.first_line_indent = Cm(first_line_cm) if first_line_cm > 0 else None
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.line_spacing = line_spacing
+
+    _add_run_text(p, label, size=size, bold=True, italic=False)
+    if text and not text.startswith(" "):
+        _add_run_text(p, " ", size=size, bold=False, italic=False)
+    if "$" in text:
+        _add_text_with_inline_math(p, text, size=size, bold=False, italic=False)
+    else:
+        _add_run_text(p, text, size=size, bold=False, italic=False)
+
+
+def _add_hanging_par(
+    doc: Document,
+    text: str,
+    *,
+    size: int = 12,
+    align: WD_ALIGN_PARAGRAPH = WD_ALIGN_PARAGRAPH.JUSTIFY,
+    hanging_cm: float = 0.75,
+    space_before: float = 0.0,
+    space_after: float = 0.0,
+    line_spacing: float = 1.0,
+) -> None:
+    """Add a paragraph with hanging indent (useful for bibliographic entries)."""
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.left_indent = Cm(hanging_cm)
+    p.paragraph_format.first_line_indent = Cm(-hanging_cm)
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.line_spacing = line_spacing
+    _add_run_text(p, text, size=size, bold=False, italic=False)
 
 
 def _add_equation_block(doc: Document, latex_block: str) -> None:
@@ -207,23 +293,28 @@ def _add_table(doc: Document, rows: list[list[str]]) -> None:
     t = doc.add_table(rows=1, cols=ncols)
     t.style = "Table Grid"
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    def fill_cell(cell, text: str, *, bold: bool) -> None:
+        cell.text = ""
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0.0)
+        p.paragraph_format.space_after = Pt(0.0)
+        p.paragraph_format.line_spacing = 1.0
+        if "$" in text:
+            _add_text_with_inline_math(p, text, size=12, bold=bold, italic=False)
+        else:
+            _add_run_text(p, text, size=12, bold=bold, italic=False)
+
     for c_idx, cell_text in enumerate(data_rows[0]):
         cell = t.rows[0].cells[c_idx]
-        cell.text = _clean_md_inline(cell_text)
-        for p in cell.paragraphs:
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            for run in p.runs:
-                _set_font(run, size=12, bold=True)
+        fill_cell(cell, _clean_md_inline(cell_text), bold=True)
 
     for row_data in data_rows[1:]:
         row = t.add_row().cells
         for c_idx in range(ncols):
             value = _clean_md_inline(row_data[c_idx]) if c_idx < len(row_data) else ""
-            row[c_idx].text = value
-            for p in row[c_idx].paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for run in p.runs:
-                    _set_font(run, size=12)
+            fill_cell(row[c_idx], value, bold=False)
     _add_par(doc, "", first_line_cm=0.0, space_after=2.0, line_spacing=1.0)
 
 
@@ -281,21 +372,17 @@ def _figure_caption(path: Path) -> str:
     return mapping.get(key, path.stem.replace("_", " "))
 
 def _format_fig_caption(*, raw_caption: str, fig_idx: int) -> str:
+    # Journal style (see reference PDF):
+    # "Рисунок N – Подпись" (centered, without trailing dot).
     cap = raw_caption.strip()
     if not cap:
-        cap = f"Рис. {fig_idx}."
-    # Normalize common caption prefixes to the journal style.
-    cap = re.sub(r"^\s*Рисунок\s*", "Рис. ", cap, flags=re.IGNORECASE)
-    # If caption already contains figure number, keep it as-is (author-controlled numbering).
-    if re.match(r"^\s*Рис\.\s*\d+", cap, flags=re.IGNORECASE):
-        out = cap
-    else:
-        # Strip any residual "Рис."/"Fig." prefixes without number to avoid duplication.
-        cap = re.sub(r"^\s*(Рис\.|Fig\.|Figure)\s*", "", cap, flags=re.IGNORECASE).strip(" .—-")
-        out = f"Рис. {fig_idx}. {cap}".strip()
-    if not out.endswith("."):
-        out = f"{out}."
-    return out
+        cap = "Без названия"
+
+    # Remove common prefixes if the author already wrote them in markdown.
+    cap = re.sub(r"^\s*(Рис\.|Рисунок|Fig\.|Figure)\s*\d+\s*[\.\-–—]\s*", "", cap, flags=re.IGNORECASE)
+    cap = re.sub(r"^\s*(Рис\.|Рисунок|Fig\.|Figure)\s*[\.\-–—]\s*", "", cap, flags=re.IGNORECASE)
+    cap = cap.strip()
+    return f"Рисунок {fig_idx} – {cap}"
 
 
 def _pick_default_src_md() -> Path:
@@ -332,9 +419,14 @@ def build(*, src_md: Path, out_docx: Path) -> None:
     i = 0
     fig_idx = 1
     seen_body_section = False
+    in_english_block = False
+    in_references = False
     while i < len(lines):
         raw = lines[i]
         line = raw.strip()
+
+        if in_references and line and not re.match(r"^\d+\.\s+", line):
+            in_references = False
 
         if not line:
             i += 1
@@ -346,21 +438,29 @@ def build(*, src_md: Path, out_docx: Path) -> None:
             continue
 
         if line.startswith("# "):
+            heading = _clean_md_inline(line[2:])
+            # English block is placed at the end of the article in the PGUPS template.
+            # After we hit the English title, keep formatting subsequent paragraphs
+            # as "front-matter" (no first-line indent, smaller font).
+            if re.search(r"[A-Za-z]", heading) and not re.search(r"[А-Яа-яЁё]", heading):
+                in_english_block = True
             _add_par(
                 doc,
-                _clean_md_inline(line[2:]),
+                heading,
                 size=14,
                 bold=True,
-                align=WD_ALIGN_PARAGRAPH.LEFT,
+                align=WD_ALIGN_PARAGRAPH.CENTER,
                 first_line_cm=0.0,
-                space_before=4.0,
-                space_after=8.0,
+                space_before=6.0,
+                space_after=6.0,
             )
             i += 1
             continue
 
         if line.startswith("## "):
             heading = _clean_md_inline(line[3:])
+            if heading.strip().lower() in {"список источников", "references"}:
+                in_references = True
             # Treat only numbered sections as body ("1. ...", "2. ...").
             if re.match(r"^\d+[\.\)]\s*", heading):
                 seen_body_section = True
@@ -395,6 +495,19 @@ def build(*, src_md: Path, out_docx: Path) -> None:
                 size=13,
                 bold=True,
                 align=WD_ALIGN_PARAGRAPH.LEFT,
+                first_line_cm=0.0,
+                space_before=6.0,
+                space_after=3.0,
+            )
+            i += 1
+            continue
+
+        if line.startswith("Таблица"):
+            _add_par(
+                doc,
+                _clean_md_inline(line),
+                size=12,
+                align=WD_ALIGN_PARAGRAPH.CENTER,
                 first_line_cm=0.0,
                 space_before=6.0,
                 space_after=3.0,
@@ -489,7 +602,11 @@ def build(*, src_md: Path, out_docx: Path) -> None:
                 )
                 fig_idx += 1
             else:
-                _add_par(doc, f"{m_num.group(1)}. {_clean_md_inline(m_num.group(2))}", first_line_cm=0.0, space_after=3.0)
+                item = f"{m_num.group(1)}. {_clean_md_inline(m_num.group(2))}"
+                if in_references:
+                    _add_hanging_par(doc, item, size=12)
+                else:
+                    _add_par(doc, item, first_line_cm=0.0, space_after=3.0)
             i += 1
             continue
 
@@ -501,28 +618,146 @@ def build(*, src_md: Path, out_docx: Path) -> None:
             elif cleaned.startswith("DOI:"):
                 _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
             elif cleaned.startswith("Для цитирования:"):
-                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+                rest = cleaned[len("Для цитирования:"):].strip()
+                _add_labelled_par(
+                    doc,
+                    label="Для цитирования:",
+                    text=rest,
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.LEFT,
+                    first_line_cm=0.0,
+                )
             elif cleaned.startswith("For citation:"):
-                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+                rest = cleaned[len("For citation:"):].strip()
+                _add_labelled_par(
+                    doc,
+                    label="For citation:",
+                    text=rest,
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.LEFT,
+                    first_line_cm=0.0,
+                )
             elif cleaned.startswith("Аннотация"):
                 _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_before=4.0)
             elif cleaned.startswith("Summary") or cleaned.startswith("Abstract"):
                 _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_before=4.0)
+            elif any(cleaned.startswith(prefix) for prefix in ("Цель:", "Методы:", "Результаты:", "Практическая значимость:")):
+                label, rest = cleaned.split(":", 1)
+                _add_labelled_par(
+                    doc,
+                    label=f"{label.strip()}:",
+                    text=rest.strip(),
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    first_line_cm=0.0,
+                )
+            elif any(cleaned.startswith(prefix) for prefix in ("Objective:", "Methods:", "Results:", "Practical importance:")):
+                label, rest = cleaned.split(":", 1)
+                _add_labelled_par(
+                    doc,
+                    label=f"{label.strip()}:",
+                    text=rest.strip(),
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    first_line_cm=0.0,
+                )
             elif cleaned.startswith("Ключевые слова:"):
-                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_line_cm=0.0)
+                rest = cleaned[len("Ключевые слова:"):].strip()
+                _add_labelled_par(
+                    doc,
+                    label="Ключевые слова:",
+                    text=rest,
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    first_line_cm=0.0,
+                    space_after=6.0,
+                )
             elif cleaned.startswith("Keywords:"):
-                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_line_cm=0.0)
+                rest = cleaned[len("Keywords:"):].strip()
+                _add_labelled_par(
+                    doc,
+                    label="Keywords:",
+                    text=rest,
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    first_line_cm=0.0,
+                    space_after=6.0,
+                )
             elif re.match(r"^[А-ЯA-Z]\.\s*[А-ЯA-Z]\.", cleaned):
-                _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+                _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER, first_line_cm=0.0, space_after=6.0)
             elif "Петербургский государственный университет путей сообщения" in cleaned or "Petersburg State Transport University" in cleaned:
-                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+                _add_par(doc, cleaned, size=10, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_after=6.0)
             else:
                 _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_line_cm=0.0)
             i += 1
             continue
 
+        if in_english_block:
+            cleaned = _clean_md_inline(line)
+            if cleaned.startswith("For citation:"):
+                rest = cleaned[len("For citation:"):].strip()
+                _add_labelled_par(
+                    doc,
+                    label="For citation:",
+                    text=rest,
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.LEFT,
+                    first_line_cm=0.0,
+                )
+            elif cleaned.startswith("Summary") or cleaned.startswith("Abstract"):
+                _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_before=4.0)
+            elif any(cleaned.startswith(prefix) for prefix in ("Objective:", "Methods:", "Results:", "Practical importance:")):
+                label, rest = cleaned.split(":", 1)
+                _add_labelled_par(
+                    doc,
+                    label=f"{label.strip()}:",
+                    text=rest.strip(),
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    first_line_cm=0.0,
+                )
+            elif cleaned.startswith("Keywords:"):
+                rest = cleaned[len("Keywords:"):].strip()
+                _add_labelled_par(
+                    doc,
+                    label="Keywords:",
+                    text=rest,
+                    size=12,
+                    align=WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    first_line_cm=0.0,
+                    space_after=6.0,
+                )
+            elif re.match(r"^[A-Z]\.\s*[A-Z]\.", cleaned):
+                _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER, first_line_cm=0.0, space_after=6.0)
+            elif "Emperor Alexander I" in cleaned or "Petersburg State Transport University" in cleaned:
+                _add_par(doc, cleaned, size=10, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_after=6.0)
+            elif cleaned.startswith("E-mail:"):
+                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+            elif cleaned.startswith("Received:") or cleaned.startswith("Accepted:"):
+                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+            elif cleaned.startswith("Author"):
+                _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_before=4.0)
+            else:
+                _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_line_cm=0.0)
+            i += 1
+            continue
+
+        cleaned = _clean_md_inline(line)
+        if cleaned.startswith("Дата поступления:") or cleaned.startswith("Решение о публикации:"):
+            _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+            i += 1
+            continue
+        if cleaned == "Контактная информация":
+            _add_par(doc, cleaned, size=12, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0, space_before=6.0)
+            i += 1
+            continue
+        if re.match(r"^[А-ЯЁ]{2,}[^a-z]+", cleaned) and "—" in cleaned:
+            _add_par(doc, cleaned, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, first_line_cm=0.0)
+            i += 1
+            continue
+
         # Keep formulas and other plain paragraphs as-is.
-        _add_par(doc, _clean_md_inline(line))
+        _add_par(doc, cleaned)
         i += 1
 
     out_docx.parent.mkdir(parents=True, exist_ok=True)

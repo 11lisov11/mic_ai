@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.svg text eol=lf
+*.docx binary
+*.pth binary

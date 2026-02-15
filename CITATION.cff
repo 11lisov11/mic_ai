@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this repository for academic work, please cite the accompanying paper and/or this software."
+title: "MIC AI: Model-Free Supervisory Flux Optimization (FOC + PPO) for Induction Drives"
+type: software
+authors:
+  - family-names: "Marikin"
+    given-names: "Andrey N."
+  - family-names: "Zhemchugov"
+    given-names: "Vladimir G."
+  - family-names: "Onofriychuk"
+    given-names: "Andrey D."
+license: "MIT"
+date-released: "2026-02-14"
+# TODO: Replace with the actual GitHub URL after publication.
+repository-code: "https://github.com/USER/REPO"
+keywords:
+  - induction motor
+  - field-oriented control
+  - energy efficiency
+  - reinforcement learning
+  - PPO
+  - digital twin

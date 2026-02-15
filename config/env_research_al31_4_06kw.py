@@ -38,6 +38,7 @@ _load_torque = 0.25 * _torque_nom
 _sim = replace(
     _base.sim,
     t_end=2.0,
+    # dt=1e-3 is numerically stable for this motor and keeps runtime reasonable.
     dt=1e-3,
     save_prefix="research_al31_4_06kw",
     scenario_name="speed_step",
@@ -81,4 +82,3 @@ ai_drift_ranges = {
 }
 
 __all__ = ["ENV"]
-

@@ -77,6 +77,21 @@ python -m mic_ai.tools.drive_characteristics_ai \
 - Исходник статьи: `paper/pgups_2026/article_mic_ieee_vak_pgups.md`
 - Рисунки: `paper/pgups_2026/fig/`
 - Готовый DOCX: `paper/pgups_2026/СТАТЬЯ_MIC_ПГУПС_2026.docx`
+- Данные и трассы для воспроизведения результатов: `paper/pgups_2026/data/`
+
+Пересборка рисунков/таблиц статьи (без RL-чекпойнтов, по сохраненным трассам):
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-paper.txt
+python tools/multi_motor_study_report.py --export-paper
+python tools/validate_pgups_study.py
+```
+
+То же самое одним скриптом:
+
+- Windows (PowerShell): `scripts/reproduce_pgups_paper.ps1`
+- Linux/macOS (bash): `scripts/reproduce_pgups_paper.sh`
 
 Пересборка DOCX из Markdown (требуются доп. зависимости):
 
@@ -101,3 +116,5 @@ python tools/build_publication_from_markdown.py --src-md paper/pgups_2026/articl
 ## Примечания
 
 - RL-чекпойнты в репозиторий не включены.
+- Лицензия: MIT (см. `LICENSE`).
+- Для цитирования репозитория в научных работах: `CITATION.cff`.

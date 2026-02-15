@@ -1,0 +1,69 @@
+{
+  "motors": [
+    {
+      "motor_key": "air56",
+      "motor_label": "АИР56 0,25 кВт",
+      "rated_power_kw": 0.25,
+      "avg_saving_full_pct": 2.200017049419536,
+      "avg_saving_steady_pct": 4.438641030382096,
+      "avg_eta_gain_full_pct": 2.139219186403718,
+      "avg_eta_gain_steady_pct": 0.8868401508032475,
+      "max_mae_ratio_full": 0.9884908589694532,
+      "config": "config/env_research_air56_025kw.py",
+      "run_dir": "paper/pgups_2026/data/traces/air56"
+    },
+    {
+      "motor_key": "al31",
+      "motor_label": "АЛ-31-4 0,6 кВт",
+      "rated_power_kw": 0.6,
+      "avg_saving_full_pct": 3.3761120795579336,
+      "avg_saving_steady_pct": -0.05113083816932873,
+      "avg_eta_gain_full_pct": 2.5832551595365305,
+      "avg_eta_gain_steady_pct": 0.0031524664295368154,
+      "max_mae_ratio_full": 0.9758928626626587,
+      "config": "config/env_research_al31_4_06kw.py",
+      "run_dir": "paper/pgups_2026/data/traces/al31"
+    },
+    {
+      "motor_key": "ao2",
+      "motor_label": "АО2-32-4 3,0 кВт",
+      "rated_power_kw": 3.0,
+      "avg_saving_full_pct": -0.16917068271508295,
+      "avg_saving_steady_pct": -0.47062852758247953,
+      "avg_eta_gain_full_pct": -0.1723576025971374,
+      "avg_eta_gain_steady_pct": -0.8297161892020967,
+      "max_mae_ratio_full": 1.0232435444914512,
+      "config": "config/env_research_ao2_32_4_3kw.py",
+      "run_dir": "paper/pgups_2026/data/traces/ao2"
+    }
+  ],
+  "overall": {
+    "avg_saving_full_pct": 1.8023194820874622,
+    "avg_saving_steady_pct": 1.3056272215434293,
+    "avg_eta_gain_full_pct": 1.5167055811143706,
+    "avg_eta_gain_steady_pct": 0.02009214267689589,
+    "max_mae_ratio_full": 1.0232435444914512
+  },
+  "overall_bootstrap_ci95": {
+    "saving_full_pct": {
+      "mean": 1.8023194820874624,
+      "lo": 0.9494950963766076,
+      "hi": 2.769958828278572
+    },
+    "saving_steady_pct": {
+      "mean": 1.3056272215434293,
+      "lo": 0.12316888097510902,
+      "hi": 2.665615024830207
+    },
+    "eta_gain_full_pct": {
+      "mean": 1.5167055811143701,
+      "lo": 0.7878551955483536,
+      "hi": 2.247420713761712
+    },
+    "eta_gain_steady_pct": {
+      "mean": 0.020092142676895866,
+      "lo": -0.3871512855338554,
+      "hi": 0.4574039973215159
+    }
+  }
+}

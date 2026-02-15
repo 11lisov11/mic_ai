@@ -38,6 +38,8 @@ _load_torque = 1.0
 _sim = replace(
     _base.sim,
     t_end=2.0,
+    # NOTE: This motor model + default PI gains are tuned around dt=1e-3.
+    # Smaller dt significantly degrades speed tracking in our current setup.
     dt=1e-3,
     save_prefix="research_ao2_32_4_3kw",
     scenario_name="speed_step",

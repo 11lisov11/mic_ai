@@ -1,0 +1,4 @@
+motor_key,motor_label,t_equal_foc_wall_s,ep_equal_foc,t_equal_foc_sim_s,t_better_foc_wall_s,ep_better_foc,t_better_foc_sim_s,t_better_all_wall_s,ep_better_all,t_better_all_sim_s,not_reached_until_ep,not_reached_until_wall_s,episodes_total
+air56,"АИР56 0,25 кВт",17.358884,0,2.0,17.358884,0,2.0,68.056591,3,8.0,,,40
+al31,"АЛ-31-4 0,6 кВт",11.975091,0,2.0,11.975091,0,2.0,11.975091,0,2.0,,,40
+ao2,"АО2-32-4 3,0 кВт",22.697611,1,4.0,,,,,,,39.0,473.505071,40
