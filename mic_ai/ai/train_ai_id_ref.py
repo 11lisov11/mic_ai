@@ -360,6 +360,7 @@ def train(
     eval_use_total_power: bool,
     include_energy_obs: bool,
     update_every_episodes: int,
+    init_checkpoint: str | None = None,
 ) -> Dict[str, str]:
     feature_keys = build_feature_keys(include_energy_obs)
     if seed is not None:
@@ -419,6 +420,23 @@ def train(
         train_epochs=train_epochs,
         minibatch_frac=minibatch_frac,
     )
+    if init_checkpoint:
+        init_path = Path(str(init_checkpoint)).resolve()
+        if not init_path.exists():
+            raise FileNotFoundError(f"Init checkpoint not found: {init_path}")
+        state = torch.load(init_path, map_location="cpu")
+        if isinstance(state, dict) and "state_dict" in state and isinstance(state.get("state_dict"), dict):
+            state = state["state_dict"]
+        if not isinstance(state, dict):
+            raise ValueError(f"Unsupported checkpoint format: {init_path}")
+        missing_keys, unexpected_keys = agent.net.load_state_dict(state, strict=False)
+        print(
+            "[train_ai_id_ref] warm-start checkpoint={} missing_keys={} unexpected_keys={}".format(
+                init_path,
+                len(missing_keys),
+                len(unexpected_keys),
+            )
+        )
 
     env_name = Path(env_config).stem
     ckpt_dir = (CHECKPOINT_DIR / env_name).resolve()
@@ -625,6 +643,7 @@ def train(
         "include_energy_obs": bool(include_energy_obs),
         "update_every_episodes": int(update_every),
         "feature_keys": feature_keys,
+        "init_checkpoint": None if init_checkpoint is None else str(Path(init_checkpoint).resolve()),
     }
     (run_dir / "run_config.json").write_text(json.dumps(run_config, indent=2), encoding="utf-8")
 
@@ -693,6 +712,7 @@ def main() -> None:
     p.add_argument("--eval-error-tol-rel", type=float, default=0.05)
     p.add_argument("--eval-error-tol-abs", type=float, default=0.0)
     p.add_argument("--eval-use-total-power", action="store_true")
+    p.add_argument("--init-checkpoint", type=str, default=None, help="Optional actor checkpoint to warm-start training.")
     p.set_defaults(override_omega_ref=True)
     args = p.parse_args()
     omega_ref_override = None
@@ -786,6 +806,7 @@ def main() -> None:
         eval_use_total_power=bool(args.eval_use_total_power),
         include_energy_obs=bool(args.include_energy_obs),
         update_every_episodes=int(args.update_every_episodes),
+        init_checkpoint=args.init_checkpoint,
     )
 
 
