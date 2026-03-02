@@ -1,0 +1,26 @@
+{
+  "source_csv": "C:\\mic_theory\\outputs\\article_air56_20260302_final\\load_characteristics.csv",
+  "figure_base": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic",
+  "table_csv": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic_table.csv",
+  "common_p2_kw": 0.219,
+  "eta_foc_pct_at_common": 79.68177724208948,
+  "eta_mic_pct_at_common": 79.943934396628,
+  "eta_gain_pp_at_common": 0.26215715453851374,
+  "i1_foc_A_at_common": 0.5234471842853207,
+  "i1_mic_A_at_common": 0.5271684291636305,
+  "i1_delta_A_at_common": 0.003721244878309826,
+  "n2_foc_rpm_at_common": 1045.261088842742,
+  "n2_mic_rpm_at_common": 1012.7088665905105,
+  "n2_delta_rpm_at_common": -32.55222225223156,
+  "p1_foc_W_at_common": 274.83837282492897,
+  "p1_mic_W_at_common": 273.94099904744127,
+  "p1_saving_pct_at_common": 0.32650963847007386,
+  "cosphi_range_foc": [
+    0.1675835368534769,
+    0.8117402299028043
+  ],
+  "cosphi_range_mic": [
+    0.1672442535260055,
+    0.8297038398154694
+  ]
+}
