@@ -3,7 +3,9 @@ Param(
   [string]$Seeds = "101,202,303,404,505",
   [string]$Motors = "air56,al31,ao2",
   [string]$Scenarios = "speed_step,ramp,load_step,start_stop",
-  [double]$SeedPerturbLevel = 0.2
+  [double]$SeedPerturbLevel = 0.2,
+  [ValidateSet("ai", "rule")] [string]$MicMode = "rule",
+  [bool]$SkipAir56Tune = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,9 +21,11 @@ $argsA = @(
   "--out-dir", $modeA,
   "--foc-feedback-mode", "encoder",
   "--mic-feedback-mode", "sensorless",
+  "--mic-mode", $MicMode,
   "--seed-perturbation",
   "--seed-perturb-level", "$SeedPerturbLevel"
 )
+if ($SkipAir56Tune) { $argsA += @("--skip-air56-tune") }
 
 $argsB = @(
   "tools/step27_pipeline.py",
@@ -31,9 +35,11 @@ $argsB = @(
   "--out-dir", $modeB,
   "--foc-feedback-mode", "sensorless",
   "--mic-feedback-mode", "sensorless",
+  "--mic-mode", $MicMode,
   "--seed-perturbation",
   "--seed-perturb-level", "$SeedPerturbLevel"
 )
+if ($SkipAir56Tune) { $argsB += @("--skip-air56-tune") }
 
 Write-Host "[step28] mode1 run: python $($argsA -join ' ')"
 python @argsA

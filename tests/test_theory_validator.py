@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -53,3 +55,27 @@ def test_theory_validator_fails_on_out_of_bounds_cosphi(tmp_path: Path) -> None:
     assert bool(report["passed"]) is False
     assert int(report["hard_fail_count"]) >= 1
 
+
+def test_theory_validator_cli_creates_output_dirs(tmp_path: Path) -> None:
+    rows = [
+        {"policy": "FOC", "p2_kw": 0.05, "m2": 0.3, "i_rms": 0.2, "n2_rpm": 1384, "eta_pct": 60.0, "cos_phi": 0.3},
+        {"policy": "FOC", "p2_kw": 0.10, "m2": 0.6, "i_rms": 0.3, "n2_rpm": 1383, "eta_pct": 70.0, "cos_phi": 0.6},
+        {"policy": "FOC", "p2_kw": 0.15, "m2": 0.9, "i_rms": 0.4, "n2_rpm": 1382, "eta_pct": 75.0, "cos_phi": 0.75},
+        {"policy": "FOC", "p2_kw": 0.20, "m2": 1.2, "i_rms": 0.5, "n2_rpm": 1381, "eta_pct": 76.0, "cos_phi": 0.8},
+    ]
+    csv_path = _write_csv(tmp_path / "ok_cli.csv", rows)
+    out_json = tmp_path / "nested" / "out" / "report.json"
+    out_md = tmp_path / "nested" / "out" / "report.md"
+    cmd = [
+        sys.executable,
+        "tools/validate_theory_working_characteristics.py",
+        "--csv",
+        str(csv_path),
+        "--out-json",
+        str(out_json),
+        "--out-md",
+        str(out_md),
+    ]
+    subprocess.run(cmd, check=True)
+    assert out_json.exists()
+    assert out_md.exists()

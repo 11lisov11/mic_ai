@@ -250,6 +250,8 @@ def main() -> None:
     report = run_validation(csv_path)
     out_json = Path(args.out_json).resolve() if args.out_json else csv_path.with_name(csv_path.stem + "_theory_validation.json")
     out_md = Path(args.out_md).resolve() if args.out_md else csv_path.with_name(csv_path.stem + "_theory_validation.md")
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_md.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     out_md.write_text(_to_markdown(report), encoding="utf-8")
     print(f"saved: {out_json}")
@@ -260,4 +262,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
