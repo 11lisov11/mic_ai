@@ -87,4 +87,34 @@ ai_drift_ranges = {
     "B": (0.6, 1.8),
 }
 
+# Step27/Step28 AI evaluation defaults (sensorless MIC).
+# Expected checkpoint location after training:
+#   python -m mic_ai.ai.train_ai_id_ref config/env_research_air56_025kw.py ...
+ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth"
+ai_eval_id_ref_alpha = 0.6916041739118715
+ai_eval_delta_id_max = 0.41175616659850595
+ai_eval_id_ref_relative = True
+ai_eval_id_ref_allow_positive_delta = True
+ai_eval_id_ref_gate_speed_tol_rel = 0.12802819602776283
+ai_eval_id_ref_gate_min_scale = 0.10854865567909161
+ai_eval_id_ref_gate_exponent = 1.2112607240172235
+
+ai_eval_supervisor_enabled = True
+ai_eval_sup_objective = "specific_power"
+ai_eval_sup_speed_tol_rel = 0.07682193507978134
+ai_eval_sup_speed_tol_abs = 0.0
+ai_eval_sup_omega_min = 0.07740003039871146
+ai_eval_sup_update = 11
+ai_eval_sup_dither = 0.004179110345105394
+ai_eval_sup_step = 0.010135882917319504
+ai_eval_sup_bias_max = 0.21136303877643553
+ai_eval_sup_shaft_eps = 10.0
+ai_eval_sup_reset_decay = 0.9886974417190302
+ai_eval_sup_idle_enable = True
+ai_eval_sup_idle_omega_min = 0.07740003039871146
+ai_eval_sup_idle_action = -0.6189698591906893
+ai_eval_sup_idle_exit_boost = 39
+ai_eval_sup_idle_exit_action = 0.817417657326223
+ai_eval_sup_idle_bias_decay = 0.9886974417190302
+
 __all__ = ["ENV"]

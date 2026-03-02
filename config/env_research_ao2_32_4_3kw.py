@@ -82,4 +82,27 @@ ai_drift_ranges = {
     "B": (0.6, 1.8),
 }
 
+# Step27/Step28 AI evaluation defaults (sensorless MIC).
+ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth"
+ai_eval_id_ref_alpha = 1.0
+ai_eval_delta_id_max = 0.2
+ai_eval_id_ref_relative = True
+ai_eval_id_ref_allow_positive_delta = True
+ai_eval_id_ref_gate_speed_tol_rel = 0.05
+ai_eval_id_ref_gate_min_scale = 0.0
+ai_eval_id_ref_gate_exponent = 1.0
+
+ai_eval_supervisor_enabled = False
+ai_eval_sup_objective = "specific_power"
+ai_eval_sup_speed_tol_rel = 0.05
+ai_eval_sup_speed_tol_abs = 0.0
+ai_eval_sup_omega_min = 0.1
+ai_eval_sup_update = 20
+ai_eval_sup_dither = 0.04
+ai_eval_sup_step = 0.01
+ai_eval_sup_bias_max = 0.25
+ai_eval_sup_shaft_eps = 10.0
+ai_eval_sup_reset_decay = 0.98
+ai_eval_sup_idle_enable = False
+
 __all__ = ["ENV"]

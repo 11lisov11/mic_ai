@@ -59,6 +59,58 @@ def _infer_action_dim(state: Dict[str, torch.Tensor]) -> int:
     return max(dim, 1)
 
 
+def _parse_feature_keys_arg(feature_keys: object | None) -> List[str]:
+    if feature_keys is None:
+        return []
+    if isinstance(feature_keys, str):
+        return [s.strip() for s in feature_keys.split(",") if s.strip()]
+    if isinstance(feature_keys, (list, tuple)):
+        out: List[str] = []
+        for item in feature_keys:
+            text = str(item).strip()
+            if text:
+                out.append(text)
+        return out
+    return []
+
+
+def _resolve_feature_keys(feature_keys: object | None, state: Dict[str, torch.Tensor] | None = None) -> List[str]:
+    """
+    Resolve observation feature keys for checkpoint loading.
+
+    Compatibility note:
+    `tools/step27_pipeline.py` imports this helper. Keep it stable and tolerant
+    to older checkpoints trained with a reduced feature set.
+    """
+    explicit = _parse_feature_keys_arg(feature_keys)
+    if explicit:
+        return explicit
+
+    defaults = list(ID_FEATURE_KEYS)
+    if not defaults:
+        return []
+    energy_obs = {"p_in_norm", "p_el_filt", "p_shaft_norm", "eta_norm"}
+    base = [k for k in defaults if k not in energy_obs]
+
+    if state is None:
+        return defaults
+    w0 = state.get("actor_body.0.weight")
+    if w0 is None or len(getattr(w0, "shape", ())) < 2:
+        return defaults
+    try:
+        in_dim = int(w0.shape[1])
+    except Exception:
+        return defaults
+
+    if in_dim == len(defaults):
+        return defaults
+    if in_dim == len(base):
+        return base
+    if 0 < in_dim < len(defaults):
+        return list(defaults[:in_dim])
+    return defaults
+
+
 def _sanitize_name(name: str) -> str:
     return str(name).replace(":", "_").replace("/", "_").replace(".", "p")
 
@@ -130,6 +182,7 @@ def _summarize(series: Dict[str, np.ndarray], window_frac: float) -> Dict[str, f
     sl = _steady_slice(n, window_frac)
     p_el = series["p_el"][sl]
     p_mech = series["p_mech"][sl]
+    i_rms = series["i_rms"][sl]
     err = np.abs(series["omega_ref"][sl] - series["omega"][sl])
     p_el_mean = float(np.mean(p_el)) if p_el.size else 0.0
     p_el_pos_mean = float(np.mean(np.maximum(p_el, 0.0))) if p_el.size else 0.0
@@ -142,6 +195,8 @@ def _summarize(series: Dict[str, np.ndarray], window_frac: float) -> Dict[str, f
         "mean_p_el_pos": p_el_pos_mean,
         "p_mech": p_mech_mean,
         "eta": eta,
+        "mean_i_rms": float(np.mean(i_rms)) if i_rms.size else 0.0,
+        "peak_i_rms": float(np.max(i_rms)) if i_rms.size else 0.0,
     }
 
 
@@ -330,6 +385,7 @@ def _simulate_ai(
     delta_id_max: float,
     use_total_power: bool,
     supervisor_cfg: AiIdRefSupervisorConfig | None = None,
+    ai_id_allow_positive_delta: bool = True,
 ) -> Dict[str, np.ndarray]:
     env = _build_ai_env(
         env_cfg,
@@ -367,6 +423,13 @@ def _simulate_ai(
             state_t = agent._to_tensor(obs).unsqueeze(0)
             mu, _std, _value = agent.net(state_t)
         action = torch.clamp(mu, -1.0, 1.0).squeeze(0).cpu().numpy().astype(np.float32)
+        if (
+            (not bool(ai_id_allow_positive_delta))
+            and str(ai_control_mode).lower().strip() == "ai_id_ref"
+            and bool(ai_id_relative)
+            and action.size >= 1
+        ):
+            action[0] = np.float32(min(float(action[0]), 0.0))
         gate_open = False
         if supervisor is not None:
             omega_obs = float(obs.get("omega", 0.0))
@@ -672,10 +735,7 @@ def main() -> None:
         action_dim = _infer_action_dim(state)
         if str(args.ai_control_mode).lower().strip() == "ai_current":
             action_dim = max(action_dim, 2)
-        if args.ai_feature_keys:
-            feature_keys = [s.strip() for s in str(args.ai_feature_keys).split(",") if s.strip()]
-        else:
-            feature_keys = ID_FEATURE_KEYS
+        feature_keys = _resolve_feature_keys(args.ai_feature_keys, state)
         agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
         agent.net.load_state_dict(state)
         agent.set_action_std(1e-6)

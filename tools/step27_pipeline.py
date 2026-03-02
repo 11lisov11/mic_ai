@@ -33,6 +33,7 @@ from mic_ai.tools.scenario_compare import (
     _simulate_ai,
     _simulate_controller,
     _simulate_foc,
+    _simulate_mic_rule,
     _summarize,
 )
 
@@ -100,6 +101,18 @@ def _rng_for_seed_perturbation(*, motor_key: str, seed: int) -> random.Random:
 
 def _clamp(value: float, lo: float, hi: float) -> float:
     return float(max(lo, min(hi, float(value))))
+
+
+def _try_set_attr(obj: object, name: str, value: object) -> bool:
+    try:
+        object.__setattr__(obj, name, value)
+        return True
+    except Exception:
+        try:
+            setattr(obj, name, value)
+            return True
+        except Exception:
+            return False
 
 
 def _perturb_scale(rng: random.Random, *, rel_amp: float, level: float) -> float:
@@ -268,12 +281,18 @@ def _resolve_config_path(config_name: str) -> Path:
 def _resolve_checkpoint(env_cfg: object) -> Path:
     ckpt = getattr(env_cfg, "ai_eval_checkpoint_path", None)
     if ckpt is None:
-        raise FileNotFoundError("Missing ai_eval_checkpoint_path in env config.")
+        raise FileNotFoundError(
+            "Missing ai_eval_checkpoint_path in env config. "
+            "Set ai_eval_checkpoint_path in config/*_research*.py or run with --mic-mode rule."
+        )
     path = Path(str(ckpt)).expanduser()
     if not path.is_absolute():
         path = (Path.cwd() / path).resolve()
     if not path.exists():
-        raise FileNotFoundError(f"Checkpoint not found: {path}")
+        raise FileNotFoundError(
+            f"Checkpoint not found: {path}. "
+            "Train/export checkpoint or run with --mic-mode rule."
+        )
     return path
 
 
@@ -564,6 +583,8 @@ def _simulate_rows(
     supervisor_cfg: AiIdRefSupervisorConfig | None,
     sensorless: Dict[str, float],
     seed_perturbation: SeedPerturbationSettings,
+    mic_mode: str = "ai",
+    mic_rule_params: Dict[str, float] | None = None,
 ) -> List[Dict[str, object]]:
     if seed is not None:
         np.random.seed(int(seed))
@@ -587,6 +608,12 @@ def _simulate_rows(
     load_torque = float(env_eval.sim.load_torque)
 
     rows: List[Dict[str, object]] = []
+    mode = str(mic_mode).strip().lower()
+    rule = dict(mic_rule_params or {})
+    rule_low = float(rule.get("id_ref_low", 1.0))
+    rule_high = float(rule.get("id_ref_high", 1.4))
+    rule_tol = float(rule.get("speed_tol_rel", 0.05))
+    rule_omega_min = float(rule.get("omega_min_pu", 0.1))
     for scenario in scenarios:
         sim_cfg = replace(
             env_eval.sim,
@@ -594,41 +621,59 @@ def _simulate_rows(
             dt=dt,
             t_end=t_end,
             load_torque=load_torque,
-            omega_feedback_mode=str(mic_feedback_mode),
-            sensorless_alpha=float(sensorless["sensorless_alpha"]),
-            sensorless_min_id=float(sensorless["sensorless_min_id"]),
-            sensorless_min_i_rms_pu=float(sensorless["sensorless_min_i_rms_pu"]),
-            sensorless_slip_limit_pu=float(sensorless["sensorless_slip_limit_pu"]),
-            sensorless_max_domega_pu=float(sensorless["sensorless_max_domega_pu"]),
-            sensorless_fallback_decay=float(sensorless["sensorless_fallback_decay"]),
-            sensorless_conf_alpha=float(sensorless["sensorless_conf_alpha"]),
-            sensorless_model_weight_max=float(sensorless["sensorless_model_weight_max"]),
         )
+        optional_sensorless_fields = {
+            "omega_feedback_mode": str(mic_feedback_mode),
+            "sensorless_alpha": float(sensorless["sensorless_alpha"]),
+            "sensorless_min_id": float(sensorless["sensorless_min_id"]),
+            "sensorless_min_i_rms_pu": float(sensorless["sensorless_min_i_rms_pu"]),
+            "sensorless_slip_limit_pu": float(sensorless["sensorless_slip_limit_pu"]),
+            "sensorless_max_domega_pu": float(sensorless["sensorless_max_domega_pu"]),
+            "sensorless_fallback_decay": float(sensorless["sensorless_fallback_decay"]),
+            "sensorless_conf_alpha": float(sensorless["sensorless_conf_alpha"]),
+            "sensorless_model_weight_max": float(sensorless["sensorless_model_weight_max"]),
+        }
+        for name, value in optional_sensorless_fields.items():
+            _try_set_attr(sim_cfg, name, value)
         env_cfg_mic = _clone_with_sim(env_eval, sim_cfg)
-        env_cfg_foc = _clone_with_sim(env_eval, replace(sim_cfg, omega_feedback_mode=str(foc_feedback_mode)))
+        sim_cfg_foc = copy.copy(sim_cfg)
+        _try_set_attr(sim_cfg_foc, "omega_feedback_mode", str(foc_feedback_mode))
+        env_cfg_foc = _clone_with_sim(env_eval, sim_cfg_foc)
 
         foc = _simulate_foc(env_cfg_foc, dt, t_end, use_total_power)
         if controller == "MIC":
-            if agent is None:
-                raise RuntimeError("MIC evaluation requires loaded AI agent.")
-            mic = _simulate_ai(
-                agent,
-                env_cfg_mic,
-                dt,
-                t_end,
-                "ai_id_ref",
-                float(id_ref_params["id_ref_alpha"]),
-                id_ref_params["id_ref_rate_limit"],
-                id_ref_params["id_ref_gate_speed_tol"],
-                id_ref_params["id_ref_gate_speed_tol_rel"],
-                float(id_ref_params["id_ref_gate_min_scale"]),
-                float(id_ref_params["id_ref_gate_exponent"]),
-                bool(id_ref_params["ai_id_relative"]),
-                float(id_ref_params["delta_id_max"]),
-                use_total_power,
-                supervisor_cfg=supervisor_cfg,
-                ai_id_allow_positive_delta=bool(id_ref_params["ai_id_allow_positive_delta"]),
-            )
+            if mode == "rule":
+                mic = _simulate_mic_rule(
+                    env_cfg_mic,
+                    dt,
+                    t_end,
+                    rule_low,
+                    rule_high,
+                    rule_tol,
+                    rule_omega_min,
+                    use_total_power,
+                )
+            else:
+                if agent is None:
+                    raise RuntimeError("MIC evaluation requires loaded AI agent.")
+                mic = _simulate_ai(
+                    agent,
+                    env_cfg_mic,
+                    dt,
+                    t_end,
+                    "ai_id_ref",
+                    float(id_ref_params["id_ref_alpha"]),
+                    id_ref_params["id_ref_rate_limit"],
+                    id_ref_params["id_ref_gate_speed_tol"],
+                    id_ref_params["id_ref_gate_speed_tol_rel"],
+                    float(id_ref_params["id_ref_gate_min_scale"]),
+                    float(id_ref_params["id_ref_gate_exponent"]),
+                    bool(id_ref_params["ai_id_relative"]),
+                    float(id_ref_params["delta_id_max"]),
+                    use_total_power,
+                    supervisor_cfg=supervisor_cfg,
+                    ai_id_allow_positive_delta=bool(id_ref_params["ai_id_allow_positive_delta"]),
+                )
         elif controller == "FOC":
             mic = _simulate_controller(env_cfg_mic, dt, t_end, mode="foc", use_total_power=use_total_power)
         else:
@@ -1200,10 +1245,17 @@ def _sha256_rows(rows: Sequence[Dict[str, object]]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _load_env_and_agent(config_path: str, *, foc_disable_lut: bool) -> Tuple[object, PPOVoltageAgent, Path]:
+def _load_env_and_agent(
+    config_path: str,
+    *,
+    foc_disable_lut: bool,
+    require_agent: bool,
+) -> Tuple[object, PPOVoltageAgent | None, Path | None]:
     cfg_path = _resolve_config_path(config_path)
     env_cfg = make_env_from_config(str(cfg_path)).env_config
     env_cfg = _disable_lut_if_needed(env_cfg, disable=foc_disable_lut)
+    if not bool(require_agent):
+        return env_cfg, None, None
     ckpt = _resolve_checkpoint(env_cfg)
     agent = _load_agent(ckpt)
     return env_cfg, agent, ckpt
@@ -1220,6 +1272,11 @@ def main() -> None:
     parser.add_argument("--error-tol-abs", type=float, default=0.0)
     parser.add_argument("--foc-feedback-mode", default="encoder", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-feedback-mode", default="sensorless", choices=["encoder", "sensorless"])
+    parser.add_argument("--mic-mode", default="ai", choices=["ai", "rule"])
+    parser.add_argument("--mic-rule-id-ref-low", type=float, default=1.0)
+    parser.add_argument("--mic-rule-id-ref-high", type=float, default=1.4)
+    parser.add_argument("--mic-rule-speed-tol-rel", type=float, default=0.05)
+    parser.add_argument("--mic-rule-omega-min", type=float, default=0.1)
     parser.add_argument("--seed-perturbation", action="store_true")
     parser.add_argument("--seed-perturb-level", type=float, default=1.0)
     parser.add_argument("--use-total-power", action="store_true")
@@ -1262,6 +1319,13 @@ def main() -> None:
 
     stage1_seed = int(args.air56_stage1_seed) if args.air56_stage1_seed is not None else int(seeds[0])
     stage2_seed = int(args.air56_stage2_seed) if args.air56_stage2_seed is not None else int(seeds[0])
+    mic_mode = str(args.mic_mode).strip().lower()
+    mic_rule_params = {
+        "id_ref_low": float(args.mic_rule_id_ref_low),
+        "id_ref_high": float(args.mic_rule_id_ref_high),
+        "speed_tol_rel": float(args.mic_rule_speed_tol_rel),
+        "omega_min_pu": float(args.mic_rule_omega_min),
+    }
     acceptance = Air56Acceptance(
         min_avg_power_saving_pct=float(args.air56_accept_min_power_saving_pct),
         min_avg_eta_gain_pct=float(args.air56_accept_min_eta_gain_pct),
@@ -1284,11 +1348,12 @@ def main() -> None:
     tuning_result: Dict[str, object] | None = None
     tuned_air56_candidate: Dict[str, object] | None = None
 
-    if (not bool(args.skip_air56_tune)) and ("air56" in motors):
+    if (not bool(args.skip_air56_tune)) and ("air56" in motors) and mic_mode == "ai":
         print("[step27] AIR56 tuning started...", flush=True)
         air56_cfg, air56_agent, _air56_ckpt = _load_env_and_agent(
             MOTOR_REGISTRY["air56"].config_path,
             foc_disable_lut=bool(args.foc_disable_lut),
+            require_agent=True,
         )
         tuning_result = _run_air56_tuning(
             env_cfg=air56_cfg,
@@ -1315,6 +1380,8 @@ def main() -> None:
         )
         tuned_air56_candidate = dict(tuning_result["selected_candidate"])
         print("[step27] AIR56 tuning done. Selected:", tuned_air56_candidate.get("tag"), flush=True)
+    elif (not bool(args.skip_air56_tune)) and ("air56" in motors) and mic_mode != "ai":
+        print("[step27] AIR56 tuning skipped because --mic-mode=rule.", flush=True)
 
     per_seed_rows: List[Dict[str, object]] = []
     run_manifest_rows: List[Dict[str, object]] = []
@@ -1323,7 +1390,11 @@ def main() -> None:
     for motor in motors:
         spec = MOTOR_REGISTRY[motor]
         print(f"[step27] Evaluate motor={motor}", flush=True)
-        env_cfg, agent, ckpt = _load_env_and_agent(spec.config_path, foc_disable_lut=bool(args.foc_disable_lut))
+        env_cfg, agent, ckpt = _load_env_and_agent(
+            spec.config_path,
+            foc_disable_lut=bool(args.foc_disable_lut),
+            require_agent=(mic_mode == "ai"),
+        )
         id_ref_params = _id_ref_eval_params(env_cfg)
         sensorless = _sensorless_params(env_cfg)
         base_sup = _supervisor_from_env(env_cfg)
@@ -1337,8 +1408,8 @@ def main() -> None:
             id_ref_eval["id_ref_gate_min_scale"] = float(tuned_air56_candidate["id_ref_gate_min_scale"])
             id_ref_eval["id_ref_gate_exponent"] = float(tuned_air56_candidate["id_ref_gate_exponent"])
         else:
-            sup_cfg = base_sup
-            sup_source = "config"
+            sup_cfg = base_sup if mic_mode == "ai" else None
+            sup_source = "config" if mic_mode == "ai" else "rule"
 
         for seed in seeds:
             seed_dir = out_dir / "runs" / motor / f"seed_{seed}"
@@ -1360,6 +1431,8 @@ def main() -> None:
                 supervisor_cfg=sup_cfg,
                 sensorless=sensorless,
                 seed_perturbation=seed_perturbation,
+                mic_mode=mic_mode,
+                mic_rule_params=mic_rule_params,
             )
             foc_rows = _simulate_rows(
                 env_cfg=env_cfg,
@@ -1378,6 +1451,8 @@ def main() -> None:
                 supervisor_cfg=None,
                 sensorless=sensorless,
                 seed_perturbation=seed_perturbation,
+                mic_mode=mic_mode,
+                mic_rule_params=mic_rule_params,
             )
             _json_dump(seed_dir / "mic_summary_rows.json", mic_rows)
             _json_dump(seed_dir / "foc_sensorless_summary_rows.json", foc_rows)
@@ -1411,7 +1486,7 @@ def main() -> None:
                     "worst_current_peak_ratio": 1.0,
                     "worst_current_mean_ratio": 1.0,
                     "avg_controller_speed_err": pi_avg_err,
-                    "checkpoint": str(ckpt),
+                    "checkpoint": "" if ckpt is None else str(ckpt),
                     "supervisor_source": "baseline",
                 }
             )
@@ -1427,7 +1502,7 @@ def main() -> None:
                     "worst_current_peak_ratio": float(foc_agg["worst_current_peak_ratio"]),
                     "worst_current_mean_ratio": float(foc_agg["worst_current_mean_ratio"]),
                     "avg_controller_speed_err": float(foc_agg["avg_mic_err"]),
-                    "checkpoint": str(ckpt),
+                    "checkpoint": "" if ckpt is None else str(ckpt),
                     "supervisor_source": "n/a",
                 }
             )
@@ -1443,7 +1518,7 @@ def main() -> None:
                     "worst_current_peak_ratio": float(mic_agg["worst_current_peak_ratio"]),
                     "worst_current_mean_ratio": float(mic_agg["worst_current_mean_ratio"]),
                     "avg_controller_speed_err": float(mic_agg["avg_mic_err"]),
-                    "checkpoint": str(ckpt),
+                    "checkpoint": "" if ckpt is None else str(ckpt),
                     "supervisor_source": sup_source,
                 }
             )
@@ -1451,8 +1526,9 @@ def main() -> None:
                 {
                     "motor": motor,
                     "seed": int(seed),
-                    "checkpoint": str(ckpt),
+                    "checkpoint": "" if ckpt is None else str(ckpt),
                     "supervisor_source": sup_source,
+                    "mic_mode": mic_mode,
                     "seed_perturbation_enabled": bool(seed_perturbation.enabled and seed_perturbation.level > 0.0),
                     "seed_perturbation_level": float(seed_perturbation.level),
                     "seed_perturb_load_torque_scale": float(perturb_ref.get("perturb_load_torque_scale", 1.0)),
