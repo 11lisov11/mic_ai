@@ -8,6 +8,7 @@ SCENARIOS="${SCENARIOS:-speed_step,ramp,load_step,start_stop}"
 SEED_PERTURB_LEVEL="${SEED_PERTURB_LEVEL:-0.2}"
 MIC_MODE="${MIC_MODE:-rule}"
 SKIP_AIR56_TUNE="${SKIP_AIR56_TUNE:-1}"
+CHECKPOINT_REGISTRY="${CHECKPOINT_REGISTRY:-config/checkpoint_registry.json}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
   PYTHON_BIN="python"
@@ -30,6 +31,7 @@ echo "[step28] mode1 run"
   --foc-feedback-mode encoder \
   --mic-feedback-mode sensorless \
   --mic-mode "${MIC_MODE}" \
+  --checkpoint-registry "${CHECKPOINT_REGISTRY}" \
   --seed-perturbation \
   --seed-perturb-level "${SEED_PERTURB_LEVEL}" \
   "${EXTRA_ARGS[@]}"
@@ -43,6 +45,7 @@ echo "[step28] mode2 run"
   --foc-feedback-mode sensorless \
   --mic-feedback-mode sensorless \
   --mic-mode "${MIC_MODE}" \
+  --checkpoint-registry "${CHECKPOINT_REGISTRY}" \
   --seed-perturbation \
   --seed-perturb-level "${SEED_PERTURB_LEVEL}" \
   "${EXTRA_ARGS[@]}"

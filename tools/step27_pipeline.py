@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import argparse
 import copy
-import csv
 import hashlib
 import json
 import math
 import random
-import statistics
 import sys
 import time
 from dataclasses import dataclass, replace
@@ -36,6 +34,24 @@ from mic_ai.tools.scenario_compare import (
     _simulate_mic_rule,
     _summarize,
 )
+from tools.checkpoint_registry import (
+    load_checkpoint_registry as _load_checkpoint_registry_shared,
+)
+from tools.checkpoint_registry import (
+    resolve_checkpoint_candidates as _resolve_checkpoint_candidates_shared,
+)
+from tools.checkpoint_registry import (
+    resolve_checkpoint_path as _resolve_checkpoint_path_shared,
+)
+from tools.checkpoint_registry import (
+    resolve_registry_path as _resolve_registry_path_shared,
+)
+from tools.common_utils import json_dump as _json_dump_shared
+from tools.common_utils import mean as _mean_shared
+from tools.common_utils import parse_csv_list as _parse_csv_list_shared
+from tools.common_utils import parse_int_list as _parse_int_list_shared
+from tools.common_utils import std as _std_shared
+from tools.common_utils import write_csv as _write_csv_shared
 
 
 @dataclass(frozen=True)
@@ -63,6 +79,7 @@ MOTOR_REGISTRY: Dict[str, MotorSpec] = {
     "al31": MotorSpec("al31", "config/env_research_al31_4_06kw.py"),
     "ao2": MotorSpec("ao2", "config/env_research_ao2_32_4_3kw.py"),
 }
+DEFAULT_CHECKPOINT_REGISTRY = "config/checkpoint_registry.json"
 
 CONTROLLER_ORDER: Tuple[str, ...] = ("PI", "FOC", "MIC")
 DEFAULT_SEEDS: Tuple[int, ...] = (101, 202, 303, 404, 505)
@@ -80,14 +97,11 @@ METRIC_FIELDS: Tuple[str, ...] = (
 
 
 def _parse_csv_list(text: str) -> List[str]:
-    return [x.strip() for x in str(text).split(",") if x.strip()]
+    return _parse_csv_list_shared(text)
 
 
 def _parse_int_list(text: str) -> List[int]:
-    vals: List[int] = []
-    for raw in _parse_csv_list(text):
-        vals.append(int(raw))
-    return vals
+    return _parse_int_list_shared(text)
 
 
 def _stable_int_from_text(text: str) -> int:
@@ -240,32 +254,19 @@ def _apply_seed_perturbation(
 
 
 def _mean(values: Sequence[float]) -> float:
-    if not values:
-        return 0.0
-    return float(statistics.fmean(values))
+    return _mean_shared(values)
 
 
 def _std(values: Sequence[float]) -> float:
-    if len(values) <= 1:
-        return 0.0
-    return float(statistics.pstdev(values))
+    return _std_shared(values)
 
 
 def _json_dump(path: Path, payload: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    _json_dump_shared(path, payload)
 
 
 def _write_csv(path: Path, rows: Iterable[Dict[str, object]]) -> None:
-    row_list = list(rows)
-    if not row_list:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    keys = list(row_list[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=keys)
-        writer.writeheader()
-        writer.writerows(row_list)
+    _write_csv_shared(path, rows)
 
 
 def _resolve_config_path(config_name: str) -> Path:
@@ -278,22 +279,53 @@ def _resolve_config_path(config_name: str) -> Path:
     raise FileNotFoundError(f"Cannot resolve config path: {config_name}")
 
 
-def _resolve_checkpoint(env_cfg: object) -> Path:
-    ckpt = getattr(env_cfg, "ai_eval_checkpoint_path", None)
-    if ckpt is None:
+def _resolve_registry_path(registry_path: str | None) -> Path | None:
+    return _resolve_registry_path_shared(registry_path)
+
+
+def _load_checkpoint_registry(registry_path: str | None) -> Dict[str, str]:
+    return _load_checkpoint_registry_shared(registry_path)
+
+
+def _resolve_checkpoint(
+    env_cfg: object,
+    *,
+    motor_key: str | None = None,
+    config_path: str | None = None,
+    registry_path: str | None = None,
+) -> Path:
+    env_ckpt = getattr(env_cfg, "ai_eval_checkpoint_path", None)
+    path = _resolve_checkpoint_path_shared(
+        env_checkpoint=None if env_ckpt is None else str(env_ckpt),
+        motor_key=motor_key,
+        config_path=config_path,
+        registry_path=registry_path,
+        prefer_registry=True,
+    )
+    if path is not None:
+        return path
+
+    candidates = _resolve_checkpoint_candidates_shared(
+        env_checkpoint=None if env_ckpt is None else str(env_ckpt),
+        motor_key=motor_key,
+        config_path=config_path,
+        registry_path=registry_path,
+        prefer_registry=True,
+    )
+    if candidates:
+        details = "; ".join([f"{src}={cand}" for src, cand in candidates])
         raise FileNotFoundError(
-            "Missing ai_eval_checkpoint_path in env config. "
-            "Set ai_eval_checkpoint_path in config/*_research*.py or run with --mic-mode rule."
+            "Checkpoint not found in resolved candidates. "
+            f"{details}. Train/export checkpoint or run with --mic-mode rule."
         )
-    path = Path(str(ckpt)).expanduser()
-    if not path.is_absolute():
-        path = (Path.cwd() / path).resolve()
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Checkpoint not found: {path}. "
-            "Train/export checkpoint or run with --mic-mode rule."
-        )
-    return path
+
+    reg = _resolve_registry_path_shared(registry_path)
+    raise FileNotFoundError(
+        "Missing ai_eval checkpoint source. "
+        "Set ai_eval_checkpoint_path in env config"
+        + ("" if reg is None else f" or add entry to {reg}")
+        + ". You can also run with --mic-mode rule."
+    )
 
 
 def _load_agent(ckpt: Path) -> PPOVoltageAgent:
@@ -1250,13 +1282,20 @@ def _load_env_and_agent(
     *,
     foc_disable_lut: bool,
     require_agent: bool,
+    motor_key: str | None = None,
+    checkpoint_registry_path: str | None = None,
 ) -> Tuple[object, PPOVoltageAgent | None, Path | None]:
     cfg_path = _resolve_config_path(config_path)
     env_cfg = make_env_from_config(str(cfg_path)).env_config
     env_cfg = _disable_lut_if_needed(env_cfg, disable=foc_disable_lut)
     if not bool(require_agent):
         return env_cfg, None, None
-    ckpt = _resolve_checkpoint(env_cfg)
+    ckpt = _resolve_checkpoint(
+        env_cfg,
+        motor_key=motor_key,
+        config_path=str(cfg_path),
+        registry_path=checkpoint_registry_path,
+    )
     agent = _load_agent(ckpt)
     return env_cfg, agent, ckpt
 
@@ -1283,6 +1322,7 @@ def main() -> None:
     parser.add_argument("--no-use-total-power", dest="use_total_power", action="store_false")
     parser.add_argument("--foc-disable-lut", action="store_true")
     parser.add_argument("--allow-foc-lut", dest="foc_disable_lut", action="store_false")
+    parser.add_argument("--checkpoint-registry", default=DEFAULT_CHECKPOINT_REGISTRY)
 
     parser.add_argument("--skip-air56-tune", action="store_true")
     parser.add_argument("--air56-stage1-trials", type=int, default=18)
@@ -1354,6 +1394,8 @@ def main() -> None:
             MOTOR_REGISTRY["air56"].config_path,
             foc_disable_lut=bool(args.foc_disable_lut),
             require_agent=True,
+            motor_key="air56",
+            checkpoint_registry_path=str(args.checkpoint_registry),
         )
         tuning_result = _run_air56_tuning(
             env_cfg=air56_cfg,
@@ -1394,6 +1436,8 @@ def main() -> None:
             spec.config_path,
             foc_disable_lut=bool(args.foc_disable_lut),
             require_agent=(mic_mode == "ai"),
+            motor_key=str(motor),
+            checkpoint_registry_path=str(args.checkpoint_registry),
         )
         id_ref_params = _id_ref_eval_params(env_cfg)
         sensorless = _sensorless_params(env_cfg)

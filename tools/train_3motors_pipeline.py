@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 import time
@@ -14,6 +13,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from mic_ai.ai.train_ai_id_ref import train as train_id_ref
+from tools.common_utils import json_load as _json_load_shared
+from tools.common_utils import parse_csv_list as _parse_csv_list_shared
+from tools.common_utils import parse_int_list as _parse_int_list_shared
+from tools.common_utils import write_csv as _write_csv_shared
 
 
 @dataclass(frozen=True)
@@ -30,14 +33,11 @@ MOTOR_REGISTRY: Dict[str, MotorSpec] = {
 
 
 def _parse_csv_list(text: str) -> List[str]:
-    return [x.strip() for x in str(text).split(",") if x.strip()]
+    return _parse_csv_list_shared(text)
 
 
 def _parse_int_csv(text: str) -> List[int]:
-    out: List[int] = []
-    for token in _parse_csv_list(text):
-        out.append(int(token))
-    return out
+    return _parse_int_list_shared(text)
 
 
 def _resolve_motors(text: str) -> List[MotorSpec]:
@@ -52,18 +52,11 @@ def _resolve_motors(text: str) -> List[MotorSpec]:
 
 
 def _write_csv(path: Path, rows: List[Dict[str, object]]) -> None:
-    if not rows:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    keys = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=keys)
-        writer.writeheader()
-        writer.writerows(rows)
+    _write_csv_shared(path, rows)
 
 
 def _load_json(path: Path) -> Dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return _json_load_shared(path)
 
 
 def _base_train_kwargs(args: argparse.Namespace, *, seed: int) -> Dict[str, object]:
@@ -117,6 +110,8 @@ def _base_train_kwargs(args: argparse.Namespace, *, seed: int) -> Dict[str, obje
         "eval_use_total_power": bool(args.eval_use_total_power),
         "include_energy_obs": bool(args.include_energy_obs),
         "update_every_episodes": int(args.update_every_episodes),
+        "output_dir": None if not str(args.ai_output_dir).strip() else str(args.ai_output_dir),
+        "results_root": None if not str(args.results_root).strip() else str(args.results_root),
     }
 
 
@@ -149,6 +144,8 @@ def main() -> None:
     parser.add_argument("--motors", default="air56,al31,ao2")
     parser.add_argument("--seeds", default="101,202,303,404,505")
     parser.add_argument("--out-dir", default="outputs/train_3motors_pipeline")
+    parser.add_argument("--ai-output-dir", default="")
+    parser.add_argument("--results-root", default="")
     parser.add_argument("--base-manifest", default=None, help="Manifest from joint run for fine_tune_per_motor mode.")
     parser.add_argument("--joint-cycles", type=int, default=2)
     parser.add_argument("--joint-cycle-episodes", type=int, default=40)

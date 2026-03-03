@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import argparse
 import json
+import os
 import random
 import shutil
 import time
@@ -57,10 +58,10 @@ def build_feature_keys(include_energy_obs: bool) -> List[str]:
 # Keep this in sync so evaluation tools (e.g. scenario_compare) load those checkpoints by default.
 FEATURE_KEYS = build_feature_keys(include_energy_obs=True)
 
-OUTPUT_DIR = Path("outputs/ai_id_ref")
+OUTPUT_DIR = Path(os.environ.get("MIC_AI_ID_REF_OUTPUT_DIR", "outputs/ai_id_ref"))
 EPISODE_LOG_DIR = OUTPUT_DIR / "episode_logs"
 CHECKPOINT_DIR = OUTPUT_DIR / "checkpoints"
-RESULTS_ROOT = Path("results_run")
+RESULTS_ROOT = Path(os.environ.get("MIC_AI_RESULTS_ROOT", "results_run"))
 
 
 def _parse_scenarios(text: str) -> List[str]:
@@ -361,6 +362,8 @@ def train(
     include_energy_obs: bool,
     update_every_episodes: int,
     init_checkpoint: str | None = None,
+    output_dir: str | None = None,
+    results_root: str | None = None,
 ) -> Dict[str, str]:
     feature_keys = build_feature_keys(include_energy_obs)
     if seed is not None:
@@ -438,12 +441,22 @@ def train(
             )
         )
 
+    output_root_path = OUTPUT_DIR if output_dir is None else Path(str(output_dir)).expanduser()
+    if not output_root_path.is_absolute():
+        output_root_path = (Path.cwd() / output_root_path).resolve()
+    episode_log_dir = output_root_path / "episode_logs"
+    checkpoint_root = output_root_path / "checkpoints"
+
+    results_root_path = RESULTS_ROOT if results_root is None else Path(str(results_root)).expanduser()
+    if not results_root_path.is_absolute():
+        results_root_path = (Path.cwd() / results_root_path).resolve()
+
     env_name = Path(env_config).stem
-    ckpt_dir = (CHECKPOINT_DIR / env_name).resolve()
+    ckpt_dir = (checkpoint_root / env_name).resolve()
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
     mode_tag = "ai_current" if str(control_mode).lower() == "ai_current" else "ai_id_ref"
-    run_dir = RESULTS_ROOT / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{env_name}_{mode_tag}"
+    run_dir = results_root_path / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{env_name}_{mode_tag}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
     episodes_log: List[Dict[str, float]] = []
@@ -588,7 +601,7 @@ def train(
     last_ckpt = ckpt_dir / "last_actor.pth"
     torch.save(agent.net.state_dict(), last_ckpt)
 
-    episodes_path = _prepare_output_file(EPISODE_LOG_DIR / f"ai_id_ref_{env_name}_episodes.json")
+    episodes_path = _prepare_output_file(episode_log_dir / f"ai_id_ref_{env_name}_episodes.json")
     with episodes_path.open("w", encoding="utf-8") as f:
         json.dump(episodes_log, f, indent=2)
 
@@ -644,6 +657,8 @@ def train(
         "update_every_episodes": int(update_every),
         "feature_keys": feature_keys,
         "init_checkpoint": None if init_checkpoint is None else str(Path(init_checkpoint).resolve()),
+        "output_dir": str(output_root_path),
+        "results_root": str(results_root_path),
     }
     (run_dir / "run_config.json").write_text(json.dumps(run_config, indent=2), encoding="utf-8")
 

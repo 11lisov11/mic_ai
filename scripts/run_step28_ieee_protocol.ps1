@@ -5,7 +5,8 @@ Param(
   [string]$Scenarios = "speed_step,ramp,load_step,start_stop",
   [double]$SeedPerturbLevel = 0.2,
   [ValidateSet("ai", "rule")] [string]$MicMode = "rule",
-  [bool]$SkipAir56Tune = $true
+  [bool]$SkipAir56Tune = $true,
+  [string]$CheckpointRegistry = "config/checkpoint_registry.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,6 +23,7 @@ $argsA = @(
   "--foc-feedback-mode", "encoder",
   "--mic-feedback-mode", "sensorless",
   "--mic-mode", $MicMode,
+  "--checkpoint-registry", $CheckpointRegistry,
   "--seed-perturbation",
   "--seed-perturb-level", "$SeedPerturbLevel"
 )
@@ -36,6 +38,7 @@ $argsB = @(
   "--foc-feedback-mode", "sensorless",
   "--mic-feedback-mode", "sensorless",
   "--mic-mode", $MicMode,
+  "--checkpoint-registry", $CheckpointRegistry,
   "--seed-perturbation",
   "--seed-perturb-level", "$SeedPerturbLevel"
 )

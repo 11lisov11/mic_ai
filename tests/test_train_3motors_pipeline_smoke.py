@@ -8,6 +8,8 @@ from pathlib import Path
 
 def test_train_3motors_pipeline_smoke_separate_mode(tmp_path: Path) -> None:
     out_dir = tmp_path / "train3"
+    ai_output_dir = tmp_path / "ai_outputs"
+    results_root = tmp_path / "results_run"
     cmd = [
         sys.executable,
         "tools/train_3motors_pipeline.py",
@@ -24,6 +26,10 @@ def test_train_3motors_pipeline_smoke_separate_mode(tmp_path: Path) -> None:
         "--fast",
         "--scenarios",
         "speed_step",
+        "--ai-output-dir",
+        str(ai_output_dir),
+        "--results-root",
+        str(results_root),
         "--out-dir",
         str(out_dir),
     ]

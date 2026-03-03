@@ -1,0 +1,12 @@
+{
+  "motors": {
+    "air56": "outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth",
+    "al31": "outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth",
+    "ao2": "outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth"
+  },
+  "configs": {
+    "env_research_air56_025kw.py": "outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth",
+    "env_research_al31_4_06kw.py": "outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth",
+    "env_research_ao2_32_4_3kw.py": "outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth"
+  }
+}

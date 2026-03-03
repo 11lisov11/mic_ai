@@ -91,30 +91,30 @@ ai_drift_ranges = {
 # Expected checkpoint location after training:
 #   python -m mic_ai.ai.train_ai_id_ref config/env_research_air56_025kw.py ...
 ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth"
-ai_eval_id_ref_alpha = 0.8077602446952543
-ai_eval_delta_id_max = 0.1979319823875324
+ai_eval_id_ref_alpha = 0.4596083105260094
+ai_eval_delta_id_max = 0.11346054605925186
 ai_eval_id_ref_relative = True
 ai_eval_id_ref_allow_positive_delta = True
-ai_eval_id_ref_gate_speed_tol_rel = 0.05977966855238324
-ai_eval_id_ref_gate_min_scale = 0.047560004818945
-ai_eval_id_ref_gate_exponent = 1.2921867188665694
+ai_eval_id_ref_gate_speed_tol_rel = 0.08
+ai_eval_id_ref_gate_min_scale = 0.1
+ai_eval_id_ref_gate_exponent = 1.1419159176959481
 
 ai_eval_supervisor_enabled = True
 ai_eval_sup_objective = "specific_power"
-ai_eval_sup_speed_tol_rel = 0.06384288845942572
+ai_eval_sup_speed_tol_rel = 0.11593360037750573
 ai_eval_sup_speed_tol_abs = 0.0
 ai_eval_sup_omega_min = 0.07740003039871146
-ai_eval_sup_update = 17
-ai_eval_sup_dither = 0.009461244984793124
-ai_eval_sup_step = 0.012567257092204
-ai_eval_sup_bias_max = 0.18047761179912863
+ai_eval_sup_update = 10
+ai_eval_sup_dither = 0.01970475244989657
+ai_eval_sup_step = 0.009323920062153681
+ai_eval_sup_bias_max = 0.12915014429232824
 ai_eval_sup_shaft_eps = 10.0
 ai_eval_sup_reset_decay = 0.9886974417190302
 ai_eval_sup_idle_enable = True
-ai_eval_sup_idle_omega_min = 0.04356872117797547
-ai_eval_sup_idle_action = -0.8054457650121533
-ai_eval_sup_idle_exit_boost = 12
-ai_eval_sup_idle_exit_action = 0.8230332443977089
-ai_eval_sup_idle_bias_decay = 0.9400017812223386
+ai_eval_sup_idle_omega_min = 0.09029493891291555
+ai_eval_sup_idle_action = -0.9417320939263911
+ai_eval_sup_idle_exit_boost = 23
+ai_eval_sup_idle_exit_action = 0.9979538605499495
+ai_eval_sup_idle_bias_decay = 0.9462930265978118
 
 __all__ = ["ENV"]

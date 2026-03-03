@@ -1,0 +1,32 @@
+{
+  "created_utc": "2026-03-03T01:58:11.781447+00:00",
+  "source_step28_out": "C:\\mic_theory\\outputs\\progress_step28_ieee_ai_after_tune_20260303",
+  "package_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2",
+  "copied_count": 21,
+  "missing_count": 0,
+  "copied": [
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\step28_ieee_summary.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\step28_ieee_summary.md",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_per_seed_metrics.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_stats_motor_controller.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_final_pi_vs_foc_vs_mic.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_air56_acceptance.json",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_reproducibility.json",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_report.md",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode1_foc_encoder_vs_mic_sensorless\\step27_seed_perturbations.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_per_seed_metrics.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_stats_motor_controller.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_final_pi_vs_foc_vs_mic.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_air56_acceptance.json",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_reproducibility.json",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_report.md",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\mode2_foc_sensorless_vs_mic_sensorless\\step27_seed_perturbations.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\theory_validation\\report.json",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\theory_validation\\report.md",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\passport\\passport_compare_3motors.csv",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\passport\\passport_compare_3motors.md",
+    "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_after_tune_pkg2\\passport\\passport_compare_3motors.json"
+  ],
+  "missing": [],
+  "include_runs": false
+}

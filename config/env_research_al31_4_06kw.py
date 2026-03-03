@@ -83,23 +83,23 @@ ai_drift_ranges = {
 
 # Step27/Step28 AI evaluation defaults (sensorless MIC).
 ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth"
-ai_eval_id_ref_alpha = 1.0
-ai_eval_delta_id_max = 0.2
+ai_eval_id_ref_alpha = 0.35750000000000004
+ai_eval_delta_id_max = 0.06050000000000001
 ai_eval_id_ref_relative = True
 ai_eval_id_ref_allow_positive_delta = True
-ai_eval_id_ref_gate_speed_tol_rel = 0.05
-ai_eval_id_ref_gate_min_scale = 0.0
+ai_eval_id_ref_gate_speed_tol_rel = 0.12
+ai_eval_id_ref_gate_min_scale = 0.12
 ai_eval_id_ref_gate_exponent = 1.0
 
-ai_eval_supervisor_enabled = False
+ai_eval_supervisor_enabled = True
 ai_eval_sup_objective = "specific_power"
-ai_eval_sup_speed_tol_rel = 0.05
+ai_eval_sup_speed_tol_rel = 0.096
 ai_eval_sup_speed_tol_abs = 0.0
 ai_eval_sup_omega_min = 0.1
 ai_eval_sup_update = 20
-ai_eval_sup_dither = 0.04
-ai_eval_sup_step = 0.01
-ai_eval_sup_bias_max = 0.25
+ai_eval_sup_dither = 0.028900000000000002
+ai_eval_sup_step = 0.0064
+ai_eval_sup_bias_max = 0.18062499999999998
 ai_eval_sup_shaft_eps = 10.0
 ai_eval_sup_reset_decay = 0.98
 ai_eval_sup_idle_enable = False

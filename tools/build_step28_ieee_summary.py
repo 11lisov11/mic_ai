@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import argparse
-import csv
-import json
+import sys
 from pathlib import Path
 from typing import Dict, List
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.common_utils import json_load as _json_load_shared
+from tools.common_utils import read_csv as _read_csv_shared
+from tools.common_utils import write_csv as _write_csv_shared
+
 
 def _read_csv(path: Path) -> List[Dict[str, str]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle))
+    return _read_csv_shared(path)
 
 
 def _read_json(path: Path) -> Dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return _json_load_shared(path)
 
 
 def _to_float(row: Dict[str, str], key: str) -> float:
@@ -47,14 +53,7 @@ def _collect_mode(mode_name: str, mode_dir: Path) -> Dict[str, object]:
 
 
 def _write_csv(path: Path, rows: List[Dict[str, object]]) -> None:
-    if not rows:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    keys = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=keys)
-        writer.writeheader()
-        writer.writerows(rows)
+    _write_csv_shared(path, rows)
 
 
 def _build_md(mode1: Dict[str, object], mode2: Dict[str, object]) -> str:
@@ -167,4 +166,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
