@@ -8,11 +8,12 @@
 ### Статус-срез на 2026-03-03
 - Инфраструктура step27/step28: закрыта (`DONE`), есть smoke в CI.
 - Теория/физика: закрыта (`DONE`), есть валидатор + тесты + авто-репорты.
-- Тестовый контур: закрыт для unit/integration/regression (`DONE`, 94 passed локально).
+- Тестовый контур: закрыт для unit/integration/regression (`DONE`, 95 passed локально).
 - IEEE контур: закрыт технически (`DONE`) — one-command reproducibility, package, derived figures/tables, auto-checklist, submission lock, strict verify, submission dossier.
 - Обучение по 3 моторам: закрыто (`DONE`) в текущем frozen-пакете с acceptance-отчетами.
 - Публикационный блок закрыт (`DONE`): manuscript sync + promoted figure/table release snapshot.
 - Для канонического frozen-тега `20260303_ai_config_locked_nodrift` strict verify пройден (`verification_ok=True`).
+- Машинная фиксация выполнения плана: `PROJECT_MASTER_PLAN_IEEE_3MOTORS_20260303_PROGRESS_20260304.json` (`completion_pct=100%`).
 - Итог: план выполнения доведен до `100%` по инфраструктурным/публикационным задачам; остаточные риски вынесены в научные `warnings`.
 
 ---
