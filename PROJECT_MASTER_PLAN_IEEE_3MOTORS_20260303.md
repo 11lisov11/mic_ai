@@ -649,7 +649,7 @@
 ## 12) Конкретный ближайший спринт (следующие действия по порядку)
 
 1. [x] Технически подготовлен релизный commit-план с frozen-артефактами (`RELEASE_GIT_PLAN.{json,md}` + команды `git add/commit/tag/push`).
-2. [ ] Запушить релизный commit/tag в origin (операция требует фактического выполнения в git remote).
+2. [x] Запушить релизный commit/tag в origin (выполнено: commit `6c08295`, tag `ieee/20260303_ai_config_locked_nodrift`).
 3. [x] Подготовить IEEE submission bundle (архив + hash-manifest + ссылки на reproducibility scripts).
 4. [x] Провести финальную вычитку `paper/ieee_2026/manuscript.md` под целевой IEEE template через авто-проверки (consistency + template gate).
 5. [x] Подготовлен IEEE handoff package (`IEEE_SUBMISSION_HANDOFF.{json,md}` + submission bundle archives).
