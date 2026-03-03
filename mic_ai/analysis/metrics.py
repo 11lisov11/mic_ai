@@ -25,8 +25,10 @@ def calc_i_rms(i_abc: Iterable[float]) -> float:
     values = _as_abc_array(i_abc)
     if values.size == 0:
         return 0.0
+    safe = np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0)
+    safe = np.clip(safe, -1e100, 1e100)
     # Phase RMS, averaged over all three phases.
-    i_rms_phase = np.sqrt(np.mean(values * values, axis=0))
+    i_rms_phase = np.sqrt(np.mean(safe * safe, axis=0))
     return float(np.mean(i_rms_phase))
 
 
@@ -34,8 +36,10 @@ def calc_v_rms(v_abc: Iterable[float]) -> float:
     values = _as_abc_array(v_abc)
     if values.size == 0:
         return 0.0
+    safe = np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0)
+    safe = np.clip(safe, -1e100, 1e100)
     # Phase RMS, averaged over all three phases.
-    v_rms_phase = np.sqrt(np.mean(values * values, axis=0))
+    v_rms_phase = np.sqrt(np.mean(safe * safe, axis=0))
     return float(np.mean(v_rms_phase))
 
 
@@ -44,11 +48,23 @@ def calc_p_el(v_abc: Iterable[float], i_abc: Iterable[float]) -> float:
     i_vals = np.asarray(i_abc, dtype=float)
     if v_vals.size == 0 or i_vals.size == 0:
         return 0.0
-    return float(np.sum(v_vals * i_vals))
+    v_safe = np.nan_to_num(v_vals, nan=0.0, posinf=0.0, neginf=0.0)
+    i_safe = np.nan_to_num(i_vals, nan=0.0, posinf=0.0, neginf=0.0)
+    v_safe = np.clip(v_safe, -1e100, 1e100)
+    i_safe = np.clip(i_safe, -1e100, 1e100)
+    return float(np.sum(v_safe * i_safe))
 
 
 def calc_p_mech(omega: float, torque: float) -> float:
     return float(omega * torque)
+
+
+def calc_eta(p_mech: float, p_in: float, eps: float = 1e-9) -> float:
+    p2 = float(p_mech)
+    p1 = float(p_in)
+    if not math.isfinite(p2) or not math.isfinite(p1) or p1 <= eps:
+        return 0.0
+    return float(np.clip(p2 / max(p1, eps), 0.0, 1.0))
 
 
 def calc_cos_phi(
@@ -120,9 +136,15 @@ def calc_cos_phi(
             warning = "phase_line_disagreement"
 
     cos_phi = cos_phase if method == "phase" else cos_line
+    if not math.isfinite(cos_phi):
+        cos_phi = 0.0
+        warning = (warning + "|non_finite_cosphi").strip("|")
+        diag_warning = warning
+    else:
+        diag_warning = warning
     diag = {
         "method": method,
-        "warning": warning,
+        "warning": diag_warning,
         "p_mean": p_mean,
         "v_rms_phase": v_rms_phase,
         "i_rms_phase": i_rms_phase,

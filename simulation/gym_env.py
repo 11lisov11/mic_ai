@@ -53,6 +53,10 @@ class InductionMotorEnv(gym.Env):
     """
 
     metadata = {"render.modes": []}
+    _SAFE_OMEGA_ABS_MAX = 1e5
+    _SAFE_CURRENT_ABS_MAX = 1e5
+    _SAFE_PSI_ABS_MAX = 1e3
+    _SAFE_OBS_ABS_MAX = 1e30
 
     def __init__(self, env_config: EnvConfig = ENV):
         super().__init__()
@@ -151,10 +155,27 @@ class InductionMotorEnv(gym.Env):
         v_abc: Tuple[float, float, float],
         omega_m: float,
     ) -> Tuple[np.ndarray, float, float]:
+        def _obs_scalar(value: float) -> float:
+            v = float(value)
+            if not math.isfinite(v):
+                return 0.0
+            if abs(v) > self._SAFE_OBS_ABS_MAX:
+                return math.copysign(self._SAFE_OBS_ABS_MAX, v)
+            return v
+
         p_in = v_abc[0] * i_abc[0] + v_abc[1] * i_abc[1] + v_abc[2] * i_abc[2]
         p_out = torque_e * omega_m
         obs = np.array(
-            [omega_m, omega_ref, torque_e, i_abc[0], i_abc[1], i_abc[2], p_in, p_out],
+            [
+                _obs_scalar(omega_m),
+                _obs_scalar(omega_ref),
+                _obs_scalar(torque_e),
+                _obs_scalar(i_abc[0]),
+                _obs_scalar(i_abc[1]),
+                _obs_scalar(i_abc[2]),
+                _obs_scalar(p_in),
+                _obs_scalar(p_out),
+            ],
             dtype=np.float32,
         )
         return obs, p_in, p_out
@@ -167,6 +188,23 @@ class InductionMotorEnv(gym.Env):
         return value * self.omega_base
 
     def step(self, action: Optional[np.ndarray] = None):
+        numeric_guard_reasons: list[str] = []
+
+        def _safe_clip(value: float, *, abs_max: float, key: str) -> float:
+            if not math.isfinite(value):
+                numeric_guard_reasons.append(f"{key}:non_finite")
+                return 0.0
+            if abs(value) > abs_max:
+                numeric_guard_reasons.append(f"{key}:clipped")
+                return math.copysign(abs_max, value)
+            return value
+
+        def _safe_scalar(value: float, *, key: str, default: float = 0.0) -> float:
+            if not math.isfinite(value):
+                numeric_guard_reasons.append(f"{key}:non_finite")
+                return default
+            return value
+
         t = self.t
         omega_ref = self.omega_ref_func(t)
         load_torque = self.load_torque_func(t)
@@ -223,20 +261,43 @@ class InductionMotorEnv(gym.Env):
         self.last_currents_abc = i_abc
 
         obs, p_in, p_out = self._build_observation(omega_ref, torque_e, i_abc, v_abc, state.omega_m)
+        p_in = _safe_scalar(float(p_in), key="p_in")
+        p_out = _safe_scalar(float(p_out), key="p_out")
 
         # Loss-aware power accounting (optional; defaults to zero extras).
+        i_a = _safe_clip(float(i_abc[0]), abs_max=self._SAFE_CURRENT_ABS_MAX, key="i_a")
+        i_b = _safe_clip(float(i_abc[1]), abs_max=self._SAFE_CURRENT_ABS_MAX, key="i_b")
+        i_c = _safe_clip(float(i_abc[2]), abs_max=self._SAFE_CURRENT_ABS_MAX, key="i_c")
         try:
-            i_rms = math.sqrt((i_abc[0] ** 2 + i_abc[1] ** 2 + i_abc[2] ** 2) / 3.0)
+            i_rms = math.sqrt((i_a ** 2 + i_b ** 2 + i_c ** 2) / 3.0)
         except Exception:
+            numeric_guard_reasons.append("i_rms:exception")
             i_rms = 0.0
         p_inv = 3.0 * self.loss_inv_r * (i_rms ** 2) if self.loss_inv_r > 0.0 else 0.0
+        p_inv = _safe_scalar(float(p_inv), key="p_inv")
         p_core = 0.0
         if self.loss_core_k > 0.0:
-            psi_s = math.hypot(state.psi_ds, state.psi_qs)
-            omega_core = abs(omega_syn)
-            p_core = float(self.loss_core_k) * (omega_core ** self.loss_core_omega_exp) * (psi_s ** self.loss_core_psi_exp)
+            psi_ds = _safe_clip(float(state.psi_ds), abs_max=self._SAFE_PSI_ABS_MAX, key="psi_ds")
+            psi_qs = _safe_clip(float(state.psi_qs), abs_max=self._SAFE_PSI_ABS_MAX, key="psi_qs")
+            psi_s = math.hypot(psi_ds, psi_qs)
+            omega_core = abs(_safe_clip(float(omega_syn), abs_max=self._SAFE_OMEGA_ABS_MAX, key="omega_syn"))
+            try:
+                p_core = float(self.loss_core_k) * (omega_core ** self.loss_core_omega_exp) * (
+                    psi_s ** self.loss_core_psi_exp
+                )
+            except Exception:
+                numeric_guard_reasons.append("p_core:exception")
+                p_core = 0.0
+            p_core = _safe_scalar(float(p_core), key="p_core")
         p_in_total = p_in + p_inv + p_core
-        p_mech_loss = float(self.motor.params.B) * (omega_m ** 2)
+        p_in_total = _safe_scalar(float(p_in_total), key="p_in_total")
+        omega_m_safe = _safe_clip(float(omega_m), abs_max=self._SAFE_OMEGA_ABS_MAX, key="omega_m")
+        try:
+            p_mech_loss = float(self.motor.params.B) * (omega_m_safe * omega_m_safe)
+        except Exception:
+            numeric_guard_reasons.append("p_mech_loss:exception")
+            p_mech_loss = 0.0
+        p_mech_loss = _safe_scalar(float(p_mech_loss), key="p_mech_loss")
         try:
             _, _, i_dr, i_qr = self.motor._currents(state)
         except Exception:
@@ -262,6 +323,8 @@ class InductionMotorEnv(gym.Env):
             "v_abc": v_abc,
             "theta_e": theta_e,
             "omega_syn": omega_syn,
+            "invalid_state": bool(numeric_guard_reasons),
+            "numeric_guard_reasons": numeric_guard_reasons,
         }
         # добавляем отладочную информацию контроллера
         info.update(ctrl_info)

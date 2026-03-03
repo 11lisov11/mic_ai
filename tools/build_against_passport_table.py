@@ -99,6 +99,46 @@ def _pick_nominal_row(df: pd.DataFrame, policy: str) -> pd.Series | None:
     return part.iloc[0]
 
 
+def _is_valid_nominal_row(row: pd.Series | None) -> tuple[bool, str]:
+    if row is None:
+        return False, "missing_row"
+    checks = {
+        "p2_kw": float(row.get("p2_kw", float("nan"))),
+        "i_rms": float(row.get("i_rms", float("nan"))),
+        "n2_rpm": float(row.get("n2_rpm", float("nan"))),
+        "eta_pct": float(row.get("eta_pct", float("nan"))),
+        "cos_phi": float(row.get("cos_phi", float("nan"))),
+    }
+    for name, val in checks.items():
+        if not pd.notna(val):
+            return False, f"{name}_nan"
+    if checks["p2_kw"] <= 1e-6:
+        return False, "p2_zero"
+    if checks["i_rms"] <= 1e-9:
+        return False, "i_rms_zero"
+    if checks["eta_pct"] <= 1e-6:
+        return False, "eta_zero"
+    if not (0.0 <= checks["cos_phi"] <= 1.0):
+        return False, "cos_phi_out_of_range"
+    return True, ""
+
+
+def _pick_best_valid_row(df: pd.DataFrame, policy: str) -> tuple[pd.Series | None, str]:
+    part = df[df["policy"].astype(str) == str(policy)].copy()
+    if part.empty:
+        return None, "missing_policy"
+    part["load_factor_abs_err"] = (pd.to_numeric(part["load_factor"], errors="coerce") - 1.0).abs()
+    part = part.sort_values("load_factor_abs_err")
+    first_reason = "unknown"
+    for _, row in part.iterrows():
+        ok, reason = _is_valid_nominal_row(row)
+        if ok:
+            return row, ""
+        if first_reason == "unknown":
+            first_reason = str(reason)
+    return None, f"no_valid_row:{first_reason}"
+
+
 def _build_rows_for_motor(
     *,
     motor_key: str,
@@ -110,6 +150,15 @@ def _build_rows_for_motor(
     window_frac: float,
 ) -> List[Dict[str, object]]:
     ckpt = _resolve_checkpoint(config_path, motor_key, checkpoint_registry)
+    module = _load_module(Path(config_path).resolve())
+    plate = _resolve_nameplate(module)
+    p_nom_kw = float(plate["P_n"]) / 1000.0
+    i_nom = float(plate["I_n"])
+    n_nom = float(plate["n_rated"])
+    eta_nom_pct = float(plate["eta_n"]) * 100.0
+    cos_nom = float(plate["cos_phi_n"])
+
+    final_rows: List[Dict[str, object]] | None = None
     omega_used: float | None = None
     last_error: Exception | None = None
     for omega in (1.0, 0.9, 0.8, 0.7):
@@ -125,78 +174,91 @@ def _build_rows_for_motor(
             )
             omega_used = float(omega)
             last_error = None
-            break
         except Exception as exc:
             last_error = exc
-    if omega_used is None and last_error is not None:
-        raise last_error
-
-    csv_path = raw_dir / "load_characteristics.csv"
-    if not csv_path.exists():
-        raise FileNotFoundError(csv_path)
-
-    module = _load_module(Path(config_path).resolve())
-    plate = _resolve_nameplate(module)
-    p_nom_kw = float(plate["P_n"]) / 1000.0
-    i_nom = float(plate["I_n"])
-    n_nom = float(plate["n_rated"])
-    eta_nom_pct = float(plate["eta_n"]) * 100.0
-    cos_nom = float(plate["cos_phi_n"])
-
-    df = pd.read_csv(csv_path)
-    policies = ["FOC"]
-    if "MIC_AI" in set(df["policy"].astype(str).unique().tolist()):
-        policies.append("MIC_AI")
-    elif "MIC_RULE" in set(df["policy"].astype(str).unique().tolist()):
-        policies.append("MIC_RULE")
-
-    rows: List[Dict[str, object]] = []
-    for policy in policies:
-        row = _pick_nominal_row(df, policy)
-        if row is None:
             continue
-        p2 = float(row["p2_kw"])
-        i1 = float(row["i_rms"])
-        n2 = float(row["n2_rpm"])
-        eta_pct = float(row["eta_pct"])
-        cos_phi = float(row["cos_phi"])
-        rows.append(
-            {
-                "motor": motor_key,
-                "policy": policy,
-                "load_factor": float(row["load_factor"]),
-                "p2_kw_model": p2,
-                "p2_kw_nameplate": p_nom_kw,
-                "p2_kw_delta_pct": _safe_pct(p2 - p_nom_kw, p_nom_kw),
-                "i1_a_model": i1,
-                "i1_a_nameplate": i_nom,
-                "i1_a_delta_pct": _safe_pct(i1 - i_nom, i_nom),
-                "n2_rpm_model": n2,
-                "n2_rpm_nameplate": n_nom,
-                "n2_rpm_delta_pct": _safe_pct(n2 - n_nom, n_nom),
-                "eta_pct_model": eta_pct,
-                "eta_pct_nameplate": eta_nom_pct,
-                "eta_pct_delta_abs": eta_pct - eta_nom_pct,
-                "cos_phi_model": cos_phi,
-                "cos_phi_nameplate": cos_nom,
-                "cos_phi_delta_abs": cos_phi - cos_nom,
-                "checkpoint_used": "" if ckpt is None else str(ckpt),
-                "omega_ref_pu_used": float(omega_used) if omega_used is not None else float("nan"),
-                "load_csv": str(csv_path.resolve()),
-            }
+
+        csv_path = raw_dir / "load_characteristics.csv"
+        if not csv_path.exists():
+            last_error = FileNotFoundError(csv_path)
+            continue
+
+        df = pd.read_csv(csv_path)
+        policies = ["FOC"]
+        if "MIC_AI" in set(df["policy"].astype(str).unique().tolist()):
+            policies.append("MIC_AI")
+        elif "MIC_RULE" in set(df["policy"].astype(str).unique().tolist()):
+            policies.append("MIC_RULE")
+
+        rows: List[Dict[str, object]] = []
+        invalid_reasons: List[str] = []
+        missing_policies: List[str] = []
+        for policy in policies:
+            row, reason = _pick_best_valid_row(df, policy)
+            if row is None:
+                missing_policies.append(policy)
+                invalid_reasons.append(f"{policy}:{reason}")
+                continue
+            lf = float(row["load_factor"])
+            p2 = float(row["p2_kw"])
+            i1 = float(row["i_rms"])
+            n2 = float(row["n2_rpm"])
+            eta_pct = float(row["eta_pct"])
+            cos_phi = float(row["cos_phi"])
+            rows.append(
+                {
+                    "motor": motor_key,
+                    "policy": policy,
+                    "load_factor": lf,
+                    "p2_kw_model": p2,
+                    "p2_kw_nameplate": p_nom_kw,
+                    "p2_kw_delta_pct": _safe_pct(p2 - p_nom_kw, p_nom_kw),
+                    "i1_a_model": i1,
+                    "i1_a_nameplate": i_nom,
+                    "i1_a_delta_pct": _safe_pct(i1 - i_nom, i_nom),
+                    "n2_rpm_model": n2,
+                    "n2_rpm_nameplate": n_nom,
+                    "n2_rpm_delta_pct": _safe_pct(n2 - n_nom, n_nom),
+                    "eta_pct_model": eta_pct,
+                    "eta_pct_nameplate": eta_nom_pct,
+                    "eta_pct_delta_abs": eta_pct - eta_nom_pct,
+                    "cos_phi_model": cos_phi,
+                    "cos_phi_nameplate": cos_nom,
+                    "cos_phi_delta_abs": cos_phi - cos_nom,
+                    "checkpoint_used": "" if ckpt is None else str(ckpt),
+                    "omega_ref_pu_used": float(omega_used) if omega_used is not None else float("nan"),
+                    "load_csv": str(csv_path.resolve()),
+                    "nominal_proxy_used": bool(abs(lf - 1.0) > 1e-9),
+                    "nominal_proxy_abs_err": float(abs(lf - 1.0)),
+                }
+            )
+
+        # Accept omega candidate if FOC row is valid (MIC may be unavailable for weak checkpoints).
+        has_foc = any(str(r.get("policy", "")) == "FOC" for r in rows)
+        if has_foc:
+            final_rows = rows
+            break
+        last_error = RuntimeError(
+            f"Invalid nominal rows at omega_ref_pu={omega:.1f}: {', '.join(invalid_reasons) or 'unknown'}; "
+            f"missing_policies={','.join(missing_policies) or 'none'}"
         )
-    return rows
+
+    if final_rows is None:
+        if last_error is None:
+            raise RuntimeError(f"Failed to produce passport rows for motor={motor_key}")
+        raise last_error
+    return final_rows
 
 
 def _to_md(rows: List[Dict[str, object]]) -> str:
     lines: List[str] = []
     lines.append("# Against-Passport Table (3 motors)")
     lines.append("")
-    lines.append("| motor | policy | load_factor | omega_ref_pu | P2 delta % | I1 delta % | n2 delta % | eta delta abs p.p. | cos(phi) delta abs |")
-    lines.append("|---|---|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("| motor | policy | load_factor | proxy | omega_ref_pu | P2 delta % | I1 delta % | n2 delta % | eta delta abs p.p. | cos(phi) delta abs |")
+    lines.append("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|")
     for r in rows:
         lines.append(
-            "| {motor} | {policy} | {load_factor:.3f} | {omega_ref_pu_used:.2f} | {p2_kw_delta_pct:+.2f} | {i1_a_delta_pct:+.2f} | {n2_rpm_delta_pct:+.2f} | {eta_pct_delta_abs:+.2f} | {cos_phi_delta_abs:+.4f} |".format(
+            "| {motor} | {policy} | {load_factor:.3f} | {nominal_proxy_used} | {omega_ref_pu_used:.2f} | {p2_kw_delta_pct:+.2f} | {i1_a_delta_pct:+.2f} | {n2_rpm_delta_pct:+.2f} | {eta_pct_delta_abs:+.2f} | {cos_phi_delta_abs:+.4f} |".format(
                 **r
             )
         )
@@ -228,13 +290,13 @@ def main() -> None:
 
     rows: List[Dict[str, object]] = []
     failures: List[Dict[str, str]] = []
+    warnings: List[Dict[str, str]] = []
     for motor in motors:
         spec = MOTOR_REGISTRY[motor]
         motor_raw = raw_root / motor
         motor_raw.mkdir(parents=True, exist_ok=True)
         try:
-            rows.extend(
-                _build_rows_for_motor(
+            motor_rows = _build_rows_for_motor(
                     motor_key=motor,
                     config_path=spec.config_path,
                     raw_dir=motor_raw,
@@ -243,7 +305,19 @@ def main() -> None:
                     t_end=float(args.t_end),
                     window_frac=float(args.window_frac),
                 )
-            )
+            rows.extend(motor_rows)
+            policies = {str(r.get("policy", "")) for r in motor_rows}
+            if "MIC_AI" not in policies and "MIC_RULE" not in policies:
+                warnings.append({"motor": motor, "warning": "mic_row_missing_or_invalid"})
+                print(f"[passport][WARN] motor={motor}: MIC row missing or invalid; exported FOC-only row")
+            for r in motor_rows:
+                if bool(r.get("nominal_proxy_used", False)):
+                    warnings.append(
+                        {
+                            "motor": str(r.get("motor", motor)),
+                            "warning": f"nominal_proxy_used(load_factor={float(r.get('load_factor', 0.0)):.3f})",
+                        }
+                    )
         except Exception as exc:
             failures.append({"motor": motor, "error": str(exc)})
             print(f"[passport][WARN] failed motor={motor}: {exc}")
@@ -254,7 +328,7 @@ def main() -> None:
     json_path = out_root / "passport_compare_3motors.json"
     df.to_csv(csv_path, index=False)
     md_path.write_text(_to_md(rows), encoding="utf-8")
-    payload = {"rows": rows, "failures": failures}
+    payload = {"rows": rows, "warnings": warnings, "failures": failures}
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[passport] saved: {csv_path}")
     print(f"[passport] saved: {md_path}")

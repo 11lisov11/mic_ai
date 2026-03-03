@@ -111,3 +111,43 @@ jobs:
         run: |
           test -f outputs/theory_validation_ci/report.json
           test -f outputs/theory_validation_ci/report.md
+
+  ieee-frozen-verify:
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Verify frozen IEEE submission candidate
+        run: |
+          python tools/verify_ieee_submission_candidate.py \
+            --step28-dir paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift \
+            --ieee-root paper/ieee_2026 \
+            --manuscript paper/ieee_2026/manuscript.md \
+            --guardrails-policy paper/ieee_2026/guardrails_policy.json \
+            --allow-dirty \
+            --strict
+      - name: Verify frozen IEEE submission candidate via wrapper
+        run: |
+          chmod +x scripts/verify_ieee_submission_candidate.sh
+          ./scripts/verify_ieee_submission_candidate.sh \
+            paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift \
+            paper/ieee_2026 \
+            paper/ieee_2026/guardrails_policy.json \
+            paper/ieee_2026/manuscript.md
+      - name: Verify frozen IEEE submission candidate via PowerShell wrapper
+        shell: pwsh
+        run: |
+          ./scripts/verify_ieee_submission_candidate.ps1 `
+            -Step28Dir paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift `
+            -IeeeRoot paper/ieee_2026 `
+            -GuardrailsPolicy paper/ieee_2026/guardrails_policy.json `
+            -Manuscript paper/ieee_2026/manuscript.md `
+            -AllowDirty

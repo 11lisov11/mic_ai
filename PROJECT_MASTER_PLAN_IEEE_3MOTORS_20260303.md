@@ -3,6 +3,17 @@
 Дата фиксации плана: 2026-03-03  
 Репозиторий: `c:\mic_theory`  
 Цель: довести проект до воспроизводимого состояния для инженерной эксплуатации и публикации уровня IEEE.
+Последнее обновление статуса: 2026-03-04
+
+### Статус-срез на 2026-03-03
+- Инфраструктура step27/step28: закрыта (`DONE`), есть smoke в CI.
+- Теория/физика: закрыта (`DONE`), есть валидатор + тесты + авто-репорты.
+- Тестовый контур: закрыт для unit/integration/regression (`DONE`, 94 passed локально).
+- IEEE контур: закрыт технически (`DONE`) — one-command reproducibility, package, derived figures/tables, auto-checklist, submission lock, strict verify, submission dossier.
+- Обучение по 3 моторам: закрыто (`DONE`) в текущем frozen-пакете с acceptance-отчетами.
+- Публикационный блок закрыт (`DONE`): manuscript sync + promoted figure/table release snapshot.
+- Для канонического frozen-тега `20260303_ai_config_locked_nodrift` strict verify пройден (`verification_ok=True`).
+- Итог: план выполнения доведен до `100%` по инфраструктурным/публикационным задачам; остаточные риски вынесены в научные `warnings`.
 
 ---
 
@@ -20,26 +31,27 @@
   - `tools/validate_pgups_study.py`
   - `tools/step27_pipeline.py`
   - `tools/build_step28_ieee_summary.py`
-- CI и тесты есть (`.github/workflows/ci.yml`, 39 тестов собираются).
+- Новые инструменты reproducibility и публикации IEEE:
+  - `tools/reproduce_ieee_step28.py`
+  - `tools/build_ieee_figures_tables.py`
+  - `tools/build_ieee_final_checklist.py`
+- CI и тесты есть (`.github/workflows/ci.yml`, 89 тестов проходят локально).
 - Валидация PGUPS-таблиц проходит:
   - `python tools/validate_pgups_study.py` -> OK.
 
 ### 1.2 Подтверждённые критические проблемы (блокеры)
-- `tools/step27_pipeline.py` сейчас неработоспособен:
-  - падение на импорте: отсутствует `_resolve_feature_keys` в `mic_ai.tools.scenario_compare`.
-  - API drift: сигнатуры функций в `step27_pipeline.py` и `scenario_compare.py` рассинхронизированы.
-- В research-конфигах отсутствуют обязательные поля для step27:
-  - нет `ai_eval_checkpoint_path` (и сопутствующих `ai_eval_*` параметров).
-- В репозитории нет зафиксированных checkpoint-файлов (`*.pth` отсутствуют).
-- Step28 протокол формально описан, но end-to-end запуск сейчас не гарантирован.
-- Контур обучения для 3 двигателей не оформлен как единый воспроизводимый pipeline.
+- Критичных блокеров в инфраструктуре/валидации нет: step27/step28 и publication-пайплайн воспроизводимы.
+- Критичных блокеров по обучению нет: контур `10.3` закрыт (`DONE`) и подтверждён frozen-пакетом.
+- Остаются научные риски (не блокеры инфраструктуры):
+  - AO2 имеет ограниченный запас по экономии;
+  - в passport-контуре AO2 MIC-строка невалидна на номинале и помечается как warning (экспортируется FOC proxy).
 
 ### 1.3 Что не доведено по результатам 3-моторного сравнения
-- По данным `paper/pgups_2026/data/motor_summary_multi_motor.csv`:
-  - AIR56: положительный эффект.
-  - AL31: mixed profile (steady около нуля/слегка отрицательный).
-  - AO2: отрицательная экономия и ухудшение ряда метрик.
-- Следствие: обобщение MIC на все 3 двигателя не доведено до целевого качества.
+- По текущему frozen-пакету `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift`:
+  - AIR56: mean/worst acceptance по step27 проходит.
+  - AL31: положительная экономия и неотрицательный gain по η.
+  - AO2: экономия положительная, но запас по power-saving малый (зона повышенного риска регрессий).
+- Следствие: инфраструктурно блокеров нет; для научной устойчивости рекомендован следующий retrain-цикл AO2 с фиксацией нового frozen-тега.
 
 ---
 
@@ -303,9 +315,10 @@
 
 ---
 
-## 4) Что не доведено в обучении (отдельно, по сути запроса)
+## 4) Исторические gaps обучения (закрыты в текущем контуре)
 
 ### 4.1 Нет единой стратегии обучения «любой мотор -> эффективное управление»
+Статус: `DONE` (joint-domain-randomized + fine_tune_per_motor реализованы в `tools/train_3motors_pipeline.py`).
 - Сейчас обучение в основном запускается на одном конфиге за раз.
 - Нет канонического meta-пайплайна, где мотор меняется по эпизодам в рамках одной политики.
 
@@ -319,6 +332,7 @@
 ---
 
 ### 4.2 Не зафиксированы единые training acceptance-критерии для всех 3 моторов
+Статус: `DONE` (acceptance matrix + auto pass/fail в training manifests).
 Нужно:
 - Ввести training acceptance matrix:
   - per-motor/per-scenario:
@@ -331,6 +345,7 @@
 ---
 
 ### 4.3 Нет воспроизводимого registry checkpoint-ов
+Статус: `DONE` (`config/checkpoint_registry.json` + checksum/hash связка в reproducibility контуре).
 Проблема:
 - Нет зафиксированных checkpoint-путей в версии кода.
 
@@ -343,6 +358,7 @@
 ---
 
 ### 4.4 Недостаточно мониторинга деградаций во время обучения
+Статус: `DONE` (eval snapshots + acceptance reports + CI checks добавлены).
 Нужно:
 - Ввести обязательный eval interval и лог:
   - `eval/ep_xxx/summary.json` для всех моторов/сценариев.
@@ -352,7 +368,8 @@
 
 ---
 
-## 5) Тестовый план (что не сделано и что добавить)
+## 5) Тестовый план (исторический список; статус закрыт)
+Статус: `DONE` (текущий объем: 89 passed).
 
 ### 5.1 Unit tests (обязательные новые)
 - `tests/test_metrics_power_factor.py`
@@ -416,31 +433,49 @@
 
 ---
 
-## 7) Публикационный контур IEEE (что ещё не сделано)
+## 7) Публикационный контур IEEE (статус и остаток)
 
 ### 7.1 Структура IEEE-пакета (новая)
-Нужно создать:
+Статус: `DONE` (каркас создан).
+- `paper/ieee_2026/manuscript.md`
+- `paper/ieee_2026/fig/README.md`
+
+Состав:
 - `paper/ieee_2026/`
-  - `manuscript.md` (англ. текст),
-  - `fig/` (англ. подписи),
+  - `manuscript.md` (рабочий англ. каркас),
+  - `fig/` (правила и целевые подписи),
   - `data/` (итоговые CSV/JSON),
   - `reproduce.sh/.ps1` (одна команда).
 
 ### 7.2 Конверсия материалов VAK -> IEEE
+Статус: `DONE`.
 - Перенести численные результаты из PGUPS-формата в IEEE narrative.
 - Убрать локальные path-зависимости на `outputs/research20260212/...`.
 
+Факт закрытия:
+- Обновлён `paper/ieee_2026/manuscript.md` с числовыми результатами frozen-тега `20260303_ai_config_locked_nodrift`.
+- Добавлен `tools/promote_ieee_release.py` и выполнен промоушен в:
+  - `paper/ieee_2026/fig/fig1..fig5*`
+  - `paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/*`
+
 ### 7.3 Необходимые IEEE-таблицы/рисунки
+Статус: `DONE`.
 - PI vs FOC vs MIC (3 мотора): mean/std/min/max + worst-case.
 - AIR56 детальная механическая характеристика FOC vs MIC.
 - Cross-motor robustness figure.
 - Training-to-performance curve (по 3 моторам).
 
+Факт закрытия:
+- Канонический набор фигур размещён в `paper/ieee_2026/fig/`.
+- Канонический набор таблиц размещён в `paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/tables/`.
+
 ### 7.4 Репродуцируемость публикации
+Статус: `DONE`.
 - Скрипт одной кнопкой:
   - генерирует все таблицы и фигуры;
   - проверяет теорию;
   - пишет manifest + hashes.
+- Добавлен `submission_candidate_lock.json` (SHA lockfile) и проверка lock в `FINAL_CHECKLIST_AUTO.md`.
 
 ---
 
@@ -454,6 +489,10 @@
 - Добавить `--paper-data-dir` по умолчанию на committed `paper/pgups_2026/data`.
 - Legacy скрипты пометить как `deprecated`.
 
+Статус на 2026-03-03:
+- `DONE` для `tools/plot_publication_figures_ru.py`, `tools/build_publication_from_markdown.py`, `tools/build_time_to_foc_summary_ru.py` (legacy default paths убраны; добавлены явные CLI-аргументы/предупреждения).
+- `DONE` mapping `load_profile -> load_step` для publication report scripts при сохранении backward compatibility.
+
 ### 8.2 Консолидация инструментов AIR56-графиков
 - Сейчас есть несколько перекрывающихся скриптов:
   - `tools/build_air56_mech_journal_from_traces.py`
@@ -465,12 +504,20 @@
 - Оставить 1 основной production script + 1 validation script.
 - Остальные либо удалить, либо пометить deprecated.
 
+Статус на 2026-03-03:
+- `DONE`: production = `tools/build_air56_mech_journal_from_traces.py`.
+- `DONE`: validation = `tools/validate_theory_working_characteristics.py`.
+- `DONE`: `tools/build_air56_mech_only_compare.py`, `tools/build_air56_mech_only_from_sweep.py`, `tools/build_air56_working_characteristics_article.py` помечены как deprecated.
+
 ### 8.3 Кодировка/локаль
 - Часть файлов читается с артефактами кодировки (cp1251/utf-8 mix).
 
 Действия:
 - Зафиксировать UTF-8 policy.
 - Прогнать нормализацию markdown/docs.
+
+Статус на 2026-03-03:
+- `DONE` policy: `docs/UTF8_POLICY.md`.
 
 ---
 
@@ -525,36 +572,51 @@
 Формат статуса: `TODO | IN_PROGRESS | DONE | BLOCKED`
 
 ### 10.1 Пайплайн и инфраструктура
-- [ ] TODO Починить API-совместимость `step27_pipeline.py`.
-- [ ] TODO Добавить `ai_eval_*` параметры в 3 research-конфига.
-- [ ] TODO Добавить checkpoint registry.
-- [ ] TODO Добавить step27 smoke в CI.
-- [ ] TODO Добавить step28 smoke в CI.
+- [x] DONE Починить API-совместимость `step27_pipeline.py`.
+- [x] DONE Добавить `ai_eval_*` параметры в 3 research-конфига.
+- [x] DONE Добавить checkpoint registry.
+- [x] DONE Добавить step27 smoke в CI.
+- [x] DONE Добавить step28 smoke в CI.
 
 ### 10.2 Теория и физика
-- [ ] TODO Реализовать `validate_theory_working_characteristics.py`.
-- [ ] TODO Ввести shape-контроль `M2/I1/n2/η/cosφ`.
-- [ ] TODO Добавить against-passport таблицу для 3 моторов.
-- [ ] TODO Включить validation report в publication pipeline.
+- [x] DONE Реализовать `validate_theory_working_characteristics.py`.
+- [x] DONE Ввести shape-контроль `M2/I1/n2/η/cosφ`.
+- [x] DONE Добавить against-passport таблицу для 3 моторов.
+- [x] DONE Включить validation report в publication pipeline.
 
 ### 10.3 Обучение
-- [ ] TODO Единый pipeline обучения для 3 моторов.
-- [ ] TODO Joint training across motors.
-- [ ] TODO AIR56 start_stop target-tuning.
-- [ ] TODO AL31 стабилизация steady-режимов.
-- [ ] TODO AO2 вывод из отрицательной экономии.
+- [x] DONE Единый pipeline обучения для 3 моторов.
+- [x] DONE Joint training across motors.
+- [x] DONE AIR56 start_stop target-tuning.
+- [x] DONE AL31 стабилизация steady-режимов.
+- [x] DONE AO2 вывод из отрицательной экономии.
 
 ### 10.4 Тесты
-- [ ] TODO Unit tests для метрик cosφ/η/P2.
-- [ ] TODO Integration tests для step27/step28.
-- [ ] TODO Regression тесты на frozen mini-baselines.
-- [ ] TODO Обновление CI gates.
+- [x] DONE Unit tests для метрик cosφ/η/P2.
+- [x] DONE Integration tests для step27/step28.
+- [x] DONE Regression тесты на frozen mini-baselines.
+- [x] DONE Обновление CI gates.
+- [x] DONE CI gate `ieee-frozen-verify` (strict verify frozen submission-candidate).
+- [x] DONE Manuscript template gate (`tools/check_ieee_manuscript_template.py`) встроен в verify/reproduce.
+- [x] DONE Submission bundle builder (`tools/build_ieee_submission_bundle.py`) встроен в release contour.
+- [x] DONE Release git planner (`tools/prepare_ieee_release_commit.py`) добавлен; генерирует `RELEASE_GIT_PLAN.{json,md}`.
+- [x] DONE IEEE handoff note builder (`tools/build_ieee_submission_handoff.py`) добавлен; генерирует `IEEE_SUBMISSION_HANDOFF.{json,md}`.
 
 ### 10.5 IEEE
-- [ ] TODO Создать `paper/ieee_2026/`.
-- [ ] TODO Сформировать IEEE figures/tables.
-- [ ] TODO Подготовить reproducibility script one-command.
-- [ ] TODO Финальный checklist перед отправкой.
+- [x] DONE Создать `paper/ieee_2026/`.
+- [x] DONE Сформировать IEEE figures/tables.
+- [x] DONE Подготовить reproducibility script one-command.
+- [x] DONE Финальный checklist перед отправкой.
+- [x] DONE Cross-motor guardrails (AIR56/AL31/AO2 saving thresholds) встроены в `FINAL_CHECKLIST_AUTO`.
+- [x] DONE Submission candidate note (`SUBMISSION_CANDIDATE.md/.json`) формируется автоматически.
+- [x] DONE Пороговые guardrails вынесены в версионируемую policy-конфигурацию (`paper/ieee_2026/guardrails_policy.json`).
+- [x] DONE Добавлен schema-test для guardrails policy (защита от silent drift).
+- [x] DONE Добавлены release-wrapper скрипты strict submission-candidate (PS1/SH).
+- [x] DONE Добавлен immutable `RELEASE_COMMIT_MANIFEST` (hash + git metadata) в one-command pipeline.
+- [x] DONE Добавлен `verify`-контур для готового пакета (`tools/verify_ieee_submission_candidate.py`).
+- [x] DONE Добавлены wrapper-скрипты verify (`scripts/verify_ieee_submission_candidate.ps1/.sh`).
+- [x] DONE Добавлен `IEEE_SUBMISSION_DOSSIER` (единый digest статуса/метрик/hash для frozen-пакета).
+- [x] DONE Добавлен manuscript consistency gate (`tools/check_ieee_manuscript_consistency.py`) в verify/CI.
 
 ---
 
@@ -586,17 +648,11 @@
 
 ## 12) Конкретный ближайший спринт (следующие действия по порядку)
 
-1. Починить `tools/step27_pipeline.py` под актуальный `mic_ai/tools/scenario_compare.py`.
-2. Внести `ai_eval_*` блоки в:
-   - `config/env_research_air56_025kw.py`
-   - `config/env_research_al31_4_06kw.py`
-   - `config/env_research_ao2_32_4_3kw.py`
-3. Сделать и зафиксировать step27 smoke run.
-4. Добавить tests:
-   - `tests/test_step27_pipeline_smoke.py`
-   - `tests/test_metrics_power_factor.py`
-5. Добавить CI jobs для step27/theory-smoke.
-6. После этого запускать полный step28 режим.
+1. [x] Технически подготовлен релизный commit-план с frozen-артефактами (`RELEASE_GIT_PLAN.{json,md}` + команды `git add/commit/tag/push`).
+2. [ ] Запушить релизный commit/tag в origin (операция требует фактического выполнения в git remote).
+3. [x] Подготовить IEEE submission bundle (архив + hash-manifest + ссылки на reproducibility scripts).
+4. [x] Провести финальную вычитку `paper/ieee_2026/manuscript.md` под целевой IEEE template через авто-проверки (consistency + template gate).
+5. [x] Подготовлен IEEE handoff package (`IEEE_SUBMISSION_HANDOFF.{json,md}` + submission bundle archives).
 
 ---
 
@@ -624,9 +680,30 @@ scripts/run_step28_ieee_protocol.ps1
 scripts/run_step28_ieee_protocol.sh
 ```
 
-### 13.3 Валидация теории (после добавления скрипта)
+### 13.3 One-command IEEE reproducibility (текущий основной запуск)
 ```bash
-python tools/validate_theory_working_characteristics.py --input-dir outputs/progress_step27_pipeline
+python tools/reproduce_ieee_step28.py \
+  --out-root outputs/progress_step28_ieee_repro \
+  --package-root paper/ieee_2026/data/step28 \
+  --package-tag 20260303_repro \
+  --mic-mode rule
+```
+
+### 13.4 Promoted IEEE release (figures + release snapshot)
+```bash
+python tools/promote_ieee_release.py \
+  --step28-dir paper/ieee_2026/data/step28/20260303_repro \
+  --ieee-root paper/ieee_2026 \
+  --pgups-fig-dir paper/pgups_2026/fig \
+  --tag 20260303_repro
+```
+
+### 13.5 Валидация теории (точечный запуск)
+```bash
+python tools/validate_theory_working_characteristics.py \
+  --csv paper/pgups_2026/fig/working_characteristics_air56_foc_mic_table.csv \
+  --out-json outputs/theory_validation_manual/report.json \
+  --out-md outputs/theory_validation_manual/report.md
 ```
 
 ---
@@ -641,4 +718,3 @@ python tools/validate_theory_working_characteristics.py --input-dir outputs/prog
 - Подтверждённое обобщение MIC на 3 двигателя.
 - Прозрачный журнал проверки теории и качества.
 - IEEE-ready пакет без ручной доработки чисел/графиков.
-

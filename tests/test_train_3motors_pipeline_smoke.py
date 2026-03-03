@@ -40,9 +40,21 @@ def test_train_3motors_pipeline_smoke_separate_mode(tmp_path: Path) -> None:
     payload = json.loads(manifests[0].read_text(encoding="utf-8"))
     assert payload.get("mode") == "separate-per-motor"
     assert payload.get("motors") == ["air56"]
+    artifacts = dict(payload.get("artifacts", {}))
+    assert "training_summaries_csv" in artifacts
+    assert "training_acceptance_csv" in artifacts
+    assert "training_eval_snapshots_csv" in artifacts
+    assert "checkpoint_registry_json" in artifacts
+    assert Path(str(artifacts["training_summaries_csv"])).exists()
+    assert Path(str(artifacts["training_acceptance_csv"])).exists()
+    assert Path(str(artifacts["training_eval_snapshots_csv"])).exists()
+    assert Path(str(artifacts["checkpoint_registry_json"])).exists()
+
     runs = list(payload.get("runs", []))
     assert len(runs) == 1
     run0 = dict(runs[0])
     assert run0.get("motor") == "air56"
     best_ckpt = Path(str(run0.get("best_checkpoint", "")))
     assert best_ckpt.exists()
+    acceptance = dict(payload.get("acceptance", {}))
+    assert int(acceptance.get("total_runs", 0)) == 1

@@ -387,10 +387,7 @@ def _format_fig_caption(*, raw_caption: str, fig_idx: int) -> str:
 
 def _pick_default_src_md() -> Path:
     primary = Path("paper/pgups_2026/article_mic_ieee_vak_pgups.md")
-    if primary.exists():
-        return primary
-    legacy = Path("outputs/research20260212/study_final/article_mic_ieee_vak_pgups.md")
-    return legacy
+    return primary
 
 
 def _pick_default_out_docx(src_md: Path) -> Path:
@@ -772,5 +769,10 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     src_md = args.src_md or _pick_default_src_md()
+    if not src_md.exists():
+        raise FileNotFoundError(
+            f"Source markdown not found: {src_md}. "
+            "Pass explicit --src-md; legacy fallback under outputs/research20260212 is removed."
+        )
     out_docx = args.out_docx or _pick_default_out_docx(src_md)
     build(src_md=src_md, out_docx=out_docx)

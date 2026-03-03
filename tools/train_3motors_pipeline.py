@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -57,6 +59,162 @@ def _write_csv(path: Path, rows: List[Dict[str, object]]) -> None:
 
 def _load_json(path: Path) -> Dict[str, object]:
     return _json_load_shared(path)
+
+
+def _safe_float(value: object, default: float = float("nan")) -> float:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except Exception:
+        return float(default)
+
+
+def _resolve_path(path_text: str) -> Path:
+    path = Path(str(path_text)).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (ROOT / path).resolve()
+
+
+def _file_sha256(path: Path) -> str:
+    if not path.exists() or not path.is_file():
+        return ""
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _load_episode_entries(path: Path) -> List[Dict[str, object]]:
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if isinstance(data, list):
+        out: List[Dict[str, object]] = []
+        for row in data:
+            if isinstance(row, dict):
+                out.append(dict(row))
+        return out
+    return []
+
+
+def _summarize_run(
+    row: Dict[str, object],
+    args: argparse.Namespace,
+) -> Tuple[Dict[str, object], Dict[str, object], List[Dict[str, object]], Dict[str, object]]:
+    episodes_log_path = _resolve_path(str(row.get("episodes_log", "")))
+    run_dir_path = _resolve_path(str(row.get("run_dir", "")))
+    best_ckpt_path = _resolve_path(str(row.get("best_checkpoint", "")))
+    last_ckpt_path = _resolve_path(str(row.get("last_checkpoint", "")))
+
+    entries = _load_episode_entries(episodes_log_path)
+    n_ep = int(len(entries))
+    final = entries[-1] if entries else {}
+
+    speed_vals = [_safe_float(r.get("mean_speed_error")) for r in entries]
+    eta_vals = [_safe_float(r.get("eta_energy")) for r in entries]
+    p_in_vals = [_safe_float(r.get("mean_p_in_pos")) for r in entries]
+    current_vals = [_safe_float(r.get("mean_current_rms")) for r in entries]
+
+    final_speed = _safe_float(final.get("mean_speed_error"), default=float("inf"))
+    final_eta = _safe_float(final.get("eta_energy"), default=float("-inf"))
+    final_p_in = _safe_float(final.get("mean_p_in_pos"), default=float("inf"))
+    final_current = _safe_float(final.get("mean_current_rms"), default=float("inf"))
+
+    min_speed = min(speed_vals) if speed_vals else float("nan")
+    max_eta = max(eta_vals) if eta_vals else float("nan")
+    min_p_in = min(p_in_vals) if p_in_vals else float("nan")
+
+    w = max(1, int(args.degradation_window))
+    speed_degradation = False
+    eta_degradation = False
+    speed_delta = 0.0
+    eta_delta = 0.0
+    if len(speed_vals) >= 2 * w:
+        prev_speed = float(sum(speed_vals[-2 * w : -w]) / w)
+        last_speed = float(sum(speed_vals[-w:]) / w)
+        speed_delta = last_speed - prev_speed
+        speed_degradation = bool(speed_delta > float(args.degradation_speed_delta))
+    if len(eta_vals) >= 2 * w:
+        prev_eta = float(sum(eta_vals[-2 * w : -w]) / w)
+        last_eta = float(sum(eta_vals[-w:]) / w)
+        eta_delta = prev_eta - last_eta
+        eta_degradation = bool(eta_delta > float(args.degradation_eta_delta))
+
+    speed_ok = bool(final_speed <= float(args.accept_max_speed_error))
+    eta_ok = bool(final_eta >= float(args.accept_min_eta_energy))
+    current_ok = bool(final_current <= float(args.accept_max_current_rms))
+    p_in_ok = True if args.accept_max_p_in_pos is None else bool(final_p_in <= float(args.accept_max_p_in_pos))
+    degradation_ok = bool(not speed_degradation and not eta_degradation)
+    acceptance_pass = bool(speed_ok and eta_ok and current_ok and p_in_ok and degradation_ok)
+
+    actor_snapshots: List[Path] = []
+    eval_dir = run_dir_path / "eval"
+    if eval_dir.exists():
+        actor_snapshots = sorted(eval_dir.glob("actor_ep*.pth"))
+    snapshot_rows: List[Dict[str, object]] = [
+        {
+            "motor": row.get("motor", ""),
+            "seed": int(row.get("seed", 0)),
+            "stage": row.get("stage", ""),
+            "snapshot_file": str(p.resolve()),
+        }
+        for p in actor_snapshots
+    ]
+
+    summary_row: Dict[str, object] = {
+        "motor": row.get("motor", ""),
+        "seed": int(row.get("seed", 0)),
+        "stage": row.get("stage", ""),
+        "episodes_total": n_ep,
+        "final_mean_speed_error": final_speed,
+        "final_eta_energy": final_eta,
+        "final_mean_p_in_pos": final_p_in,
+        "final_mean_current_rms": final_current,
+        "min_mean_speed_error": min_speed,
+        "max_eta_energy": max_eta,
+        "min_mean_p_in_pos": min_p_in,
+        "speed_degradation": speed_degradation,
+        "eta_degradation": eta_degradation,
+        "speed_degradation_delta": speed_delta,
+        "eta_degradation_delta": eta_delta,
+        "eval_actor_snapshots": int(len(actor_snapshots)),
+        "episodes_log": str(episodes_log_path),
+        "run_dir": str(run_dir_path),
+    }
+    acceptance_row: Dict[str, object] = {
+        "motor": row.get("motor", ""),
+        "seed": int(row.get("seed", 0)),
+        "stage": row.get("stage", ""),
+        "speed_ok": speed_ok,
+        "eta_ok": eta_ok,
+        "current_ok": current_ok,
+        "p_in_ok": p_in_ok,
+        "degradation_ok": degradation_ok,
+        "acceptance_pass": acceptance_pass,
+        "accept_max_speed_error": float(args.accept_max_speed_error),
+        "accept_min_eta_energy": float(args.accept_min_eta_energy),
+        "accept_max_current_rms": float(args.accept_max_current_rms),
+        "accept_max_p_in_pos": "" if args.accept_max_p_in_pos is None else float(args.accept_max_p_in_pos),
+        "degradation_window": int(args.degradation_window),
+        "degradation_speed_delta": float(args.degradation_speed_delta),
+        "degradation_eta_delta": float(args.degradation_eta_delta),
+    }
+    registry_row: Dict[str, object] = {
+        "motor": row.get("motor", ""),
+        "seed": int(row.get("seed", 0)),
+        "stage": row.get("stage", ""),
+        "best_checkpoint": str(best_ckpt_path),
+        "best_checkpoint_sha256": _file_sha256(best_ckpt_path),
+        "last_checkpoint": str(last_ckpt_path),
+        "last_checkpoint_sha256": _file_sha256(last_ckpt_path),
+        "episodes_log": str(episodes_log_path),
+        "episodes_log_sha256": _file_sha256(episodes_log_path),
+    }
+    return summary_row, acceptance_row, snapshot_rows, registry_row
 
 
 def _base_train_kwargs(args: argparse.Namespace, *, seed: int) -> Dict[str, object]:
@@ -190,6 +348,13 @@ def main() -> None:
     parser.add_argument("--include-energy-obs", dest="include_energy_obs", action="store_true", default=True)
     parser.add_argument("--no-include-energy-obs", dest="include_energy_obs", action="store_false")
     parser.add_argument("--update-every-episodes", type=int, default=1)
+    parser.add_argument("--accept-max-speed-error", type=float, default=30.0)
+    parser.add_argument("--accept-min-eta-energy", type=float, default=0.0)
+    parser.add_argument("--accept-max-current-rms", type=float, default=10.0)
+    parser.add_argument("--accept-max-p-in-pos", type=float, default=None)
+    parser.add_argument("--degradation-window", type=int, default=5)
+    parser.add_argument("--degradation-speed-delta", type=float, default=2.0)
+    parser.add_argument("--degradation-eta-delta", type=float, default=0.05)
     args = parser.parse_args()
 
     motors = _resolve_motors(args.motors)
@@ -252,6 +417,31 @@ def main() -> None:
             print(f"[train3] mode=finetune seed={seed} motor={motor.key} best={row['best_checkpoint']}")
 
     _write_csv(run_root / "training_runs_3motors.csv", run_rows)
+    summary_rows: List[Dict[str, object]] = []
+    acceptance_rows: List[Dict[str, object]] = []
+    snapshot_rows: List[Dict[str, object]] = []
+    registry_rows: List[Dict[str, object]] = []
+    for row in run_rows:
+        summary_row, acceptance_row, snapshots, registry_row = _summarize_run(row, args)
+        summary_rows.append(summary_row)
+        acceptance_rows.append(acceptance_row)
+        snapshot_rows.extend(snapshots)
+        registry_rows.append(registry_row)
+
+    _write_csv(run_root / "training_run_summaries_3motors.csv", summary_rows)
+    _write_csv(run_root / "training_acceptance_matrix_3motors.csv", acceptance_rows)
+    _write_csv(run_root / "training_eval_snapshots_3motors.csv", snapshot_rows)
+
+    checkpoint_registry = {
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "mode": str(args.mode),
+        "rows": registry_rows,
+    }
+    checkpoint_registry_path = run_root / "checkpoints_registry_3motors.json"
+    checkpoint_registry_path.write_text(json.dumps(checkpoint_registry, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    passed_runs = int(sum(1 for r in acceptance_rows if bool(r.get("acceptance_pass", False))))
+    failed_runs = int(len(acceptance_rows) - passed_runs)
     manifest = {
         "timestamp": timestamp,
         "mode": str(args.mode),
@@ -261,6 +451,18 @@ def main() -> None:
         "run_root": str(run_root),
         "base_manifest": None if args.base_manifest is None else str(Path(args.base_manifest).resolve()),
         "per_seed_shared_checkpoints": per_seed_shared,
+        "artifacts": {
+            "training_runs_csv": str(run_root / "training_runs_3motors.csv"),
+            "training_summaries_csv": str(run_root / "training_run_summaries_3motors.csv"),
+            "training_acceptance_csv": str(run_root / "training_acceptance_matrix_3motors.csv"),
+            "training_eval_snapshots_csv": str(run_root / "training_eval_snapshots_3motors.csv"),
+            "checkpoint_registry_json": str(checkpoint_registry_path),
+        },
+        "acceptance": {
+            "total_runs": int(len(acceptance_rows)),
+            "passed_runs": passed_runs,
+            "failed_runs": failed_runs,
+        },
         "runs": run_rows,
     }
     (run_root / "training_manifest_3motors.json").write_text(

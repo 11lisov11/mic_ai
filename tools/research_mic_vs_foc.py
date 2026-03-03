@@ -5,6 +5,7 @@ import csv
 import json
 import subprocess
 import sys
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
@@ -344,16 +345,26 @@ def _plot_algorithm(out_path: Path) -> None:
 
 
 def main() -> None:
+    warnings.warn(
+        "tools/research_mic_vs_foc.py is a research helper. "
+        "For frozen IEEE protocol use tools/reproduce_ieee_step28.py.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     parser = argparse.ArgumentParser(description="Research pipeline: FOC vs MIC (fixed id_ref candidates).")
     parser.add_argument("--env-config", default="config/env_research_motor1_loss_nominal.py")
-    parser.add_argument("--scenarios", default="hold:0.8,speed_step,ramp,load_profile,start_stop")
+    parser.add_argument(
+        "--scenarios",
+        default="hold:0.8,speed_step,ramp,load_step,start_stop",
+        help="Comma-separated scenarios (IEEE canonical uses load_step; load_profile is legacy alias).",
+    )
     parser.add_argument("--candidate-id-refs", default="1.2,1.25,1.3,1.35,1.4")
     parser.add_argument("--max-err-ratio", type=float, default=1.3)
     parser.add_argument("--require-non-negative-worst-saving", action="store_true")
     parser.add_argument("--t-end", type=float, default=2.0)
     parser.add_argument("--dt", type=float, default=1e-3)
     parser.add_argument("--window-frac", type=float, default=0.3)
-    parser.add_argument("--out-dir", default="outputs/research20260212/study_final")
+    parser.add_argument("--out-dir", default="outputs/research_mic_vs_foc")
     parser.add_argument("--python", default=sys.executable)
     args = parser.parse_args()
 

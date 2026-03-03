@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import warnings
 from pathlib import Path
 from typing import Dict
 
@@ -41,6 +42,12 @@ def _interp(x: np.ndarray, y: np.ndarray, x0: float) -> float:
 
 
 def main() -> None:
+    warnings.warn(
+        "tools/build_air56_mech_only_compare.py is deprecated. "
+        "Use tools/build_air56_mech_journal_from_traces.py for production figures.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     parser = argparse.ArgumentParser(description="Build pure AIR56 mechanical characteristics for FOC vs MIC.")
     parser.add_argument("--foc-trace", default="paper/pgups_2026/data/traces/air56/load_profile_foc.csv")
     parser.add_argument("--mic-trace", default="paper/pgups_2026/data/traces/air56/load_profile_mic_ai.csv")

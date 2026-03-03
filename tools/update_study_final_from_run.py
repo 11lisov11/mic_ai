@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import warnings
 from pathlib import Path
 from typing import Dict, List
 
@@ -10,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 
-SCENARIOS = ("hold:0.8", "speed_step", "ramp", "load_profile", "start_stop")
+SCENARIOS = ("hold:0.8", "speed_step", "ramp", "load_step", "start_stop")
 
 
 def _read_csv(path: Path) -> pd.DataFrame:
@@ -67,6 +68,11 @@ def _scenario_table(final_best: Path, window_frac: float) -> List[Dict[str, floa
     rows: List[Dict[str, float | str]] = []
     for scenario in SCENARIOS:
         tag = scenario.replace(":", "_").replace(".", "p")
+        if scenario == "load_step":
+            # Backward compatibility with old trace naming.
+            fallback = final_best / "load_profile_foc.csv"
+            if fallback.exists():
+                tag = "load_profile"
         foc = _read_csv(final_best / f"{tag}_foc.csv")
         mic = _read_csv(final_best / f"{tag}_mic_ai.csv")
         m_foc = _series_metrics(foc, window_frac)
@@ -130,9 +136,15 @@ def _load_compare_summary(path: Path) -> List[Dict[str, float | str | bool]]:
 
 
 def main() -> None:
+    warnings.warn(
+        "tools/update_study_final_from_run.py is a legacy helper. "
+        "For reproducible IEEE artifacts use tools/reproduce_ieee_step28.py.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     parser = argparse.ArgumentParser(description="Update study_final artifacts from a scenario_compare run directory.")
     parser.add_argument("--run-dir", required=True, help="Directory containing *_foc.csv, *_mic_ai.csv and summary.json")
-    parser.add_argument("--study-dir", default="outputs/research20260212/study_final")
+    parser.add_argument("--study-dir", default="paper/pgups_2026/data")
     parser.add_argument("--window-frac", type=float, default=0.3)
     parser.add_argument("--checkpoint", default=None, help="Checkpoint path used for this run (for study_summary.json)")
     parser.add_argument("--method", default="MIC AI eta-supervisor")

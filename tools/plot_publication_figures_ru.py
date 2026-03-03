@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
+import warnings
 
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
-
-ROOT = Path("outputs/research20260212/study_final")
-FINAL_BEST = ROOT / "final_best"
 
 
 def _ensure_plt():
@@ -50,21 +49,21 @@ def _save_figure(fig, out_base: Path) -> None:
         fig.savefig(out_base.with_suffix(ext), bbox_inches="tight")
 
 
-def _read_series(tag: str, method: str) -> pd.DataFrame:
+def _read_series(tag: str, method: str, *, final_best_dir: Path) -> pd.DataFrame:
     suffix = "foc" if method.lower() == "foc" else "mic_ai"
-    path = FINAL_BEST / f"{tag}_{suffix}.csv"
+    path = final_best_dir / f"{tag}_{suffix}.csv"
     if not path.exists():
         raise FileNotFoundError(path)
     return pd.read_csv(path)
 
 
-def _load_all_method(method: str) -> pd.DataFrame:
+def _load_all_method(method: str, *, final_best_dir: Path) -> pd.DataFrame:
     suffix = "foc" if method.lower() == "foc" else "mic_ai"
     parts: list[pd.DataFrame] = []
-    for fp in sorted(FINAL_BEST.glob(f"*_{suffix}.csv")):
+    for fp in sorted(final_best_dir.glob(f"*_{suffix}.csv")):
         parts.append(pd.read_csv(fp))
     if not parts:
-        raise FileNotFoundError(f"No series for method={method} in {FINAL_BEST}")
+        raise FileNotFoundError(f"No series for method={method} in {final_best_dir}")
     out = pd.concat(parts, ignore_index=True)
     out["P_вх+"] = np.maximum(out["p_el"].to_numpy(dtype=float), 0.0)
     out["P_2"] = np.maximum(out["p_mech"].to_numpy(dtype=float), 0.0)
@@ -96,10 +95,10 @@ def _bin_curve(df: pd.DataFrame, p2_max: float, bins_count: int = 24) -> pd.Data
     return grp
 
 
-def _plot_mechanical_characteristics_ru(out_base: Path) -> None:
+def _plot_mechanical_characteristics_ru(out_base: Path, *, final_best_dir: Path) -> None:
     plt = _ensure_plt()
-    foc = _load_all_method("foc")
-    mic = _load_all_method("mic")
+    foc = _load_all_method("foc", final_best_dir=final_best_dir)
+    mic = _load_all_method("mic", final_best_dir=final_best_dir)
 
     p2_max = float(min(foc["P_2_кВт"].quantile(0.98), mic["P_2_кВт"].quantile(0.98)))
     p2_max = max(p2_max, 0.05)
@@ -180,10 +179,10 @@ def _cumtrapz(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     return out
 
 
-def _plot_power_eta_time_ru(out_base: Path, tag: str = "start_stop") -> None:
+def _plot_power_eta_time_ru(out_base: Path, *, final_best_dir: Path, tag: str = "start_stop") -> None:
     plt = _ensure_plt()
-    foc = _read_series(tag, "foc")
-    mic = _read_series(tag, "mic")
+    foc = _read_series(tag, "foc", final_best_dir=final_best_dir)
+    mic = _read_series(tag, "mic", final_best_dir=final_best_dir)
 
     t_f = foc["t"].to_numpy(dtype=float)
     t_m = mic["t"].to_numpy(dtype=float)
@@ -220,13 +219,13 @@ def _plot_power_eta_time_ru(out_base: Path, tag: str = "start_stop") -> None:
     plt.close(fig)
 
 
-def _plot_power_saving_ru(out_base: Path) -> None:
+def _plot_power_saving_ru(out_base: Path, *, scenario_rows: pd.DataFrame) -> None:
     plt = _ensure_plt()
-    rows = pd.read_csv(ROOT / "scenario_metrics.csv")
+    rows = scenario_rows.copy()
     x = np.arange(rows.shape[0])
 
-    full = rows["p_in_saving_full_pct"].to_numpy(dtype=float)
-    steady = rows["p_in_saving_steady_pct"].to_numpy(dtype=float)
+    full = rows["saving_full_pct"].to_numpy(dtype=float)
+    steady = rows["saving_steady_pct"].to_numpy(dtype=float)
 
     fig, ax = plt.subplots(figsize=(8.0, 4.4))
     w = 0.38
@@ -243,9 +242,17 @@ def _plot_power_saving_ru(out_base: Path) -> None:
     plt.close(fig)
 
 
-def _plot_ablation_ru(out_base: Path) -> None:
+def _plot_ablation_ru(out_base: Path, *, study_dir: Path) -> None:
     plt = _ensure_plt()
-    rows = pd.read_csv(ROOT / "ablation_methods_summary.csv")
+    src = study_dir / "ablation_methods_summary.csv"
+    if not src.exists():
+        warnings.warn(
+            f"Skip ablation figure: missing {src}.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return
+    rows = pd.read_csv(src)
 
     ru_names = {
         "FOC baseline": "FOC (база)",
@@ -377,16 +384,120 @@ def _plot_algorithm_block_ru(out_base: Path) -> None:
     plt.close(fig)
 
 
-def main() -> None:
-    if not FINAL_BEST.exists():
-        raise FileNotFoundError(FINAL_BEST)
+def _normalize_scenario(s: str) -> str:
+    s = str(s).strip()
+    return "load_step" if s == "load_profile" else s
 
-    _plot_power_saving_ru(ROOT / "fig_power_saving_ru")
-    _plot_ablation_ru(ROOT / "fig_ablation_methods_ru")
-    _plot_mechanical_characteristics_ru(ROOT / "fig_mech_characteristics_ru")
-    _plot_power_eta_time_ru(ROOT / "fig_power_eta_time_ru", tag="start_stop")
-    _plot_algorithm_block_ru(ROOT / "fig_algorithm_block_ru")
-    print(str(ROOT.resolve()))
+
+def _scenario_order_key(s: str) -> int:
+    order = {
+        "hold:0.8": 0,
+        "speed_step": 1,
+        "ramp": 2,
+        "load_step": 3,
+        "start_stop": 4,
+    }
+    return order.get(_normalize_scenario(s), 999)
+
+
+def _load_power_saving_rows(*, study_dir: Path, motor_key: str) -> pd.DataFrame:
+    single = study_dir / "scenario_metrics.csv"
+    if single.exists():
+        df = pd.read_csv(single)
+        required = {"scenario", "p_in_saving_full_pct", "p_in_saving_steady_pct"}
+        if not required.issubset(df.columns):
+            raise ValueError(f"{single} missing required columns: {sorted(required)}")
+        out = pd.DataFrame(
+            {
+                "scenario": df["scenario"].astype(str),
+                "saving_full_pct": pd.to_numeric(df["p_in_saving_full_pct"], errors="coerce"),
+                "saving_steady_pct": pd.to_numeric(df["p_in_saving_steady_pct"], errors="coerce"),
+            }
+        )
+    else:
+        multi = study_dir / "scenario_metrics_multi_motor.csv"
+        if not multi.exists():
+            raise FileNotFoundError(f"Missing scenario table: {single} or {multi}")
+        df = pd.read_csv(multi)
+        need = {"motor_key", "scenario", "saving_full_pct", "saving_steady_pct"}
+        if not need.issubset(df.columns):
+            raise ValueError(f"{multi} missing required columns: {sorted(need)}")
+        out = df[df["motor_key"].astype(str) == str(motor_key)].copy()
+        if out.empty:
+            raise ValueError(f"No rows for motor_key={motor_key} in {multi}")
+        out = out[["scenario", "saving_full_pct", "saving_steady_pct"]].copy()
+
+    out["scenario"] = out["scenario"].astype(str).map(_normalize_scenario)
+    out = out.dropna(subset=["saving_full_pct", "saving_steady_pct"])
+    out = out.sort_values(by="scenario", key=lambda c: c.map(_scenario_order_key)).reset_index(drop=True)
+    return out
+
+
+def _resolve_final_best_dir(*, study_dir: Path, final_best_dir: Path | None, motor_key: str) -> Path:
+    if final_best_dir is not None:
+        return final_best_dir
+    legacy = study_dir / "final_best"
+    if legacy.exists():
+        return legacy
+    traces = study_dir / "traces" / str(motor_key)
+    if traces.exists():
+        return traces
+    raise FileNotFoundError(
+        f"Cannot resolve final-best traces directory. Checked: {legacy} and {traces}. "
+        "Pass --final-best-dir explicitly."
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build RU publication figures from explicit study directories. "
+            "Legacy hard-coded path outputs/research20260212/study_final is removed."
+        )
+    )
+    parser.add_argument("--study-dir", default="paper/pgups_2026/data")
+    parser.add_argument("--paper-data-dir", default="", help="Alias for --study-dir.")
+    parser.add_argument("--final-best-dir", default="", help="Directory with *_foc.csv/*_mic_ai.csv traces.")
+    parser.add_argument("--out-dir", default="", help="Figure output directory (default: --study-dir).")
+    parser.add_argument("--motor-key", default="air56", help="Motor key for scenario table/traces fallback.")
+    parser.add_argument("--start-stop-tag", default="start_stop", help="Tag for power-vs-time figure.")
+    parser.add_argument("--skip-deprecated-warning", action="store_true")
+    args = parser.parse_args()
+
+    if not args.skip_deprecated_warning:
+        warnings.warn(
+            "tools/plot_publication_figures_ru.py is a legacy PGUPS helper. "
+            "For IEEE pipeline use tools/build_ieee_figures_tables.py.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    study_dir_arg = str(args.paper_data_dir).strip() or str(args.study_dir)
+    study_dir = Path(study_dir_arg).resolve()
+    if not study_dir.exists():
+        raise FileNotFoundError(study_dir)
+    out_dir = Path(args.out_dir).resolve() if args.out_dir else study_dir
+    final_best_arg = Path(args.final_best_dir).resolve() if str(args.final_best_dir).strip() else None
+    final_best_dir = _resolve_final_best_dir(
+        study_dir=study_dir,
+        final_best_dir=final_best_arg,
+        motor_key=str(args.motor_key),
+    )
+    if not final_best_dir.exists():
+        raise FileNotFoundError(final_best_dir)
+
+    rows = _load_power_saving_rows(study_dir=study_dir, motor_key=str(args.motor_key))
+
+    _plot_power_saving_ru(out_dir / "fig_power_saving_ru", scenario_rows=rows)
+    _plot_ablation_ru(out_dir / "fig_ablation_methods_ru", study_dir=study_dir)
+    _plot_mechanical_characteristics_ru(out_dir / "fig_mech_characteristics_ru", final_best_dir=final_best_dir)
+    _plot_power_eta_time_ru(
+        out_dir / "fig_power_eta_time_ru",
+        final_best_dir=final_best_dir,
+        tag=str(args.start_stop_tag),
+    )
+    _plot_algorithm_block_ru(out_dir / "fig_algorithm_block_ru")
+    print(str(out_dir.resolve()))
 
 
 if __name__ == "__main__":

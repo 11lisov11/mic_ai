@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -40,14 +41,14 @@ def _save_all(fig, name: str, out_dirs: list[Path]) -> None:
             fig.savefig(out / f"{name}{ext}", bbox_inches="tight", dpi=320)
 
 
-def regen_learning_vs_foc(out_dirs: list[Path]) -> None:
+def regen_learning_vs_foc(*, study_dir: Path, out_dirs: list[Path]) -> None:
     import matplotlib.pyplot as plt
 
     # Use the corrected multi-motor study summary as the single source of truth for
     # savings/eta metrics, and join it with the (separately computed) learning-time table.
-    src = Path("outputs/research20260212/study_final/motor_summary_multi_motor.csv")
+    src = study_dir / "motor_summary_multi_motor.csv"
     df = pd.read_csv(src)
-    time_src = Path("outputs/research20260212/study_final/time_to_foc_summary_ru.csv")
+    time_src = study_dir / "time_to_foc_summary_ru.csv"
     tdf = pd.read_csv(time_src)
 
     tdf = tdf.set_index("motor_key")
@@ -139,10 +140,10 @@ def regen_learning_vs_foc(out_dirs: list[Path]) -> None:
     plt.close(fig)
 
 
-def regen_scenario_heatmap(out_dirs: list[Path]) -> None:
+def regen_scenario_heatmap(*, study_dir: Path, out_dirs: list[Path]) -> None:
     import matplotlib.pyplot as plt
 
-    src = Path("outputs/research20260212/study_final/scenario_metrics_multi_motor.csv")
+    src = study_dir / "scenario_metrics_multi_motor.csv"
     df = pd.read_csv(src)
 
     motor_map = {
@@ -152,16 +153,18 @@ def regen_scenario_heatmap(out_dirs: list[Path]) -> None:
     }
     df["motor_label"] = df["motor_label"].replace(motor_map)
 
-    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_profile", "start_stop"]
+    # IEEE protocol uses load_step; keep load_profile as legacy alias for PGUPS tables.
+    df["scenario_norm"] = df["scenario"].astype(str).replace({"load_profile": "load_step"})
+    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_step", "start_stop"]
     scenario_ru = {
         "hold:0.8": "\u0423\u0441\u0442\u0430\u043d. \u0440\u0435\u0436\u0438\u043c",
         "speed_step": "\u0421\u0442\u0443\u043f\u0435\u043d\u044c \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u0438",
         "ramp": "\u0420\u0430\u0437\u0433\u043e\u043d/\u0442\u043e\u0440\u043c.",
-        "load_profile": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u043d\u0430\u0433\u0440\u0443\u0437\u043a\u0438",
+        "load_step": "\u0428\u0430\u0433 \u043d\u0430\u0433\u0440\u0443\u0437\u043a\u0438",
         "start_stop": "\u041f\u0443\u0441\u043a-\u0441\u0442\u043e\u043f",
     }
 
-    pivot = df.pivot(index="motor_label", columns="scenario", values="saving_full_pct")
+    pivot = df.pivot(index="motor_label", columns="scenario_norm", values="saving_full_pct")
     pivot = pivot.reindex(columns=[c for c in scenario_order if c in pivot.columns])
     data = pivot.to_numpy(dtype=float)
     vmax = float(max(np.max(np.abs(data)), 1.0))
@@ -187,14 +190,34 @@ def regen_scenario_heatmap(out_dirs: list[Path]) -> None:
     plt.close(fig)
 
 
+def _parse_out_dirs(value: str) -> list[Path]:
+    parts = [p.strip() for p in str(value).split(",") if p.strip()]
+    return [Path(p) for p in parts]
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Refresh RU multi-motor figures from committed study tables. "
+            "This script supersedes legacy hard-coded paths under outputs/research20260212."
+        )
+    )
+    parser.add_argument("--study-dir", default="paper/pgups_2026/data")
+    parser.add_argument("--paper-data-dir", default="", help="Alias for --study-dir.")
+    parser.add_argument("--out-dirs", default="paper/pgups_2026/data")
+    args = parser.parse_args()
+
+    study_dir_arg = str(args.paper_data_dir).strip() or str(args.study_dir)
+    study_dir = Path(study_dir_arg).resolve()
+    if not study_dir.exists():
+        raise FileNotFoundError(study_dir)
+    out_dirs = [p.resolve() for p in _parse_out_dirs(args.out_dirs)]
+    if not out_dirs:
+        raise ValueError("Empty --out-dirs")
+
     _setup_plot()
-    out_dirs = [
-        Path("outputs/research20260212/study_final"),
-        Path("outputs/research20260213/multi_motor_study"),
-    ]
-    regen_learning_vs_foc(out_dirs)
-    regen_scenario_heatmap(out_dirs)
+    regen_learning_vs_foc(study_dir=study_dir, out_dirs=out_dirs)
+    regen_scenario_heatmap(study_dir=study_dir, out_dirs=out_dirs)
     print("OK: refreshed fig_learning_vs_foc_ru and fig_multi_motor_scenario_heatmap_ru")
 
 

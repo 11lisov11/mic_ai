@@ -10,9 +10,11 @@ This keeps the paper reproducible without relying on external experiment tracker
 """
 
 import csv
+import argparse
 import json
 import math
 import re
+import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +28,7 @@ class RunInfo:
     run_dir: Path
 
 
-RUNS: tuple[RunInfo, ...] = (
+DEFAULT_RUNS: tuple[RunInfo, ...] = (
     RunInfo(
         motor_key="air56",
         motor_label="АИР56 0,25 кВт",
@@ -130,13 +132,85 @@ def _infer_scenario_from_tag(file_tag: str) -> str:
     return tag
 
 
+def _load_runs_from_manifest(path: Path) -> tuple[RunInfo, ...]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise ValueError(f"Runs manifest must be a JSON list: {path}")
+    rows: list[RunInfo] = []
+    for row in data:
+        if not isinstance(row, dict):
+            continue
+        motor_key = str(row.get("motor_key", "")).strip()
+        motor_label = str(row.get("motor_label", "")).strip()
+        run_dir = str(row.get("run_dir", "")).strip()
+        if not motor_key or not motor_label or not run_dir:
+            continue
+        rows.append(RunInfo(motor_key=motor_key, motor_label=motor_label, run_dir=Path(run_dir)))
+    if not rows:
+        raise ValueError(f"No valid runs in manifest: {path}")
+    return tuple(rows)
+
+
+def _parse_runs_inline(text: str) -> tuple[RunInfo, ...]:
+    """
+    Parse `--runs` string:
+      air56|АИР56 0,25 кВт|results_run/xxx;al31|АЛ-31-4 0,6 кВт|results_run/yyy
+    """
+    rows: list[RunInfo] = []
+    for token in [t.strip() for t in str(text).split(";") if t.strip()]:
+        parts = [p.strip() for p in token.split("|")]
+        if len(parts) != 3:
+            raise ValueError(f"Invalid --runs item: {token}")
+        rows.append(RunInfo(motor_key=parts[0], motor_label=parts[1], run_dir=Path(parts[2])))
+    if not rows:
+        raise ValueError("Empty --runs")
+    return tuple(rows)
+
+
 def main() -> None:
-    out_path = Path("paper/pgups_2026/data/time_to_foc_summary_ru.csv")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build time-to-FOC summary from training eval snapshots. "
+            "Use --runs or --runs-manifest for explicit reproducible paths."
+        )
+    )
+    parser.add_argument("--out-path", default="paper/pgups_2026/data/time_to_foc_summary_ru.csv")
+    parser.add_argument("--runs-manifest", default="", help="JSON list with motor_key/motor_label/run_dir.")
+    parser.add_argument(
+        "--runs",
+        default="",
+        help="Inline runs list: motor_key|motor_label|run_dir;motor_key|motor_label|run_dir",
+    )
+    parser.add_argument(
+        "--allow-default-runs",
+        action="store_true",
+        help="Allow legacy hard-coded run directories (results_run/20260215_...).",
+    )
+    args = parser.parse_args()
+
+    if str(args.runs).strip():
+        runs = _parse_runs_inline(str(args.runs))
+    elif str(args.runs_manifest).strip():
+        manifest = Path(str(args.runs_manifest)).resolve()
+        if not manifest.exists():
+            raise FileNotFoundError(manifest)
+        runs = _load_runs_from_manifest(manifest)
+    elif bool(args.allow_default_runs):
+        warnings.warn(
+            "Using legacy default runs from results_run/20260215_...; pass --runs or --runs-manifest instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        runs = DEFAULT_RUNS
+    else:
+        raise ValueError("No runs provided. Pass --runs or --runs-manifest (or use --allow-default-runs).")
+
+    out_path = Path(str(args.out_path))
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     rows = []
 
-    for run in RUNS:
+    for run in runs:
         if not run.run_dir.exists():
             raise FileNotFoundError(run.run_dir)
         eval_dir = run.run_dir / "eval"

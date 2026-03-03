@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import warnings
 from pathlib import Path
 from typing import Dict
 
@@ -47,6 +48,12 @@ def _interp(x: np.ndarray, y: np.ndarray, x0: float) -> float:
 
 
 def main() -> None:
+    warnings.warn(
+        "tools/build_air56_mech_only_from_sweep.py is deprecated. "
+        "Use tools/build_air56_mech_journal_from_traces.py for production figures.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     parser = argparse.ArgumentParser(description="Build natural mechanical characteristics from load sweep CSV.")
     parser.add_argument("--sweep-csv", default="outputs/article_air56_20260217_natural/load_characteristics.csv")
     parser.add_argument("--out-pdf", default="outputs/article_air56_20260217/fig_air56_mech_journal.pdf")

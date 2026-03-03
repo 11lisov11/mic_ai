@@ -105,7 +105,8 @@ def _load_summary_items(run_dir: Path) -> List[Dict[str, str]]:
         raise FileNotFoundError(f"Missing traces in {run_dir} (expected '*_foc.csv' + '*_mic_ai.csv').")
 
     # Stable and publication-friendly ordering.
-    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_profile", "start_stop"]
+    # IEEE protocol uses load_step; keep load_profile as legacy alias for PGUPS traces.
+    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_step", "load_profile", "start_stop"]
     order_idx = {name: i for i, name in enumerate(scenario_order)}
     inferred.sort(key=lambda it: (order_idx.get(it["scenario"], 999), it["scenario"], it["file_tag"]))
     return inferred
@@ -157,7 +158,7 @@ def _steady_slice_by_scenario(t: np.ndarray, omega_ref: np.ndarray, scenario: st
     Scenario-aware definition of the "steady window".
 
     Default (most scenarios): last `frac` of the record, which corresponds to the final quasi-steady segment
-    for `hold`, `speed_step`, `ramp` and `load_profile` in our protocol.
+    for `hold`, `speed_step`, `ramp` and `load_step` in our protocol (`load_profile` is treated as legacy alias).
 
     Special case: `start_stop` has a terminal deceleration and stop, so the last window is NOT representative of
     steady operation. For this scenario we select the plateau where ωref is close to its maximum and nearly constant,
@@ -372,14 +373,16 @@ def _plot_summary_bars(summary_df: pd.DataFrame, out_base: Path) -> None:
 
 def _plot_savings_heatmap(scenario_df: pd.DataFrame, out_base: Path) -> None:
     plt = _ensure_plt()
-    pivot = scenario_df.pivot(index="motor_label", columns="scenario", values="saving_full_pct")
-    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_profile", "start_stop"]
+    data_df = scenario_df.copy()
+    data_df["scenario_norm"] = data_df["scenario"].astype(str).replace({"load_profile": "load_step"})
+    pivot = data_df.pivot(index="motor_label", columns="scenario_norm", values="saving_full_pct")
+    scenario_order = ["hold:0.8", "speed_step", "ramp", "load_step", "start_stop"]
     pivot = pivot.reindex(columns=[c for c in scenario_order if c in pivot.columns])
     scenario_ru = {
         "hold:0.8": "Установившийся режим",
         "speed_step": "Ступень скорости",
         "ramp": "Разгон/торможение",
-        "load_profile": "Профиль нагрузки",
+        "load_step": "Шаг нагрузки",
         "start_stop": "Пуск—стоп",
     }
     pivot.columns = [scenario_ru.get(str(c), str(c)) for c in pivot.columns]

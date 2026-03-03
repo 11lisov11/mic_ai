@@ -1,0 +1,14 @@
+{
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
+  "rows_total": 6,
+  "mic_rows": 2,
+  "avg_power_saving_pct_mean": 0.9175904741815945,
+  "avg_power_saving_pct_min": 0.0918235279989632,
+  "avg_eta_gain_pct_mean": 0.0715344793921934,
+  "avg_eta_gain_pct_min": 0.0067171496765633,
+  "err_failures_max": 2.0,
+  "start_stop_power_saving_pct_mean": 2.6697119023988782,
+  "table_sha256_unique": [
+    "e74b3a5a14cba32dec8f3f7d17413a1df57dba17f5d9371d3968c3040ba90154"
+  ]
+}

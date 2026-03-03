@@ -1,0 +1,53 @@
+{
+  "env_config": "config\\env_research_air56_025kw.py",
+  "ai_checkpoint": "C:\\mic_theory\\outputs\\ai_id_ref\\checkpoints\\env_research_air56_025kw\\best_actor.pth",
+  "mic_policy": "ai",
+  "mic_id_ref": null,
+  "mic_id_ref_low": null,
+  "mic_id_ref_high": null,
+  "mic_id_ref_speed_tol_rel": 0.05,
+  "mic_id_ref_omega_min": 0.1,
+  "omega_ref_pu": 1.0,
+  "ai_mode": "ai_id_ref",
+  "omega_nom_source": "nameplate",
+  "omega_nominal": 144.5132620651305,
+  "m_nom": 1.729945033607558,
+  "loads": [
+    0.3459890067215116,
+    0.6919780134430232,
+    1.0379670201645348,
+    1.3839560268860465,
+    1.729945033607558
+  ],
+  "load_values": [
+    0.3459890067215116,
+    0.6919780134430232,
+    1.0379670201645348,
+    1.3839560268860465,
+    1.729945033607558
+  ],
+  "speed_pu": [
+    0.3,
+    0.5,
+    0.7,
+    0.9
+  ],
+  "dt": 0.0005,
+  "t_end": 1.2,
+  "window_frac": 0.3,
+  "voltage_scale": null,
+  "i_max": null,
+  "foc_kp_speed": null,
+  "foc_ki_speed": null,
+  "speed_tol_rel": 0.05,
+  "speed_tol_abs": null,
+  "ai_id_relative": false,
+  "delta_id_max": 0.3,
+  "export_abc_traces": false,
+  "plot_style": "vak_ru",
+  "plot_formats": [
+    "png",
+    "pdf",
+    "svg"
+  ]
+}

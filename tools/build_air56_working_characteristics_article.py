@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,13 @@ def _interp_common(df: pd.DataFrame, policy: str, col: str, x_common: float) -> 
 
 
 def main() -> None:
+    warnings.warn(
+        "tools/build_air56_working_characteristics_article.py is deprecated. "
+        "Use tools/build_air56_mech_journal_from_traces.py (figures) and "
+        "tools/validate_theory_working_characteristics.py (validation).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     parser = argparse.ArgumentParser(description="Build AIR56 article-ready working characteristics (FOC vs MIC).")
     parser.add_argument("--env-config", default="config/env_research_air56_025kw.py")
     parser.add_argument("--out-dir", default="outputs/article_air56_20260302")

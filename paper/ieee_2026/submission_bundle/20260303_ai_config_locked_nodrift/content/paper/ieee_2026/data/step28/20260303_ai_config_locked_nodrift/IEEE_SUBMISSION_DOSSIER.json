@@ -1,0 +1,83 @@
+{
+  "generated_utc": "2026-03-03T21:40:38.660247+00:00",
+  "tag": "20260303_ai_config_locked_nodrift",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "status": {
+    "checklist_ready_for_submission": true,
+    "lock_ok": true,
+    "candidate_ready_for_submission": true,
+    "release_commit_manifest_ok": true,
+    "verify_ok": true,
+    "manuscript_template_ok": true,
+    "bundle_present": false,
+    "bundle_ok": false,
+    "passport_failures": 0,
+    "passport_warnings": 2,
+    "dossier_ok": true
+  },
+  "hashes": {
+    "submission_lock_aggregate_sha256": "bea3a48a292d31f4de50ffd955faf5dfecdf41bd9c1256c5f0651b831f746dd2",
+    "release_manifest_aggregate_sha256": "937d09ac2b925e50838d0ed3b95448b9a94d5a38739dfb9e91c8c55f4f5e8022"
+  },
+  "git": {
+    "commit": "8839763090de2a77228bac254cd057f53bb66591",
+    "branch": "main",
+    "dirty": true
+  },
+  "motor_summary_rows": [
+    {
+      "motor": "air56",
+      "avg_power_saving_pct_mean": 0.5763272819896914,
+      "avg_power_saving_pct_min": 0.5763272819896914,
+      "avg_eta_gain_pct_mean": 0.1887445857059494,
+      "avg_eta_gain_pct_min": 0.1887445857059494,
+      "err_failures_mean": 2.0,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": -0.2117089960121498,
+      "start_stop_power_saving_pct_min": -0.2117089960121498,
+      "mean_pass": true,
+      "worst_case_pass": true,
+      "acceptance_pass": true
+    },
+    {
+      "motor": "al31",
+      "avg_power_saving_pct_mean": 2.0846206125561286,
+      "avg_power_saving_pct_min": 2.0846206125561286,
+      "avg_eta_gain_pct_mean": 0.0067171496765633,
+      "avg_eta_gain_pct_min": 0.0067171496765633,
+      "err_failures_mean": 0.0,
+      "err_failures_max": 0.0,
+      "start_stop_power_saving_pct_mean": 8.23476985501863,
+      "start_stop_power_saving_pct_min": 8.23476985501863,
+      "mean_pass": true,
+      "worst_case_pass": true,
+      "acceptance_pass": true
+    },
+    {
+      "motor": "ao2",
+      "avg_power_saving_pct_mean": 0.0918235279989632,
+      "avg_power_saving_pct_min": 0.0918235279989632,
+      "avg_eta_gain_pct_mean": 0.0191417027940676,
+      "avg_eta_gain_pct_min": 0.0191417027940676,
+      "err_failures_mean": 0.0,
+      "err_failures_max": 0.0,
+      "start_stop_power_saving_pct_mean": -0.0139251518098459,
+      "start_stop_power_saving_pct_min": -0.0139251518098459,
+      "mean_pass": true,
+      "worst_case_pass": true,
+      "acceptance_pass": true
+    }
+  ],
+  "artifacts": {
+    "checklist_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\FINAL_CHECKLIST_AUTO.md",
+    "lock_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\submission_candidate_lock.json",
+    "candidate_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\SUBMISSION_CANDIDATE.json",
+    "release_manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\RELEASE_COMMIT_MANIFEST.json",
+    "verify_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\VERIFY_SUBMISSION_CANDIDATE.json",
+    "template_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\MANUSCRIPT_TEMPLATE_REPORT.json",
+    "bundle_manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift\\submission_bundle_manifest.json",
+    "motor_summary_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_tuning_acceptance_summary.json",
+    "passport_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\passport\\passport_compare_3motors.json"
+  }
+}

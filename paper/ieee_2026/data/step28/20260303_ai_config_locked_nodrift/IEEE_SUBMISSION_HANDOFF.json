@@ -1,0 +1,17 @@
+{
+  "generated_utc": "2026-03-03T21:50:59.784144+00:00",
+  "tag": "20260303_ai_config_locked_nodrift",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "bundle_dir": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift",
+  "verify_ok": true,
+  "dossier_ok": true,
+  "bundle_ok": true,
+  "handoff_ready": true,
+  "bundle": {
+    "manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift\\submission_bundle_manifest.json",
+    "manifest_md": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift\\submission_bundle_manifest.md",
+    "zip": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift\\ieee_submission_20260303_ai_config_locked_nodrift.zip",
+    "tar_gz": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift\\ieee_submission_20260303_ai_config_locked_nodrift.tar.gz"
+  }
+}
