@@ -1,0 +1,73 @@
+{
+  "baseline_tag": "20260304_al31_robust_rand009_nodrift_v3",
+  "source_summary_csv": "paper/ieee_2026/data/step28/20260304_al31_robust_rand009_nodrift_v3/step28_ieee_summary.csv",
+  "description": "Regression baseline for frozen IEEE step28 summary MIC rows (mode1/mode2), AL31 robust rand009 nodrift v3.",
+  "rows": [
+    {
+      "mode": "mode1_foc_encoder_vs_mic_sensorless",
+      "controller": "MIC",
+      "metrics": {
+        "avg_power_saving_pct_mean": 0.4799910223782131,
+        "avg_power_saving_pct_min": 0.3714083621434021,
+        "avg_eta_gain_pct_mean": 1.47949677975432,
+        "avg_eta_gain_pct_min": 0.0045903595253082,
+        "err_failures_max": 2.0,
+        "start_stop_power_saving_pct_mean": 0.4184587206998731,
+        "start_stop_power_saving_pct_min": -0.3466187059183445
+      },
+      "tolerance": {
+        "abs": {
+          "avg_power_saving_pct_mean": 0.12,
+          "avg_power_saving_pct_min": 0.12,
+          "avg_eta_gain_pct_mean": 0.25,
+          "avg_eta_gain_pct_min": 0.03,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.4,
+          "start_stop_power_saving_pct_min": 0.2
+        },
+        "rel": {
+          "avg_power_saving_pct_mean": 0.0,
+          "avg_power_saving_pct_min": 0.0,
+          "avg_eta_gain_pct_mean": 0.0,
+          "avg_eta_gain_pct_min": 0.0,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.0,
+          "start_stop_power_saving_pct_min": 0.0
+        }
+      }
+    },
+    {
+      "mode": "mode2_foc_sensorless_vs_mic_sensorless",
+      "controller": "MIC",
+      "metrics": {
+        "avg_power_saving_pct_mean": 0.4799910223782131,
+        "avg_power_saving_pct_min": 0.3714083621434021,
+        "avg_eta_gain_pct_mean": 1.47949677975432,
+        "avg_eta_gain_pct_min": 0.0045903595253082,
+        "err_failures_max": 2.0,
+        "start_stop_power_saving_pct_mean": 0.4184587206998731,
+        "start_stop_power_saving_pct_min": -0.3466187059183445
+      },
+      "tolerance": {
+        "abs": {
+          "avg_power_saving_pct_mean": 0.12,
+          "avg_power_saving_pct_min": 0.12,
+          "avg_eta_gain_pct_mean": 0.25,
+          "avg_eta_gain_pct_min": 0.03,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.4,
+          "start_stop_power_saving_pct_min": 0.2
+        },
+        "rel": {
+          "avg_power_saving_pct_mean": 0.0,
+          "avg_power_saving_pct_min": 0.0,
+          "avg_eta_gain_pct_mean": 0.0,
+          "avg_eta_gain_pct_min": 0.0,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.0,
+          "start_stop_power_saving_pct_min": 0.0
+        }
+      }
+    }
+  ]
+}

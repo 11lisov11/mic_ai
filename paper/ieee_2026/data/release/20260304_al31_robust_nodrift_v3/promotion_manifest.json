@@ -1,0 +1,152 @@
+{
+  "tag": "20260304_al31_robust_nodrift_v3",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "promoted_count": 24,
+  "files": [
+    {
+      "label": "fig2_pi_foc_mic_power",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\fig_ieee_pi_foc_mic_power.png",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig2_pi_foc_mic_power.png",
+      "sha256": "2c0e9b14380cd90e7ebae1d94c55e36c67157bb9a144287069c8957565338046"
+    },
+    {
+      "label": "fig2_pi_foc_mic_power",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\fig_ieee_pi_foc_mic_power.pdf",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig2_pi_foc_mic_power.pdf",
+      "sha256": "7adccfbf1da8ecf4338c9e6c5b3ed972c8c904a3f1c0f7990f0b357f0e8b9a00"
+    },
+    {
+      "label": "fig2_pi_foc_mic_power",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\fig_ieee_pi_foc_mic_power.svg",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig2_pi_foc_mic_power.svg",
+      "sha256": "06cba10cdb5fa2a51b68742d54eff30edab7eeaed0ca6a4f86992c467d71dabb"
+    },
+    {
+      "label": "fig3_air56_working_characteristics",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic.png",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.png",
+      "sha256": "e3c317498a55ba770e1dbd744a86b3cc6595eda44caa279328c47ca85e11fd5b"
+    },
+    {
+      "label": "fig3_air56_working_characteristics",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic.pdf",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.pdf",
+      "sha256": "265bbb64dcc3761f3ebf5a045f938d94e14d22f40ca3b556ab0ec09db01de375"
+    },
+    {
+      "label": "fig3_air56_working_characteristics",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic.svg",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.svg",
+      "sha256": "74389bb8e7a69df593f7a674624bbcf2df8c02089ef7fbb6e98fe499c019061c"
+    },
+    {
+      "label": "fig4_cross_motor_robustness",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_multi_motor_scenario_heatmap_ru.png",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig4_cross_motor_robustness.png",
+      "sha256": "65844512e322e10922e10b338dec836e98c2f40c91b397492a2fddc305238758"
+    },
+    {
+      "label": "fig4_cross_motor_robustness",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_multi_motor_scenario_heatmap_ru.pdf",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig4_cross_motor_robustness.pdf",
+      "sha256": "50bc62b345c51b923378bd40a0d04ddfd4b8f393eb3b17910fb9fe4a0d1ec32b"
+    },
+    {
+      "label": "fig4_cross_motor_robustness",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_multi_motor_scenario_heatmap_ru.svg",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig4_cross_motor_robustness.svg",
+      "sha256": "2c2a80e6c5181528b5854e25b11878dd3f4bab6eef780e5ed26f11673166d90a"
+    },
+    {
+      "label": "fig5_training_to_foc",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_learning_vs_foc_ru.png",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig5_training_to_foc.png",
+      "sha256": "8c9ad878502f532398b34f45ca6910ad98462a842569a00e475298e8158f8935"
+    },
+    {
+      "label": "fig5_training_to_foc",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_learning_vs_foc_ru.pdf",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig5_training_to_foc.pdf",
+      "sha256": "760931d25995818276ff6a90d132c9c1263f928dc799007e62395cd27d2bfd60"
+    },
+    {
+      "label": "fig5_training_to_foc",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_learning_vs_foc_ru.svg",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig5_training_to_foc.svg",
+      "sha256": "35e3dd1ea802546a680a0dad8c0ac67d2e1ad8a3af35756d388ea86d3b8a1093"
+    },
+    {
+      "label": "fig1_mic_methodology",
+      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_algorithm_block_ru.png",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig1_mic_methodology.png",
+      "sha256": "389c99158cc04bf4da7cffa2a065eeb9b60f29a0161337c4e1d1535a3e97c947"
+    },
+    {
+      "label": "table:ieee_pi_foc_mic_stats.csv",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\ieee_pi_foc_mic_stats.csv",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\ieee_pi_foc_mic_stats.csv",
+      "sha256": "b9ab941d9fc45fdd8f9db4f3937dfdd87b2d24a07850902842004a7cc3087a24"
+    },
+    {
+      "label": "table:ieee_pi_foc_mic_stats.md",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\ieee_pi_foc_mic_stats.md",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\ieee_pi_foc_mic_stats.md",
+      "sha256": "0a3d32f4262297742892fbebb77f7ca0760393cd320f8af6752c6f87f52a0739"
+    },
+    {
+      "label": "table:motor_tuning_acceptance_summary.csv",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\motor_tuning_acceptance_summary.csv",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\motor_tuning_acceptance_summary.csv",
+      "sha256": "7bab93cda6f9621fd4b442a301b42ac5f8cc7edca4ef3dd5a83cfbea6048d44d"
+    },
+    {
+      "label": "table:motor_tuning_acceptance_summary.json",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\motor_tuning_acceptance_summary.json",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\motor_tuning_acceptance_summary.json",
+      "sha256": "7e32d69a4f46ddd3047d07fb12e90dcd08b057fb90af5d7cc018cb6517ceac33"
+    },
+    {
+      "label": "table:motor_air56_tuning_report.md",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\motor_air56_tuning_report.md",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\motor_air56_tuning_report.md",
+      "sha256": "4d2c7e00d886fe4c25b05df1c2ca7ae7fffd90a4813572243803d62f5459538c"
+    },
+    {
+      "label": "table:motor_al31_tuning_report.md",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\motor_al31_tuning_report.md",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\motor_al31_tuning_report.md",
+      "sha256": "b2f6daf7c3c8230b2be04e8dd2c6d527c237c6948e5f4576855c122d39376f96"
+    },
+    {
+      "label": "table:motor_ao2_tuning_report.md",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\derived_ieee\\motor_ao2_tuning_report.md",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\motor_ao2_tuning_report.md",
+      "sha256": "c0ce2fc8c4efcbe25bca1d47503fa2a6d41c71c144bb34f34e28689f7c21b113"
+    },
+    {
+      "label": "table:step28_ieee_summary.csv",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\step28_ieee_summary.csv",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\step28_ieee_summary.csv",
+      "sha256": "20cdefcb889717eecdba7aca1813c597ff57bc814a3e9aaf1144d19fe462dd9e"
+    },
+    {
+      "label": "table:step28_ieee_summary.md",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\step28_ieee_summary.md",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\step28_ieee_summary.md",
+      "sha256": "2b8ea89e0e31dc2436f1148c60c4035dae2f7ccf7caf9fc09c7b102010bcc7bb"
+    },
+    {
+      "label": "table:package_manifest.json",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_nodrift_v3\\package_manifest.json",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\tables\\package_manifest.json",
+      "sha256": "13a8db38b79907f76f724782d9eacb527b0651366b31d2747f73847363488a99"
+    },
+    {
+      "label": "release_snapshot",
+      "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\release_snapshot.json",
+      "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260304_al31_robust_nodrift_v3\\release_snapshot.json",
+      "sha256": "fe1520179b7c588006880e466f8db6042f715389fa7c130cd941417c35f1d823"
+    }
+  ]
+}

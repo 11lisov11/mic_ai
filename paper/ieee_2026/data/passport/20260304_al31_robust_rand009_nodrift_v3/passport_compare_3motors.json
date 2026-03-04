@@ -1,0 +1,65 @@
+{
+  "rows": [
+    {
+      "motor": "air56",
+      "policy": "FOC",
+      "load_factor": 1.0,
+      "p2_kw_model": 0.1323741949555887,
+      "p2_kw_nameplate": 0.25,
+      "p2_kw_delta_pct": -47.05032201776452,
+      "i1_a_model": 0.5863226346782137,
+      "i1_a_nameplate": 0.7,
+      "i1_a_delta_pct": -16.239623617398042,
+      "n2_rpm_model": 730.7055561548499,
+      "n2_rpm_nameplate": 1380.0,
+      "n2_rpm_delta_pct": -47.0503220177645,
+      "eta_pct_model": 53.0900989006754,
+      "eta_pct_nameplate": 75.0,
+      "eta_pct_delta_abs": -21.9099010993246,
+      "cos_phi_model": 0.8362460798521045,
+      "cos_phi_nameplate": 0.68,
+      "cos_phi_delta_abs": 0.15624607985210448,
+      "checkpoint_used": "C:\\mic_theory\\outputs\\ai_id_ref\\checkpoints\\env_research_air56_025kw\\best_actor.pth",
+      "omega_ref_pu_used": 1.0,
+      "load_csv": "C:\\mic_theory\\paper\\ieee_2026\\data\\passport\\20260304_al31_robust_rand009_nodrift_v3\\raw\\air56\\load_characteristics.csv",
+      "nominal_proxy_used": false,
+      "nominal_proxy_abs_err": 0.0
+    },
+    {
+      "motor": "air56",
+      "policy": "MIC_AI",
+      "load_factor": 1.0,
+      "p2_kw_model": 0.121249925696085,
+      "p2_kw_nameplate": 0.25,
+      "p2_kw_delta_pct": -51.500029721566,
+      "i1_a_model": 0.6321678552651474,
+      "i1_a_nameplate": 0.7,
+      "i1_a_delta_pct": -9.690306390693223,
+      "n2_rpm_model": 669.2995898423893,
+      "n2_rpm_nameplate": 1380.0,
+      "n2_rpm_delta_pct": -51.500029721565994,
+      "eta_pct_model": 49.3605736140256,
+      "eta_pct_nameplate": 75.0,
+      "eta_pct_delta_abs": -25.639426385974403,
+      "cos_phi_model": 0.8863075872862735,
+      "cos_phi_nameplate": 0.68,
+      "cos_phi_delta_abs": 0.2063075872862734,
+      "checkpoint_used": "C:\\mic_theory\\outputs\\ai_id_ref\\checkpoints\\env_research_air56_025kw\\best_actor.pth",
+      "omega_ref_pu_used": 1.0,
+      "load_csv": "C:\\mic_theory\\paper\\ieee_2026\\data\\passport\\20260304_al31_robust_rand009_nodrift_v3\\raw\\air56\\load_characteristics.csv",
+      "nominal_proxy_used": false,
+      "nominal_proxy_abs_err": 0.0
+    }
+  ],
+  "warnings": [],
+  "failures": [
+    {
+      "motor": "al31",
+      "error": "Command '['C:\\\\Users\\\\11lis\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\python.exe', '-m', 'mic_ai.tools.drive_characteristics_ai', '--env-config', 'config/env_research_al31_4_06kw.py', '--out-dir', 'C:\\\\mic_theory\\\\paper\\\\ieee_2026\\\\data\\\\passport\\\\20260304_al31_robust_rand009_nodrift_v3\\\\raw\\\\al31', '--omega-ref-pu', '0.7', '--load-factors', '0.2,0.4,0.6,0.8,1.0', '--window-frac', '0.25', '--t-end', '1.5', '--ai-checkpoint', 'C:\\\\mic_theory\\\\outputs\\\\ai_id_ref\\\\checkpoints\\\\env_research_al31_4_06kw\\\\best_actor.pth', '--ai-mode', 'ai_id_ref']' returned non-zero exit status 120."
+    },
+    {
+      "motor": "ao2",
+      "error": "Command '['C:\\\\Users\\\\11lis\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\python.exe', '-m', 'mic_ai.tools.drive_characteristics_ai', '--env-config', 'config/env_research_ao2_32_4_3kw.py', '--out-dir', 'C:\\\\mic_theory\\\\paper\\\\ieee_2026\\\\data\\\\passport\\\\20260304_al31_robust_rand009_nodrift_v3\\\\raw\\\\ao2', '--omega-ref-pu', '0.7', '--load-factors', '0.2,0.4,0.6,0.8,1.0', '--window-frac', '0.25', '--t-end', '1.5', '--ai-checkpoint', 'C:\\\\mic_theory\\\\outputs\\\\ai_id_ref\\\\checkpoints\\\\env_research_ao2_32_4_3kw\\\\best_actor.pth', '--ai-mode', 'ai_id_ref']' returned non-zero exit status 120."
+    }
+  ]
+}

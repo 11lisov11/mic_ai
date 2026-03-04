@@ -1,0 +1,14 @@
+{
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3",
+  "rows_total": 6,
+  "mic_rows": 2,
+  "avg_power_saving_pct_mean": 0.4799910223782131,
+  "avg_power_saving_pct_min": 0.3714083621434021,
+  "avg_eta_gain_pct_mean": 1.47949677975432,
+  "avg_eta_gain_pct_min": 0.0045903595253082,
+  "err_failures_max": 2.0,
+  "start_stop_power_saving_pct_mean": 0.4184587206998731,
+  "table_sha256_unique": [
+    "c1487a1cc5545d72d35b5f2db4f82e75a578975ea85f0ca42ccef4f26d8b596e"
+  ]
+}

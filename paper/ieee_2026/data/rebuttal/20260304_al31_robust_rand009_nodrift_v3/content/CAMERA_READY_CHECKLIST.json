@@ -1,0 +1,63 @@
+{
+  "generated_utc": "2026-03-04T12:06:17.148223+00:00",
+  "tag": "20260304_al31_robust_rand009_nodrift_v3",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "camera_ready_ok": true,
+  "checks": [
+    {
+      "name": "final_checklist_ready",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\FINAL_CHECKLIST_AUTO.md",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "verify_submission_candidate",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\VERIFY_SUBMISSION_CANDIDATE.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "manuscript_template",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\MANUSCRIPT_TEMPLATE_REPORT.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "manuscript_consistency",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "submission_dossier",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\IEEE_SUBMISSION_DOSSIER.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "submission_handoff",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\IEEE_SUBMISSION_HANDOFF.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "release_notes",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\IEEE_RELEASE_NOTES.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "step28_regression_guard",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\STEP28_REGRESSION_GUARD.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "submission_bundle_manifest",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_al31_robust_rand009_nodrift_v3\\submission_bundle_manifest.json",
+      "exists": true,
+      "ok": true
+    }
+  ]
+}

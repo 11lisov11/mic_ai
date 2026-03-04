@@ -83,25 +83,32 @@ ai_drift_ranges = {
 
 # Step27/Step28 AI evaluation defaults (sensorless MIC).
 ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth"
-ai_eval_id_ref_alpha = 0.35750000000000004
-ai_eval_delta_id_max = 0.06050000000000001
+ai_eval_id_ref_alpha = 0.101737574727008
+ai_eval_delta_id_max = 0.1119178632104495
 ai_eval_id_ref_relative = True
 ai_eval_id_ref_allow_positive_delta = True
-ai_eval_id_ref_gate_speed_tol_rel = 0.12
-ai_eval_id_ref_gate_min_scale = 0.12
-ai_eval_id_ref_gate_exponent = 1.0
+ai_eval_id_ref_gate_speed_tol_rel = 0.1125906400707956
+ai_eval_id_ref_gate_min_scale = 0.1945001380068539
+ai_eval_id_ref_gate_exponent = 0.9272763428554748
 
 ai_eval_supervisor_enabled = True
-ai_eval_sup_objective = "specific_power"
-ai_eval_sup_speed_tol_rel = 0.096
+ai_eval_sup_objective = 'specific_power'
+ai_eval_sup_speed_tol_rel = 0.079245474004448
 ai_eval_sup_speed_tol_abs = 0.0
 ai_eval_sup_omega_min = 0.1
-ai_eval_sup_update = 20
-ai_eval_sup_dither = 0.028900000000000002
-ai_eval_sup_step = 0.0064
-ai_eval_sup_bias_max = 0.18062499999999998
+ai_eval_sup_update = 22
+ai_eval_sup_dither = 0.0342811988038127
+ai_eval_sup_step = 0.0069338012466417
+ai_eval_sup_bias_max = 0.1978728019842492
 ai_eval_sup_shaft_eps = 10.0
 ai_eval_sup_reset_decay = 0.98
 ai_eval_sup_idle_enable = False
 
 __all__ = ["ENV"]
+ai_eval_sup_objective_clip = 10.0
+ai_eval_sup_idle_omega_min = 0.0402203275850887
+ai_eval_sup_idle_action = -0.9174449724201784
+ai_eval_sup_idle_exit_boost = 7
+ai_eval_sup_idle_exit_action = 0.9723990598816908
+ai_eval_sup_idle_bias_decay = 0.9540603987581644
+# robust hardening source: outputs/robust_hardening_20260304_r7/al31/al31_robust_stage2_rank.csv#rand_009

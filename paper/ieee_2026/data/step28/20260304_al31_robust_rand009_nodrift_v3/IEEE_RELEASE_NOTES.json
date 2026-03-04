@@ -1,0 +1,68 @@
+{
+  "generated_utc": "2026-03-04T12:05:45.913439+00:00",
+  "tag": "20260304_al31_robust_rand009_nodrift_v3",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "mic_rows_count": 2,
+  "mic_rows": [
+    {
+      "mode": "mode1_foc_encoder_vs_mic_sensorless",
+      "avg_power_saving_pct_mean": 0.4799910223782131,
+      "avg_power_saving_pct_min": 0.3714083621434021,
+      "avg_eta_gain_pct_mean": 1.47949677975432,
+      "avg_eta_gain_pct_min": 0.0045903595253082,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": 0.4184587206998731,
+      "start_stop_power_saving_pct_min": -0.3466187059183445
+    },
+    {
+      "mode": "mode2_foc_sensorless_vs_mic_sensorless",
+      "avg_power_saving_pct_mean": 0.4799910223782131,
+      "avg_power_saving_pct_min": 0.3714083621434021,
+      "avg_eta_gain_pct_mean": 1.47949677975432,
+      "avg_eta_gain_pct_min": 0.0045903595253082,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": 0.4184587206998731,
+      "start_stop_power_saving_pct_min": -0.3466187059183445
+    }
+  ],
+  "aggregate": {
+    "avg_power_saving_pct_mean_avg": 0.4799910223782131,
+    "avg_eta_gain_pct_mean_avg": 1.47949677975432,
+    "err_failures_max_worst": 2.0
+  },
+  "release_note_ready": true,
+  "strict_ready": true,
+  "artifacts": {
+    "summary": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\step28_ieee_summary.csv",
+      "exists": true,
+      "ok": true
+    },
+    "verify": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\VERIFY_SUBMISSION_CANDIDATE.json",
+      "exists": true,
+      "ok": true
+    },
+    "dossier": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\IEEE_SUBMISSION_DOSSIER.json",
+      "exists": true,
+      "ok": true
+    },
+    "release_manifest": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\RELEASE_COMMIT_MANIFEST.json",
+      "exists": true,
+      "ok": true
+    },
+    "bundle_manifest": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_al31_robust_rand009_nodrift_v3\\submission_bundle_manifest.json",
+      "exists": true,
+      "ok": true
+    },
+    "regression_guard": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_al31_robust_rand009_nodrift_v3\\STEP28_REGRESSION_GUARD.json",
+      "exists": true,
+      "ok": true
+    }
+  }
+}
