@@ -1,0 +1,63 @@
+{
+  "generated_utc": "2026-03-04T08:42:02.964407+00:00",
+  "tag": "20260304_ao2_hardened_v2_nodrift",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "camera_ready_ok": true,
+  "checks": [
+    {
+      "name": "final_checklist_ready",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\FINAL_CHECKLIST_AUTO.md",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "verify_submission_candidate",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\VERIFY_SUBMISSION_CANDIDATE.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "manuscript_template",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\MANUSCRIPT_TEMPLATE_REPORT.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "manuscript_consistency",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "submission_dossier",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\IEEE_SUBMISSION_DOSSIER.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "submission_handoff",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\IEEE_SUBMISSION_HANDOFF.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "release_notes",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\IEEE_RELEASE_NOTES.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "step28_regression_guard",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift\\STEP28_REGRESSION_GUARD.json",
+      "exists": true,
+      "ok": true
+    },
+    {
+      "name": "submission_bundle_manifest",
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_ao2_hardened_v2_nodrift\\submission_bundle_manifest.json",
+      "exists": true,
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "generated_utc": "2026-03-04T06:27:09.881382+00:00",
+  "tag": "20260303_ai_config_locked_nodrift",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "mic_rows_count": 2,
+  "mic_rows": [
+    {
+      "mode": "mode1_foc_encoder_vs_mic_sensorless",
+      "avg_power_saving_pct_mean": 0.9175904741815945,
+      "avg_power_saving_pct_min": 0.0918235279989632,
+      "avg_eta_gain_pct_mean": 0.0715344793921934,
+      "avg_eta_gain_pct_min": 0.0067171496765633,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": 2.6697119023988782,
+      "start_stop_power_saving_pct_min": -0.2117089960121498
+    },
+    {
+      "mode": "mode2_foc_sensorless_vs_mic_sensorless",
+      "avg_power_saving_pct_mean": 0.9175904741815945,
+      "avg_power_saving_pct_min": 0.0918235279989632,
+      "avg_eta_gain_pct_mean": 0.0715344793921934,
+      "avg_eta_gain_pct_min": 0.0067171496765633,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": 2.6697119023988782,
+      "start_stop_power_saving_pct_min": -0.2117089960121498
+    }
+  ],
+  "aggregate": {
+    "avg_power_saving_pct_mean_avg": 0.9175904741815945,
+    "avg_eta_gain_pct_mean_avg": 0.0715344793921934,
+    "err_failures_max_worst": 2.0
+  },
+  "release_note_ready": true,
+  "strict_ready": true,
+  "artifacts": {
+    "summary": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\step28_ieee_summary.csv",
+      "exists": true,
+      "ok": true
+    },
+    "verify": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\VERIFY_SUBMISSION_CANDIDATE.json",
+      "exists": true,
+      "ok": true
+    },
+    "dossier": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\IEEE_SUBMISSION_DOSSIER.json",
+      "exists": true,
+      "ok": true
+    },
+    "release_manifest": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\RELEASE_COMMIT_MANIFEST.json",
+      "exists": true,
+      "ok": true
+    },
+    "bundle_manifest": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260303_ai_config_locked_nodrift\\submission_bundle_manifest.json",
+      "exists": true,
+      "ok": true
+    },
+    "regression_guard": {
+      "path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\STEP28_REGRESSION_GUARD.json",
+      "exists": true,
+      "ok": true
+    }
+  }
+}

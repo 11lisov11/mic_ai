@@ -168,6 +168,7 @@ def main() -> None:
     parser.add_argument("--checkpoint-registry", default="config/checkpoint_registry.json")
     parser.add_argument("--seed-perturbation", action="store_true")
     parser.add_argument("--seed-perturb-level", type=float, default=0.2)
+    parser.add_argument("--sample-profile", default="global", choices=["global", "local_safe"])
     parser.add_argument("--use-total-power", action="store_true")
     parser.add_argument("--no-use-total-power", dest="use_total_power", action="store_false")
     parser.add_argument("--foc-disable-lut", action="store_true")
@@ -223,7 +224,14 @@ def main() -> None:
     candidates: List[Dict[str, object]] = [dict(base_cand)]
     candidates.extend(_build_handcrafted_candidates(base_cand))
     for i in range(int(args.stage1_trials)):
-        candidates.append(_sample_supervisor_candidate(rng, idx=i + 1, base=base_cand))
+        candidates.append(
+            _sample_supervisor_candidate(
+                rng,
+                idx=i + 1,
+                base=base_cand,
+                profile=str(args.sample_profile),
+            )
+        )
 
     seed_perturb = SeedPerturbationSettings(
         enabled=bool(args.seed_perturbation),
@@ -333,6 +341,7 @@ def main() -> None:
             "max_err_failures": float(args.max_err_failures),
             "min_start_stop_saving_pct": float(args.min_start_stop_saving_pct),
         },
+        "sample_profile": str(args.sample_profile),
         "best": best,
         "top_stage2": stage2_rows,
     }

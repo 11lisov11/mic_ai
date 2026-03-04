@@ -88,6 +88,22 @@ jobs:
       - name: Step28 summary smoke test
         run: pytest -q tests/test_step28_summary_smoke.py
 
+  plan-completion-smoke:
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Plan completion smoke test
+        run: pytest -q tests/test_report_plan_completion_smoke.py
+
   theory-validation-smoke:
     runs-on: ubuntu-latest
     env:
@@ -151,3 +167,30 @@ jobs:
             -GuardrailsPolicy paper/ieee_2026/guardrails_policy.json `
             -Manuscript paper/ieee_2026/manuscript.md `
             -AllowDirty
+      - name: Step28 summary regression guard (frozen baseline)
+        run: |
+          python tools/check_step28_summary_regression.py \
+            --summary-csv paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/step28_ieee_summary.csv \
+            --baseline-json benchmarks/step28_ieee_summary_baseline_20260303_ai_config_locked_nodrift.json \
+            --strict
+      - name: Build frozen IEEE release notes
+        run: |
+          python tools/build_ieee_release_notes.py \
+            --step28-dir paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift \
+            --ieee-root paper/ieee_2026 \
+            --tag 20260303_ai_config_locked_nodrift \
+            --strict
+      - name: Build camera-ready checklist
+        run: |
+          python tools/build_ieee_camera_ready_checklist.py \
+            --step28-dir paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift \
+            --ieee-root paper/ieee_2026 \
+            --tag 20260303_ai_config_locked_nodrift \
+            --strict
+      - name: Build rebuttal evidence pack
+        run: |
+          python tools/build_ieee_rebuttal_evidence_pack.py \
+            --step28-dir paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift \
+            --ieee-root paper/ieee_2026 \
+            --tag 20260303_ai_config_locked_nodrift \
+            --strict

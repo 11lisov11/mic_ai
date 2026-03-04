@@ -98,6 +98,45 @@ python tools/build_ieee_submission_handoff.py \
   --strict
 ```
 
+Run frozen summary drift guard against baseline:
+
+```bash
+python tools/check_step28_summary_regression.py \
+  --summary-csv paper/ieee_2026/data/step28/<tag>/step28_ieee_summary.csv \
+  --baseline-json benchmarks/step28_ieee_summary_baseline_20260303_ai_config_locked_nodrift.json \
+  --strict
+```
+
+Build frozen release notes:
+
+```bash
+python tools/build_ieee_release_notes.py \
+  --step28-dir paper/ieee_2026/data/step28/<tag> \
+  --ieee-root paper/ieee_2026 \
+  --tag <tag> \
+  --strict
+```
+
+Build camera-ready checklist:
+
+```bash
+python tools/build_ieee_camera_ready_checklist.py \
+  --step28-dir paper/ieee_2026/data/step28/<tag> \
+  --ieee-root paper/ieee_2026 \
+  --tag <tag> \
+  --strict
+```
+
+Build rebuttal evidence pack (tables/figures/hashes/logs):
+
+```bash
+python tools/build_ieee_rebuttal_evidence_pack.py \
+  --step28-dir paper/ieee_2026/data/step28/<tag> \
+  --ieee-root paper/ieee_2026 \
+  --tag <tag> \
+  --strict
+```
+
 Note: wrappers assume Python environment with project dependencies installed (`pip install -r requirements.txt`).
 
 This command runs mode1/mode2 step27, builds step28 summary, packages publication artifacts, builds IEEE-derived tables/figures (`derived_ieee/`), builds per-motor tuning acceptance reports, freezes `submission_candidate_lock.json` (SHA lockfile), generates `FINAL_CHECKLIST_AUTO.md`, writes `SUBMISSION_CANDIDATE.{md,json}`, validates manuscript consistency + template, verifies frozen candidate (`VERIFY_SUBMISSION_CANDIDATE.json`), builds submission bundle archive, and writes `step28_reproduce_manifest.json`.

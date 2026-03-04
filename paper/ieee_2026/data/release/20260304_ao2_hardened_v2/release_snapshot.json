@@ -1,0 +1,14 @@
+{
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2",
+  "rows_total": 6,
+  "mic_rows": 2,
+  "avg_power_saving_pct_mean": 0.2563322089703795,
+  "avg_power_saving_pct_min": -1.553699625858815,
+  "avg_eta_gain_pct_mean": -0.6148833397669187,
+  "avg_eta_gain_pct_min": -2.2651677413913136,
+  "err_failures_max": 3.0,
+  "start_stop_power_saving_pct_mean": -0.2907107635977176,
+  "table_sha256_unique": [
+    "f98a9003e78cd04ca2452e07525636755ca4cd20d7e9c95e4d3211a51def26ee"
+  ]
+}

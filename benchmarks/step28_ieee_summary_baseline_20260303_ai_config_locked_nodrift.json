@@ -1,0 +1,73 @@
+{
+  "baseline_tag": "20260303_ai_config_locked_nodrift",
+  "source_summary_csv": "paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/step28_ieee_summary.csv",
+  "description": "Regression baseline for frozen IEEE step28 summary MIC rows (mode1/mode2).",
+  "rows": [
+    {
+      "mode": "mode1_foc_encoder_vs_mic_sensorless",
+      "controller": "MIC",
+      "metrics": {
+        "avg_power_saving_pct_mean": 0.9175904741815945,
+        "avg_power_saving_pct_min": 0.0918235279989632,
+        "avg_eta_gain_pct_mean": 0.0715344793921934,
+        "avg_eta_gain_pct_min": 0.0067171496765633,
+        "err_failures_max": 2.0,
+        "start_stop_power_saving_pct_mean": 2.6697119023988782,
+        "start_stop_power_saving_pct_min": -0.2117089960121498
+      },
+      "tolerance": {
+        "abs": {
+          "avg_power_saving_pct_mean": 0.1,
+          "avg_power_saving_pct_min": 0.08,
+          "avg_eta_gain_pct_mean": 0.04,
+          "avg_eta_gain_pct_min": 0.03,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.35,
+          "start_stop_power_saving_pct_min": 0.2
+        },
+        "rel": {
+          "avg_power_saving_pct_mean": 0.0,
+          "avg_power_saving_pct_min": 0.0,
+          "avg_eta_gain_pct_mean": 0.0,
+          "avg_eta_gain_pct_min": 0.0,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.0,
+          "start_stop_power_saving_pct_min": 0.0
+        }
+      }
+    },
+    {
+      "mode": "mode2_foc_sensorless_vs_mic_sensorless",
+      "controller": "MIC",
+      "metrics": {
+        "avg_power_saving_pct_mean": 0.9175904741815945,
+        "avg_power_saving_pct_min": 0.0918235279989632,
+        "avg_eta_gain_pct_mean": 0.0715344793921934,
+        "avg_eta_gain_pct_min": 0.0067171496765633,
+        "err_failures_max": 2.0,
+        "start_stop_power_saving_pct_mean": 2.6697119023988782,
+        "start_stop_power_saving_pct_min": -0.2117089960121498
+      },
+      "tolerance": {
+        "abs": {
+          "avg_power_saving_pct_mean": 0.1,
+          "avg_power_saving_pct_min": 0.08,
+          "avg_eta_gain_pct_mean": 0.04,
+          "avg_eta_gain_pct_min": 0.03,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.35,
+          "start_stop_power_saving_pct_min": 0.2
+        },
+        "rel": {
+          "avg_power_saving_pct_mean": 0.0,
+          "avg_power_saving_pct_min": 0.0,
+          "avg_eta_gain_pct_mean": 0.0,
+          "avg_eta_gain_pct_min": 0.0,
+          "err_failures_max": 0.0,
+          "start_stop_power_saving_pct_mean": 0.0,
+          "start_stop_power_saving_pct_min": 0.0
+        }
+      }
+    }
+  ]
+}

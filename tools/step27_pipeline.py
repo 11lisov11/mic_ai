@@ -465,7 +465,33 @@ def _sample_supervisor_candidate(
     *,
     idx: int,
     base: Dict[str, object],
+    profile: str = "global",
 ) -> Dict[str, object]:
+    mode = str(profile).strip().lower()
+    if mode == "local_safe":
+        objective = rng.choice(("specific_power", "p_in"))
+        return {
+            **base,
+            "tag": f"rand_{idx:03d}",
+            "source": "random_local_safe",
+            "id_ref_alpha": rng.uniform(0.06, 0.22),
+            "delta_id_max": rng.uniform(0.04, 0.12),
+            "id_ref_gate_speed_tol_rel": rng.uniform(0.06, 0.18),
+            "id_ref_gate_min_scale": rng.uniform(0.08, 0.22),
+            "id_ref_gate_exponent": rng.uniform(0.9, 1.2),
+            "objective": objective,
+            "speed_tol_rel": rng.uniform(0.06, 0.11),
+            "update_steps": int(rng.randint(12, 24)),
+            "dither_amp": rng.uniform(0.015, 0.04),
+            "bias_step": rng.uniform(0.005, 0.012),
+            "bias_max": rng.uniform(0.14, 0.24),
+            "idle_omega_pu": rng.uniform(0.04, 0.08),
+            "idle_action": rng.uniform(-1.0, -0.55),
+            "idle_exit_boost_steps": int(rng.randint(0, 8)),
+            "idle_exit_action": rng.uniform(0.9, 1.0),
+            "idle_bias_decay": rng.uniform(0.94, 0.98),
+        }
+
     objective = rng.choice(("specific_power", "eta_inv", "p_in"))
     return {
         **base,

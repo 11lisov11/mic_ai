@@ -1,0 +1,308 @@
+{
+  "generated_utc": "2026-03-04T08:23:26.048398+00:00",
+  "tag": "20260304_ao2_hardened_v2_nodrift",
+  "repo_root": "C:\\mic_theory",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260304_ao2_hardened_v2_nodrift",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "bundle_dir": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_ao2_hardened_v2_nodrift",
+  "payload_root": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_ao2_hardened_v2_nodrift\\content",
+  "bundle_ok": true,
+  "files_copied": 48,
+  "required_missing_count": 0,
+  "required_missing": [],
+  "aggregate_sha256": "d4daab371439176f2df790de38a63dc181a9c5bfaf94b1b43bf3f1d8b816b283",
+  "files": [
+    {
+      "required": true,
+      "path": "paper/ieee_2026/FINAL_CHECKLIST.md",
+      "size_bytes": 4482,
+      "sha256": "6d947740b9310bc9ecdaba22c8af47edf5e956f5c4aad5499fa22e844d752f23"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 2961,
+      "sha256": "e0a8045357d5ca822016b59c548b15bfc898cf042bc41c54b5863c57bb98abf5"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "size_bytes": 4791,
+      "sha256": "d137268b726270068236c0d725465b0676c0ad6f76cf14d10b67ae397b34051f"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/MANUSCRIPT_CONSISTENCY_REPORT.md",
+      "size_bytes": 238,
+      "sha256": "c0cf04851fff8f11b9c68d341e5160dcb61cda92ee996a89dd29030ebd9e626d"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/MANUSCRIPT_TEMPLATE_REPORT.json",
+      "size_bytes": 1070,
+      "sha256": "bc0d98260520378a4102d8cae1154410c74a639a7b3507f59610df207149c727"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/MANUSCRIPT_TEMPLATE_REPORT.md",
+      "size_bytes": 376,
+      "sha256": "34d1afa3e3be423fc4845403cc80556b84becc0e2491f68b8b25bdec187b91d1"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 572,
+      "sha256": "093bddfc626987f91bb0221c158680c4299be84b4cff86d0cf630465c8840e20"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 834,
+      "sha256": "2a3f0e57deecc538cc8e93f995c2c705074f50bd2b1235442c8906c98fa3076d"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/data/release/20260304_ao2_hardened_v2_nodrift/promotion_manifest.json",
+      "size_bytes": 9211,
+      "sha256": "9b40d7ca1532909bc78b5af51ad4c60f06b259fc321794edaad0590e849ba820"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/data/release/20260304_ao2_hardened_v2_nodrift/release_snapshot.json",
+      "size_bytes": 535,
+      "sha256": "51f51fb8c82153197ef3209d7198a1804ba7acb5681fb7b1e7f52010fe2e4dfb"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/data/release/20260304_ao2_hardened_v2_nodrift/tables/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 2675,
+      "sha256": "c9ca09adbf2096138f10f6075d10bc1ece606f08237438ddd2383a194df09454"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/data/release/20260304_ao2_hardened_v2_nodrift/tables/motor_tuning_acceptance_summary.csv",
+      "size_bytes": 670,
+      "sha256": "9106fbaf518c3943755735d2eb0a44caf726c74415ca7098bea08700c284d28e"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/data/release/20260304_ao2_hardened_v2_nodrift/tables/step28_ieee_summary.csv",
+      "size_bytes": 1554,
+      "sha256": "8a869c2ebf7ecfc218c3812fe377f5868d8d882cdcc8f6f4c5376391f31aa450"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 2955,
+      "sha256": "0b09d69b493a2d3f12893601d492d984387dc2394fcb1207e28077057f3e04e5"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/IEEE_SUBMISSION_DOSSIER.json",
+      "size_bytes": 3920,
+      "sha256": "ff0e0ee4e0b2341a981245fd24a6c562dcfabd3b3da1c2afa5177bf01f1087b0"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/IEEE_SUBMISSION_DOSSIER.md",
+      "size_bytes": 1263,
+      "sha256": "6caf91c83b18cbe29fde82fe5ea82503036bad2fc02c368e73a352d10a7ad2f3"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "size_bytes": 4791,
+      "sha256": "1d6ed03729c67bc79aab01c349d311f69ef0ff8cf620540e0c07d770fd6414e4"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/MANUSCRIPT_CONSISTENCY_REPORT.md",
+      "size_bytes": 238,
+      "sha256": "c0cf04851fff8f11b9c68d341e5160dcb61cda92ee996a89dd29030ebd9e626d"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/MANUSCRIPT_TEMPLATE_REPORT.json",
+      "size_bytes": 1070,
+      "sha256": "fc86132fc39421eced3149dbd5371821b80b8fb1da1bf2d110df0b3e1c94ddf8"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/MANUSCRIPT_TEMPLATE_REPORT.md",
+      "size_bytes": 376,
+      "sha256": "51ef76714d17db83f960d25bf367339d97b5070bd1858322c1967ceb41fbb49a"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/RELEASE_COMMIT_MANIFEST.json",
+      "size_bytes": 5189,
+      "sha256": "eadb73285d435a5ed885b1fac95058949ebe9125d8d0890371af5185c8d95487"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/RELEASE_COMMIT_MANIFEST.md",
+      "size_bytes": 408,
+      "sha256": "e7b602879d7ade803ce5955f97b3c4112d6941ac80039cd05ed652b203c1d881"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 618,
+      "sha256": "41f460a2cb43b3dffc453ad8d64f99175f88b8cc4b6aee52e57018acb9b10eee"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 832,
+      "sha256": "a1f5497c53ada89694cd2dcb3f7576fe72aa0fe8e4ca5302ec57c67b24702d33"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/VERIFY_SUBMISSION_CANDIDATE.json",
+      "size_bytes": 2077,
+      "sha256": "02177cfe330bca746b63317b36bf6e3127b3b5e3708f0fcd3828d17977eb14f8"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 2675,
+      "sha256": "c9ca09adbf2096138f10f6075d10bc1ece606f08237438ddd2383a194df09454"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/derived_ieee/motor_tuning_acceptance_summary.csv",
+      "size_bytes": 670,
+      "sha256": "9106fbaf518c3943755735d2eb0a44caf726c74415ca7098bea08700c284d28e"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/derived_ieee/motor_tuning_acceptance_summary.json",
+      "size_bytes": 1615,
+      "sha256": "5ff7bc9ef6039ee7f8cb6176bce35ed9f089446781f8978c8051a91eb0eac5c4"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/package_manifest.json",
+      "size_bytes": 2788,
+      "sha256": "17e0eddba997cf48333ba1bb9190aa6279197d688d6c3b1873395ce2059b8453"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/step28_ieee_summary.csv",
+      "size_bytes": 1554,
+      "sha256": "8a869c2ebf7ecfc218c3812fe377f5868d8d882cdcc8f6f4c5376391f31aa450"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/step28_ieee_summary.md",
+      "size_bytes": 1305,
+      "sha256": "a7d585b9fc66da82a85d14eb5097aa9f972cb80c0a3fb7b4e2c333db682c7cb7"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260304_ao2_hardened_v2_nodrift/submission_candidate_lock.json",
+      "size_bytes": 10073,
+      "sha256": "23006d2b395182884d3cd07fa878680c34b5c9af2ee959ebc7ba2701fce5037b"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/fig/README.md",
+      "size_bytes": 1153,
+      "sha256": "b1a13c3a40ef004f71c713cc4c104c8322851dfa7d4e79e4271d19468fc37a69"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/fig/fig1_mic_methodology.png",
+      "size_bytes": 263062,
+      "sha256": "389c99158cc04bf4da7cffa2a065eeb9b60f29a0161337c4e1d1535a3e97c947"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/fig/fig2_pi_foc_mic_power.pdf",
+      "size_bytes": 17805,
+      "sha256": "1327015ef403288bf3887419f687abcc5dbb034dbc2e3780006b8045bc780288"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig2_pi_foc_mic_power.png",
+      "size_bytes": 118807,
+      "sha256": "fe8a5ee827127242158e26283a307f8c1b573183f3dd7e632f36654552ec58fa"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig2_pi_foc_mic_power.svg",
+      "size_bytes": 61322,
+      "sha256": "9ecc16910e39c20513c2d525ce0b9668500987ad5b657089cdfcb7b9df605405"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/fig/fig3_air56_working_characteristics.pdf",
+      "size_bytes": 59351,
+      "sha256": "265bbb64dcc3761f3ebf5a045f938d94e14d22f40ca3b556ab0ec09db01de375"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig3_air56_working_characteristics.png",
+      "size_bytes": 724925,
+      "sha256": "e3c317498a55ba770e1dbd744a86b3cc6595eda44caa279328c47ca85e11fd5b"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig3_air56_working_characteristics.svg",
+      "size_bytes": 83174,
+      "sha256": "74389bb8e7a69df593f7a674624bbcf2df8c02089ef7fbb6e98fe499c019061c"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/fig/fig4_cross_motor_robustness.pdf",
+      "size_bytes": 49462,
+      "sha256": "50bc62b345c51b923378bd40a0d04ddfd4b8f393eb3b17910fb9fe4a0d1ec32b"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig4_cross_motor_robustness.png",
+      "size_bytes": 164532,
+      "sha256": "65844512e322e10922e10b338dec836e98c2f40c91b397492a2fddc305238758"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig4_cross_motor_robustness.svg",
+      "size_bytes": 33629,
+      "sha256": "2c2a80e6c5181528b5854e25b11878dd3f4bab6eef780e5ed26f11673166d90a"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/fig/fig5_training_to_foc.pdf",
+      "size_bytes": 36443,
+      "sha256": "760931d25995818276ff6a90d132c9c1263f928dc799007e62395cd27d2bfd60"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig5_training_to_foc.png",
+      "size_bytes": 189582,
+      "sha256": "8c9ad878502f532398b34f45ca6910ad98462a842569a00e475298e8158f8935"
+    },
+    {
+      "required": false,
+      "path": "paper/ieee_2026/fig/fig5_training_to_foc.svg",
+      "size_bytes": 19501,
+      "sha256": "35e3dd1ea802546a680a0dad8c0ac67d2e1ad8a3af35756d388ea86d3b8a1093"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/guardrails_policy.json",
+      "size_bytes": 261,
+      "sha256": "d56e5dc4b387d392019fd53cd0018047449f3081a38cc5e6b660121d113d4e17"
+    },
+    {
+      "required": true,
+      "path": "paper/ieee_2026/manuscript.md",
+      "size_bytes": 5106,
+      "sha256": "9a73ff950013d28d9f47b81267663a64fbee90768ba672e2ae9cf5123342e6b9"
+    }
+  ],
+  "archives": {
+    "zip": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_ao2_hardened_v2_nodrift\\ieee_submission_20260304_ao2_hardened_v2_nodrift.zip",
+    "tar_gz": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260304_ao2_hardened_v2_nodrift\\ieee_submission_20260304_ao2_hardened_v2_nodrift.tar.gz"
+  }
+}

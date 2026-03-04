@@ -35,24 +35,26 @@
 Формат: `TODO | IN_PROGRESS | DONE | BLOCKED`
 
 ### 2.1 AO2 hardening
-- [ ] TODO Запустить parameter sweep AO2 по `id_ref_alpha`, `delta_id_max`, gating.
-- [ ] TODO Построить rank-таблицу AO2 и выбрать 3 кандидата.
-- [ ] TODO Выполнить full protocol для кандидатов и выбрать финальный AO2 профиль.
+- [x] DONE Запустить parameter sweep AO2 по `id_ref_alpha`, `delta_id_max`, gating.
+- [x] DONE Построить rank-таблицу AO2 и выбрать 3 кандидата.
+- [x] DONE Выполнить full protocol для кандидатов и выбрать финальный AO2 профиль.
+  Факт: `outputs/ao2_hardening_v2_20260304_localsafe/ao2_hardening_summary_v2.json` -> выбран `rand_011` (local_safe), `avg_power_saving_pct=+0.3713%`, `avg_eta_gain_pct=+4.2450%`, `err_failures=2`, `start_stop=-0.3466%`, `acceptance_pass=true`.
 
 ### 2.2 Расширенная статистика устойчивости
-- [ ] TODO Добавить extended-seed режим в reproducibility контур без retrain-by-default.
-- [ ] TODO Сформировать `mean/std/min/max/worst` отчёт для extended seeds.
-- [ ] TODO Добавить стресс-отчёт по perturb-level sweep.
+- [x] DONE Добавить extended-seed режим в reproducibility контур без retrain-by-default.
+- [x] DONE Сформировать `mean/std/min/max/worst` отчёт для extended seeds.
+- [x] DONE Добавить стресс-отчёт по perturb-level sweep.
 
 ### 2.3 Reproducibility и качество
-- [ ] TODO Добавить CI smoke для `tools/report_plan_completion.py`.
-- [ ] TODO Добавить regression guard на `step28_ieee_summary.csv` (drift threshold).
-- [ ] TODO Добавить release note generator для новых frozen-tag версий.
+- [x] DONE Добавить CI smoke для `tools/report_plan_completion.py`.
+- [x] DONE Добавить regression guard на `step28_ieee_summary.csv` (drift threshold).
+- [x] DONE Добавить release note generator для новых frozen-tag версий.
 
 ### 2.4 Publication operations
-- [ ] TODO Подготовить camera-ready checklist для IEEE template pipeline.
-- [ ] TODO Подготовить rebuttal evidence pack (таблицы/фигуры/хэши/логи).
-- [ ] TODO Выпустить `submission_bundle` для нового frozen-tag v2.
+- [x] DONE Подготовить camera-ready checklist для IEEE template pipeline.
+- [x] DONE Подготовить rebuttal evidence pack (таблицы/фигуры/хэши/логи).
+- [x] DONE Выпустить `submission_bundle` для нового frozen-tag v2.
+  Факт: `paper/ieee_2026/submission_bundle/20260304_ao2_hardened_v2_nodrift/submission_bundle_manifest.json` (`bundle_ok=true`), strict rebuttal закрыт: `paper/ieee_2026/data/rebuttal/20260304_ao2_hardened_v2_nodrift/REBUTTAL_EVIDENCE_PACK.json` (`strict_ready=true`).
 
 ---
 
@@ -63,4 +65,3 @@
 3. Freeze нового тега v2.
 4. Bundle + dossier + handoff v2.
 5. Финальная проверка против drift guard.
-

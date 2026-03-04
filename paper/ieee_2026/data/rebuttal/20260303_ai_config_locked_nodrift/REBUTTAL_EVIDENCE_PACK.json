@@ -1,0 +1,261 @@
+{
+  "generated_utc": "2026-03-04T06:39:34.017175+00:00",
+  "tag": "20260303_ai_config_locked_nodrift",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "out_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\rebuttal\\20260303_ai_config_locked_nodrift",
+  "strict_ready": true,
+  "required_missing_count": 0,
+  "optional_missing_count": 0,
+  "required_missing": [],
+  "optional_missing": [],
+  "copied_files_count": 41,
+  "copied_files": [
+    {
+      "src_rel": "step28_ieee_summary.csv",
+      "dst_rel": "step28_ieee_summary.csv",
+      "size_bytes": 1558,
+      "sha256": "5be6c19ecd5ba5c1f3ffde0b2b00008fc6892d6e90114335a06472bbd526da2d"
+    },
+    {
+      "src_rel": "step28_ieee_summary.md",
+      "dst_rel": "step28_ieee_summary.md",
+      "size_bytes": 1333,
+      "sha256": "a6fdf5b3a3a616fa1382cf06223a54367e16d6d3af1f9eacfd99864259ad3cdb"
+    },
+    {
+      "src_rel": "VERIFY_SUBMISSION_CANDIDATE.json",
+      "dst_rel": "VERIFY_SUBMISSION_CANDIDATE.json",
+      "size_bytes": 2090,
+      "sha256": "6d27768f27087c5845a30c40a612d64fa6bfdc54daface17363cc6009ee6a5db"
+    },
+    {
+      "src_rel": "FINAL_CHECKLIST_AUTO.md",
+      "dst_rel": "FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 2961,
+      "sha256": "e0a8045357d5ca822016b59c548b15bfc898cf042bc41c54b5863c57bb98abf5"
+    },
+    {
+      "src_rel": "MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "dst_rel": "MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "size_bytes": 4791,
+      "sha256": "8cefb268484351939e4dc73d4aa92d0a2f4619bb9622bdfb724f18ef8ba387b2"
+    },
+    {
+      "src_rel": "MANUSCRIPT_TEMPLATE_REPORT.json",
+      "dst_rel": "MANUSCRIPT_TEMPLATE_REPORT.json",
+      "size_bytes": 1070,
+      "sha256": "4035952c7b398ee7b6cec16cc57e594adaac22239446d8d72ac5227ca747f86c"
+    },
+    {
+      "src_rel": "IEEE_SUBMISSION_DOSSIER.json",
+      "dst_rel": "IEEE_SUBMISSION_DOSSIER.json",
+      "size_bytes": 3930,
+      "sha256": "05376f93817b84a4b78212ae189a450f4ba9f5dd1e7f17f0bd779e420eb6acd6"
+    },
+    {
+      "src_rel": "IEEE_SUBMISSION_HANDOFF.json",
+      "dst_rel": "IEEE_SUBMISSION_HANDOFF.json",
+      "size_bytes": 1088,
+      "sha256": "358708d89dd4f11610d3d192fa782e2fa8bb0203211d789cfbb94f0b83d06f89"
+    },
+    {
+      "src_rel": "RELEASE_COMMIT_MANIFEST.json",
+      "dst_rel": "RELEASE_COMMIT_MANIFEST.json",
+      "size_bytes": 5398,
+      "sha256": "f9fcea541a3613fdf0ecfce6bc9e7b88be4f9e9e0965ecd14b9bfdb2d9eefe94"
+    },
+    {
+      "src_rel": "IEEE_RELEASE_NOTES.json",
+      "dst_rel": "IEEE_RELEASE_NOTES.json",
+      "size_bytes": 2655,
+      "sha256": "7a059c35bbf1eb30b14137c061959648ca8f3532913173ea70a87208f6fe8010"
+    },
+    {
+      "src_rel": "STEP28_REGRESSION_GUARD.json",
+      "dst_rel": "STEP28_REGRESSION_GUARD.json",
+      "size_bytes": 388,
+      "sha256": "417cfdfc66e26da15491abb0d1d2304ef823767abc91e690346c305e4ae0c1ea"
+    },
+    {
+      "src_rel": "CAMERA_READY_CHECKLIST.json",
+      "dst_rel": "CAMERA_READY_CHECKLIST.json",
+      "size_bytes": 2353,
+      "sha256": "2f39453cf1a82160e40d398d7ed6a499669b1c5fae3b20001c4827cb72b975e2"
+    },
+    {
+      "src_rel": "mode1_foc_encoder_vs_mic_sensorless/step27_per_seed_metrics.csv",
+      "dst_rel": "mode1_foc_encoder_vs_mic_sensorless/step27_per_seed_metrics.csv",
+      "size_bytes": 7971,
+      "sha256": "81b1332b9e3497cc36c9d9b4b9306127934339aaa64cebe25c5d6d70811f6755"
+    },
+    {
+      "src_rel": "mode1_foc_encoder_vs_mic_sensorless/step27_stats_motor_controller.csv",
+      "dst_rel": "mode1_foc_encoder_vs_mic_sensorless/step27_stats_motor_controller.csv",
+      "size_bytes": 2951,
+      "sha256": "d06b39f893ba79bb4fedae08631d4cd846622e5adf8075a188555c116df6cfef"
+    },
+    {
+      "src_rel": "mode1_foc_encoder_vs_mic_sensorless/step27_final_pi_vs_foc_vs_mic.csv",
+      "dst_rel": "mode1_foc_encoder_vs_mic_sensorless/step27_final_pi_vs_foc_vs_mic.csv",
+      "size_bytes": 1622,
+      "sha256": "1b586db5f740aafe923ff57c5e729aee4b6be8ff6cb08076dbbcce7d94bfc8b1"
+    },
+    {
+      "src_rel": "mode2_foc_sensorless_vs_mic_sensorless/step27_per_seed_metrics.csv",
+      "dst_rel": "mode2_foc_sensorless_vs_mic_sensorless/step27_per_seed_metrics.csv",
+      "size_bytes": 7971,
+      "sha256": "81b1332b9e3497cc36c9d9b4b9306127934339aaa64cebe25c5d6d70811f6755"
+    },
+    {
+      "src_rel": "mode2_foc_sensorless_vs_mic_sensorless/step27_stats_motor_controller.csv",
+      "dst_rel": "mode2_foc_sensorless_vs_mic_sensorless/step27_stats_motor_controller.csv",
+      "size_bytes": 2951,
+      "sha256": "d06b39f893ba79bb4fedae08631d4cd846622e5adf8075a188555c116df6cfef"
+    },
+    {
+      "src_rel": "mode2_foc_sensorless_vs_mic_sensorless/step27_final_pi_vs_foc_vs_mic.csv",
+      "dst_rel": "mode2_foc_sensorless_vs_mic_sensorless/step27_final_pi_vs_foc_vs_mic.csv",
+      "size_bytes": 1622,
+      "sha256": "1b586db5f740aafe923ff57c5e729aee4b6be8ff6cb08076dbbcce7d94bfc8b1"
+    },
+    {
+      "src_rel": "derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "dst_rel": "derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 2683,
+      "sha256": "5468c964c6a856d297796f5c711fc0af25c804f5cd5ae8741002f7f6bba3d8e8"
+    },
+    {
+      "src_rel": "derived_ieee/fig_ieee_pi_foc_mic_power.pdf",
+      "dst_rel": "derived_ieee/fig_ieee_pi_foc_mic_power.pdf",
+      "size_bytes": 17807,
+      "sha256": "b87fad5bea296252b30f52cd9c005e38bbc4212448fda58868ed5ab551ab2898"
+    },
+    {
+      "src_rel": "passport/passport_compare_3motors.csv",
+      "dst_rel": "passport/passport_compare_3motors.csv",
+      "size_bytes": 2559,
+      "sha256": "cacf6538189846c1323be889b92b9367fee3a0349fcf2ee64983ca5011de7df1"
+    },
+    {
+      "src_rel": "passport/passport_compare_3motors.json",
+      "dst_rel": "passport/passport_compare_3motors.json",
+      "size_bytes": 5610,
+      "sha256": "33e2de54858cbb07d47a9fc3e3a44400b98494a6fc925c0175ede2652ef6c278"
+    },
+    {
+      "src_rel": "submission_bundle/20260303_ai_config_locked_nodrift/submission_bundle_manifest.json",
+      "dst_rel": "submission_bundle/20260303_ai_config_locked_nodrift/submission_bundle_manifest.json",
+      "size_bytes": 13195,
+      "sha256": "fc7f30187cc57cdddfe28dfbf61296efc5d5846cbc8b7f3e1a1eedaee5c1c2d9"
+    },
+    {
+      "src_rel": "manuscript.md",
+      "dst_rel": "manuscript.md",
+      "size_bytes": 5106,
+      "sha256": "9a73ff950013d28d9f47b81267663a64fbee90768ba672e2ae9cf5123342e6b9"
+    },
+    {
+      "src_rel": "guardrails_policy.json",
+      "dst_rel": "guardrails_policy.json",
+      "size_bytes": 261,
+      "sha256": "d56e5dc4b387d392019fd53cd0018047449f3081a38cc5e6b660121d113d4e17"
+    },
+    {
+      "src_rel": "MANUSCRIPT_CONSISTENCY_REPORT.md",
+      "dst_rel": "MANUSCRIPT_CONSISTENCY_REPORT.md",
+      "size_bytes": 238,
+      "sha256": "c0cf04851fff8f11b9c68d341e5160dcb61cda92ee996a89dd29030ebd9e626d"
+    },
+    {
+      "src_rel": "MANUSCRIPT_TEMPLATE_REPORT.md",
+      "dst_rel": "MANUSCRIPT_TEMPLATE_REPORT.md",
+      "size_bytes": 376,
+      "sha256": "c24b1a2cbf588aefc0b998b23ce4a8867d741e497ecf7ad2e3b3b02031564f08"
+    },
+    {
+      "src_rel": "IEEE_SUBMISSION_DOSSIER.md",
+      "dst_rel": "IEEE_SUBMISSION_DOSSIER.md",
+      "size_bytes": 1262,
+      "sha256": "14cc19b8640d5a8bd386d70c33603dabe157653ffceb1d5b0559146873e1ff2b"
+    },
+    {
+      "src_rel": "IEEE_SUBMISSION_HANDOFF.md",
+      "dst_rel": "IEEE_SUBMISSION_HANDOFF.md",
+      "size_bytes": 1148,
+      "sha256": "c9b1ef78bf93c76ad511a2e90a9b5466f989c12faa8ff094740c7e6900ad1b96"
+    },
+    {
+      "src_rel": "RELEASE_COMMIT_MANIFEST.md",
+      "dst_rel": "RELEASE_COMMIT_MANIFEST.md",
+      "size_bytes": 409,
+      "sha256": "701df5467e456d9f642a870ae811e03822798f1a814659f073f7a6f01162c7e5"
+    },
+    {
+      "src_rel": "IEEE_RELEASE_NOTES.md",
+      "dst_rel": "IEEE_RELEASE_NOTES.md",
+      "size_bytes": 1677,
+      "sha256": "934b45bb8a4f1b2860d4b3a2d1b5798b67e35de48c293ce398f540e4d29b4633"
+    },
+    {
+      "src_rel": "STEP28_REGRESSION_GUARD.md",
+      "dst_rel": "STEP28_REGRESSION_GUARD.md",
+      "size_bytes": 378,
+      "sha256": "ee8a8b32b85b74d630b84418a1e815c2d4e8a489cca5c43319ed764a8975a00c"
+    },
+    {
+      "src_rel": "CAMERA_READY_CHECKLIST.md",
+      "dst_rel": "CAMERA_READY_CHECKLIST.md",
+      "size_bytes": 1656,
+      "sha256": "be5cfc57c381e4bdb9df522e2ea85a83f351431ca8abb7544046f49e8022227c"
+    },
+    {
+      "src_rel": "submission_candidate_lock.json",
+      "dst_rel": "submission_candidate_lock.json",
+      "size_bytes": 10991,
+      "sha256": "9e65cd03d8e8c4664e3e5d1370f1589d848bf2fd45ca685897141f1d249abe6b"
+    },
+    {
+      "src_rel": "SUBMISSION_CANDIDATE.json",
+      "dst_rel": "SUBMISSION_CANDIDATE.json",
+      "size_bytes": 621,
+      "sha256": "a6d0532a6de373a61d84bf963637d9b98ea0ee97bb64263b85698364ecf21baa"
+    },
+    {
+      "src_rel": "SUBMISSION_CANDIDATE.md",
+      "dst_rel": "SUBMISSION_CANDIDATE.md",
+      "size_bytes": 834,
+      "sha256": "06aec39390325297aba4bdee0468e9ad0bce5ab1c3b7f3bf7abd734afff70857"
+    },
+    {
+      "src_rel": "derived_ieee/fig_ieee_pi_foc_mic_power.png",
+      "dst_rel": "derived_ieee/fig_ieee_pi_foc_mic_power.png",
+      "size_bytes": 118631,
+      "sha256": "ddf15ef62652f095751fa7fb0c1bf247e6f9d0678da0c11607d1ea0f93024ee6"
+    },
+    {
+      "src_rel": "derived_ieee/fig_ieee_pi_foc_mic_power.svg",
+      "dst_rel": "derived_ieee/fig_ieee_pi_foc_mic_power.svg",
+      "size_bytes": 61308,
+      "sha256": "a1f318170154de6187f00a125916ac57b3525a86d97bc4c8fd1095141db449a9"
+    },
+    {
+      "src_rel": "data/release/20260303_ai_config_locked_nodrift/promotion_manifest.json",
+      "dst_rel": "data/release/20260303_ai_config_locked_nodrift/promotion_manifest.json",
+      "size_bytes": 10528,
+      "sha256": "6b79c3b3c8abbfbcee950a467c392dccd200527d324583fe6e5d3cb9d0d2dab3"
+    },
+    {
+      "src_rel": "data/release/20260303_ai_config_locked_nodrift/release_snapshot.json",
+      "dst_rel": "data/release/20260303_ai_config_locked_nodrift/release_snapshot.json",
+      "size_bytes": 536,
+      "sha256": "f554326ad3800027a16a9d3a214cf2d157c4288609263d4dd5fe4ef7ccae2e40"
+    },
+    {
+      "src_rel": "submission_bundle/20260303_ai_config_locked_nodrift/submission_bundle_manifest.md",
+      "dst_rel": "submission_bundle/20260303_ai_config_locked_nodrift/submission_bundle_manifest.md",
+      "size_bytes": 668,
+      "sha256": "f62182998ba631db6feeec169f01d894171c86ec32f83a8d814bd2ce7b114f82"
+    }
+  ]
+}
