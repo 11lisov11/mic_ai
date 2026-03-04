@@ -1,0 +1,156 @@
+{
+  "csv_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\passport\\20260304_al31_robust_rand009_nodrift_v3\\raw\\air56\\working_characteristics_filtered.csv",
+  "groups": [
+    "FOC",
+    "MIC_AI"
+  ],
+  "passed": false,
+  "hard_fail_count": 7,
+  "warn_fail_count": 0,
+  "checks": [
+    {
+      "name": "FOC:finite_rows",
+      "passed": true,
+      "details": "finite_rows=5",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:eta_bounds",
+      "passed": true,
+      "details": "eta_min=21.763, eta_max=64.706",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:cosphi_bounds",
+      "passed": true,
+      "details": "cos_min=0.2950, cos_max=0.5731",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:m2_monotonic",
+      "passed": true,
+      "details": "violations=0",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:i1_monotonic",
+      "passed": false,
+      "details": "violations=3",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:n2_non_increasing",
+      "passed": true,
+      "details": "upward_jumps_gt3rpm=1",
+      "severity": "warn"
+    },
+    {
+      "name": "FOC:n2_spike_detector",
+      "passed": false,
+      "details": "spikes=2, threshold=25.000",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:eta_peak_location",
+      "passed": true,
+      "details": "peak_rel=1.000",
+      "severity": "warn"
+    },
+    {
+      "name": "FOC:cosphi_low_to_mid_rise",
+      "passed": true,
+      "details": "delta=0.0648",
+      "severity": "warn"
+    },
+    {
+      "name": "FOC:eta_spike_detector",
+      "passed": false,
+      "details": "spikes=3, threshold=3.000",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:cosphi_spike_detector",
+      "passed": true,
+      "details": "spikes=0, threshold=0.0800",
+      "severity": "error"
+    },
+    {
+      "name": "FOC:p2_le_p1",
+      "passed": true,
+      "details": "violations=0",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:finite_rows",
+      "passed": true,
+      "details": "finite_rows=5",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:eta_bounds",
+      "passed": true,
+      "details": "eta_min=19.278, eta_max=61.582",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:cosphi_bounds",
+      "passed": true,
+      "details": "cos_min=0.3944, cos_max=0.7109",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:m2_monotonic",
+      "passed": true,
+      "details": "violations=0",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:i1_monotonic",
+      "passed": false,
+      "details": "violations=3",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:n2_non_increasing",
+      "passed": true,
+      "details": "upward_jumps_gt3rpm=1",
+      "severity": "warn"
+    },
+    {
+      "name": "MIC_AI:n2_spike_detector",
+      "passed": false,
+      "details": "spikes=2, threshold=25.000",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:eta_peak_location",
+      "passed": true,
+      "details": "peak_rel=1.000",
+      "severity": "warn"
+    },
+    {
+      "name": "MIC_AI:cosphi_low_to_mid_rise",
+      "passed": true,
+      "details": "delta=0.1141",
+      "severity": "warn"
+    },
+    {
+      "name": "MIC_AI:eta_spike_detector",
+      "passed": false,
+      "details": "spikes=3, threshold=3.000",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:cosphi_spike_detector",
+      "passed": false,
+      "details": "spikes=2, threshold=0.0800",
+      "severity": "error"
+    },
+    {
+      "name": "MIC_AI:p2_le_p1",
+      "passed": true,
+      "details": "violations=0",
+      "severity": "error"
+    }
+  ]
+}

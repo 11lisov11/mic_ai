@@ -56,6 +56,35 @@ def test_theory_validator_fails_on_out_of_bounds_cosphi(tmp_path: Path) -> None:
     assert int(report["hard_fail_count"]) >= 1
 
 
+def test_theory_validator_fails_on_non_physical_spikes(tmp_path: Path) -> None:
+    rows: list[dict] = []
+    p2s = [0.05, 0.08, 0.11, 0.14, 0.17, 0.20]
+    m2s = [0.3, 0.45, 0.6, 0.8, 1.0, 1.2]
+    i1s = [0.22, 0.26, 0.31, 0.36, 0.42, 0.48]
+    # Artificial non-physical spike at mid load.
+    n2s = [1384.0, 1383.5, 1290.0, 1382.5, 1382.0, 1381.5]
+    etas = [60.0, 66.0, 84.0, 68.0, 74.0, 76.0]
+    coss = [0.32, 0.44, 0.79, 0.56, 0.70, 0.76]
+    for p2, m2, i1, n2, eta, cos in zip(p2s, m2s, i1s, n2s, etas, coss):
+        rows.append(
+            {
+                "policy": "FOC",
+                "p2_kw": p2,
+                "m2": m2,
+                "i_rms": i1,
+                "n2_rpm": n2,
+                "eta_pct": eta,
+                "cos_phi": cos,
+                "p_el_pos": p2 * 1000.0 / max(eta / 100.0, 1e-6),
+            }
+        )
+    path = _write_csv(tmp_path / "spiky.csv", rows)
+    report = run_validation(path)
+    assert bool(report["passed"]) is False
+    names = {str(ch["name"]): bool(ch["passed"]) for ch in report["checks"]}
+    assert names.get("FOC:n2_spike_detector", True) is False
+
+
 def test_theory_validator_cli_creates_output_dirs(tmp_path: Path) -> None:
     rows = [
         {"policy": "FOC", "p2_kw": 0.05, "m2": 0.3, "i_rms": 0.2, "n2_rpm": 1384, "eta_pct": 60.0, "cos_phi": 0.3},

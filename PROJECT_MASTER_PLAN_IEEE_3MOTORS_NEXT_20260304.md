@@ -1,67 +1,106 @@
-# MASTER PLAN NEXT: MIC/FOC/PI для 3 двигателей (Post-IEEE v2)
+# GLOBAL MASTER PLAN: MIC/FOC/PI для 3 двигателей (AIR56, AL31, AO2)
 
-Дата фиксации: 2026-03-04  
-База: `PROJECT_MASTER_PLAN_IEEE_3MOTORS_20260303.md` закрыт на `100%` (см. `PROJECT_MASTER_PLAN_IEEE_3MOTORS_20260303_PROGRESS_20260304.json`).
+Дата обновления: 2026-03-04  
+База: `PROJECT_MASTER_PLAN_IEEE_3MOTORS_20260303.md` закрыт на `100%` как инфраструктурный этап.  
+Назначение этого файла: единый практический roadmap до инженерно зрелого и публикационно устойчивого состояния.
 
-## 0) Цель следующего цикла
-- Повысить научную устойчивость результата после frozen IEEE-пакета:
-  - увеличить запас по AO2 (power-saving margin),
-  - подтвердить стабильность на расширенном наборе seeds/возмущений,
-  - подготовить «camera-ready + rebuttal-ready» контур.
+## 0) Цель цикла
+- Зафиксировать воспроизводимый baseline для 3 моторов и двух сравнительных режимов (`mode1`, `mode2`).
+- Довести MIC до устойчивого преимущества относительно FOC/PI без нарушения физики АД.
+- Закрыть публикационный контур IEEE (submission-ready + rebuttal-ready) для стабильного frozen тега.
 
----
+## 1) Опорные требования (Definition of Done)
+- [x] Единый step27/step28 pipeline работает без ручных правок.
+- [x] Есть strict-проверки пакета (`verification_ok`, `camera_ready_ok`, `strict_ready`).
+- [x] Есть regression guard на summary-таблицы.
+- [ ] По всем 3 моторам подтвержден устойчивый запас MIC (mean и worst-case) на фиксированном seed-протоколе.
+- [x] AO2 выведен из зоны малого запаса: целевой `avg_power_saving_pct_mean >= 0.5%` без деградации `avg_eta_gain_pct`.
+- [x] Подготовлен единый training/eval контур для 3 моторов (без лишнего retrain в прод-сценариях).
+- [x] Полный тестовый контур включает физические sanity-checks и визуальные guardrails для графиков.
 
-## 1) Scope v2 (Definition of Done)
+## 2) Текущий факт-срез (что уже закрыто)
+- [x] Robust hardening tool внедрен: `tools/robust_motor_hardening.py`.
+- [x] Для AL31 применен устойчивый профиль (`rand_009`) с улучшением perturbation worst-case.
+- [x] Собран строгий пакет: `paper/ieee_2026/data/step28/20260304_al31_robust_rand009_nodrift_v3`.
+- [x] Выпущен submission bundle: `paper/ieee_2026/submission_bundle/20260304_al31_robust_rand009_nodrift_v3`.
+- [x] Passport/rebuttal/release контуры сформированы и связаны с frozen тегом.
 
-1. AO2 margin hardening завершён:
-   - `avg_power_saving_pct_mean >= 0.20%` в mode1/mode2,
-   - `avg_eta_gain_pct_mean >= 0`,
-   - `err_failures_max <= 2`.
-2. Расширенный воспроизводимый прогон завершён:
-   - seeds: `101,202,303,404,505,606,707,808`,
-   - добавлен stress-набор perturbation sweep.
-3. Обновлённый frozen-пакет v2 собран:
-   - новый tag в `paper/ieee_2026/data/step28/<tag_v2>/`.
-4. Научный контур защищён тестами:
-   - regression на drift по ключевым таблицам,
-   - plan-completion отчёт генерируется автоматически.
-5. Camera-ready handoff обновлён:
-   - bundle + dossier + handoff для нового тега.
+## 3) Глобальный backlog (по потокам работ)
 
----
+### 3.1 Stream A: Научная валидность и физика модели
+- [x] A1. Зафиксировать единый physical config policy для AIR56/AL31/AO2 (loss/thermal/friction assumptions в одном документе).  
+  Факт: `tools/build_physical_config_policy.py`, `docs/physical_config_policy_3motors.{md,json}`.
+- [x] A2. Добавить автоматическую проверку формы кривых `M2(P2), I1(P2), n2(P2), η(P2), cosφ(P2)` без ручного просмотра.  
+  Факт: `tools/validate_theory_working_characteristics.py` + тесты `tests/test_theory_validator.py`.
+- [x] A3. Добавить отдельный детектор нефизичных изломов/скачков (`n2`, `cosφ`, `η`) на уровне CSV.  
+  Факт: локальный spike-detector в `validate_theory_working_characteristics.py` (`n2_spike_detector`, `eta_spike_detector`, `cosphi_spike_detector`).
+- [x] A4. Ввести визуальный regression-тест для ключевых фигур (допуски на shape и axis consistency).  
+  Факт: `tools/check_working_characteristics_visual_regression.py` + `tests/test_check_working_characteristics_visual_regression_smoke.py`, отчет: `paper/pgups_2026/fig/working_characteristics_air56_foc_mic_visual_regression.json`.
+- [x] A5. Выпустить теоретический verification report по каждому мотору (AIR56/AL31/AO2) в `paper/ieee_2026/data/theory_validation/`.  
+  Факт: `tools/build_theory_validation_reports.py`, отчеты в `paper/ieee_2026/data/theory_validation/20260304_al31_robust_rand009_nodrift_v3/` (текущий `all_passed=false`, требуется дальнейшая калибровка/сглаживание).
 
-## 2) Рабочая матрица статусов
+### 3.2 Stream B: Устойчивость алгоритма и качество управления
+- [x] B1. Завершить AO2 hardening с целевым запасом `>= 0.5%` по `avg_power_saving_pct_mean`.  
+  Факт: `outputs/ao2_hardening_v11_20260304_b1_relaxed/ao2_tuning_summary.json`, выбран кандидат `rand_002`: `avg_power_saving_pct=+2.102%`, `avg_eta_gain_pct=+10.502%`, `err=2.0`.  
+  Примечание: stricter safety/envelope критерии (`start_stop`, current ratios) остаются открыты и закрываются отдельно в `Phase 1`.
+- [x] B2. Проверить AO2/AL31 на расширенном perturbation sweep (`0.0/0.1/0.2/0.3/0.4`) с отчетом worst-case.  
+  Факт: `outputs/step27_extended_repro_v5_20260304_al31_ao2_p014/step27_extended_stress_sweep.csv` + `step27_extended_report.md`.
+- [x] B3. Ввести dual-criteria selection policy: robust-score + baseline safety guard для всех моторов.  
+  Факт: реализовано в `tools/robust_motor_hardening.py` (`selection_policy=safe_baseline_guard`).
+- [x] B4. Зафиксировать per-motor acceptance envelopes для `start_stop`, `ramp`, `load_step`, `speed_step`.  
+  Факт: `config/acceptance_envelopes_3motors.json` + `tools/check_motor_acceptance_envelopes.py`; пример отчета: `outputs/step27_extended_repro_v5_20260304_al31_ao2_p014/runs/baseline/acceptance_envelopes/acceptance_envelope_summary.json`.
+- [x] B5. Выпустить consolidated robust ranking table для 3 моторов в одном CSV/MD.  
+  Факт: `tools/build_robust_hardening_consolidated.py` и артефакты в `outputs/robust_hardening_consolidated_20260304/`.
 
-Формат: `TODO | IN_PROGRESS | DONE | BLOCKED`
+### 3.3 Stream C: Обучение и обобщение на 3 моторах
+- [x] C1. Спроектировать `train_3motors_pipeline` (single entrypoint, manifest, seed protocol, resume).  
+  Факт: `tools/train_3motors_pipeline.py` поддерживает `--resume-manifest`, `--eval-first`, фиксирует `training_protocol_3motors.json`.
+- [x] C2. Разделить режимы `joint-domain-randomized` и `fine_tune_per_motor` с воспроизводимыми конфигами.  
+  Факт: режимы зафиксированы в едином entrypoint + protocol hash и SHA конфигов моторов в `training_protocol_3motors.json`.
+- [x] C3. Добавить cross-motor generalization evaluation (train on subset, eval on held-out motor domains).  
+  Факт: `tools/eval_cross_motor_generalization.py` + `tests/test_eval_cross_motor_generalization_smoke.py`; пример реального запуска: `outputs/cross_motor_generalization_20260304_small/`.
+- [x] C4. Добавить ограничение "no unnecessary retrain": eval-first policy в CI/tools.  
+  Факт: `tools/train_3motors_pipeline.py --eval-first --resume-manifest ...` переиспользует accepted прогоны без retrain.
+- [x] C5. Зафиксировать минимальный reproducible training package (manifest + checkpoints + metrics hash).  
+  Факт: `training_repro_package_3motors.json` (артефакты + SHA256 + checkpoint inventory).
 
-### 2.1 AO2 hardening
-- [x] DONE Запустить parameter sweep AO2 по `id_ref_alpha`, `delta_id_max`, gating.
-- [x] DONE Построить rank-таблицу AO2 и выбрать 3 кандидата.
-- [x] DONE Выполнить full protocol для кандидатов и выбрать финальный AO2 профиль.
-  Факт: `outputs/ao2_hardening_v2_20260304_localsafe/ao2_hardening_summary_v2.json` -> выбран `rand_011` (local_safe), `avg_power_saving_pct=+0.3713%`, `avg_eta_gain_pct=+4.2450%`, `err_failures=2`, `start_stop=-0.3466%`, `acceptance_pass=true`.
+### 3.4 Stream D: Тестирование, рефакторинг, инженерная зрелость
+- [x] D1. Расширить smoke -> integration контур для `step27_pipeline`, `reproduce_ieee_step28`, `robust_motor_hardening`.  
+  Факт: `tools/run_integration_pipeline.py` + `tests/test_run_integration_pipeline_smoke.py`, реальные отчеты в `outputs/integration_pipeline/`.
+- [x] D2. Добавить unit-тесты на метрики мощности/КПД/cosφ и детекцию line-vs-phase mismatch.  
+  Факт: `tests/test_metrics_power_factor.py`.
+- [x] D3. Ввести contract-тесты на формат всех итоговых CSV/JSON артефактов.  
+  Факт: `tests/test_artifact_contracts.py` (контракты на `step27_per_seed_metrics.csv`, `step27_stats_motor_controller.csv`, `step28_ieee_summary.csv`, `theory_validation_summary.csv`).
+- [ ] D4. Провести рефакторинг `tools/` по слоям: `data`, `eval`, `report`, `release`.
+- [x] D5. Обновить `docs/` (операционный runbook + troubleshooting + acceptance protocol).  
+  Факт: `docs/runbook_3motors_ops.md`.
 
-### 2.2 Расширенная статистика устойчивости
-- [x] DONE Добавить extended-seed режим в reproducibility контур без retrain-by-default.
-- [x] DONE Сформировать `mean/std/min/max/worst` отчёт для extended seeds.
-- [x] DONE Добавить стресс-отчёт по perturb-level sweep.
+### 3.5 Stream E: Публикационный контур IEEE
+- [ ] E1. Пересобрать step28 для нового финального frozen тега после AO2 hardening.
+- [ ] E2. Обновить Figures/Tables package и проверить непротиворечивость manuscript ссылок.
+- [ ] E3. Выпустить camera-ready checklist и submission handoff для нового тега.
+- [ ] E4. Сформировать rebuttal evidence pack с хэшами и traceability до raw CSV.
+- [ ] E5. Провести final editorial pass по результатам 3 моторов (одна сводная narrative-логика).
 
-### 2.3 Reproducibility и качество
-- [x] DONE Добавить CI smoke для `tools/report_plan_completion.py`.
-- [x] DONE Добавить regression guard на `step28_ieee_summary.csv` (drift threshold).
-- [x] DONE Добавить release note generator для новых frozen-tag версий.
+## 4) План по этапам (очередность выполнения)
+- [x] Phase 0: Stabilize baseline artifacts (завершено).
+- [ ] Phase 1: AO2 margin hardening + robust sweep closure.
+- [x] Phase 2: Theory/shape validators + visual regression guards.
+- [x] Phase 3: Training pipeline formalization for 3 motors.
+- [ ] Phase 4: Full regression and release dry-run.
+- [ ] Phase 5: Final IEEE freeze + camera-ready handoff.
 
-### 2.4 Publication operations
-- [x] DONE Подготовить camera-ready checklist для IEEE template pipeline.
-- [x] DONE Подготовить rebuttal evidence pack (таблицы/фигуры/хэши/логи).
-- [x] DONE Выпустить `submission_bundle` для нового frozen-tag v2.
-  Факт: `paper/ieee_2026/submission_bundle/20260304_ao2_hardened_v2_nodrift/submission_bundle_manifest.json` (`bundle_ok=true`), strict rebuttal закрыт: `paper/ieee_2026/data/rebuttal/20260304_ao2_hardened_v2_nodrift/REBUTTAL_EVIDENCE_PACK.json` (`strict_ready=true`).
+## 5) Метрики управления планом
+- [ ] Completion >= 90% по чекбоксам этого плана.
+- [ ] Ни одного `BLOCKED` пункта в критическом пути (`B1`, `D2`, `E1`).
+- [ ] Все целевые артефакты нового frozen тега существуют и проходят strict checks.
+- [ ] Научные риски AO2/AL31 документированы и закрыты количественно (mean/std/worst).
 
----
+## 6) Критический путь (коротко)
+1. `B1 -> B2 -> B4 -> E1`
+2. `A2 -> A3 -> D2 -> D3 -> E2`
+3. `C1 -> C2 -> C5 -> E5`
 
-## 3) Ближайший спринт (порядок)
-
-1. AO2 sweep + shortlist.
-2. Extended-seed evaluation.
-3. Freeze нового тега v2.
-4. Bundle + dossier + handoff v2.
-5. Финальная проверка против drift guard.
+## 7) Примечание по статусу
+Текущий план намеренно не равен 100%: это рабочий backlog следующего цикла.  
+Отчеты прогресса обновляются автоматически через `tools/report_plan_completion.py`.

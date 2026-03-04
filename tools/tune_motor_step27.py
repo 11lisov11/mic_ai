@@ -54,7 +54,18 @@ def _json_dump(path: Path, payload: object) -> None:
     _json_dump_shared(path, payload)
 
 
-def _score(metrics: Dict[str, float], *, min_power: float, min_eta: float, max_err: float, min_start_stop: float) -> float:
+def _score(
+    metrics: Dict[str, float],
+    *,
+    min_power: float,
+    min_eta: float,
+    max_eta: float,
+    max_err: float,
+    min_start_stop: float,
+    max_start_stop: float,
+    max_peak_ratio: float,
+    max_mean_ratio: float,
+) -> float:
     power = float(metrics.get("avg_power_saving_pct", 0.0))
     eta = float(metrics.get("avg_eta_gain_pct", 0.0))
     err = float(metrics.get("err_failures", 0.0))
@@ -67,21 +78,40 @@ def _score(metrics: Dict[str, float], *, min_power: float, min_eta: float, max_e
         penalty += 30.0 * (min_power - power)
     if eta < min_eta:
         penalty += 20.0 * (min_eta - eta)
+    if eta > max_eta:
+        penalty += 6.0 * (eta - max_eta)
     if err > max_err:
         penalty += 8.0 * (err - max_err)
     if start_stop < min_start_stop:
         penalty += 12.0 * (min_start_stop - start_stop)
-    penalty += 3.0 * max(0.0, peak_ratio - 1.15)
-    penalty += 2.0 * max(0.0, mean_ratio - 1.03)
+    if start_stop > max_start_stop:
+        penalty += 4.0 * (start_stop - max_start_stop)
+    penalty += 5.0 * max(0.0, peak_ratio - max_peak_ratio)
+    penalty += 3.0 * max(0.0, mean_ratio - max_mean_ratio)
     return float(penalty)
 
 
-def _pass(metrics: Dict[str, float], *, min_power: float, min_eta: float, max_err: float, min_start_stop: float) -> bool:
+def _pass(
+    metrics: Dict[str, float],
+    *,
+    min_power: float,
+    min_eta: float,
+    max_eta: float,
+    max_err: float,
+    min_start_stop: float,
+    max_start_stop: float,
+    max_peak_ratio: float,
+    max_mean_ratio: float,
+) -> bool:
     return bool(
         float(metrics.get("avg_power_saving_pct", 0.0)) >= min_power
         and float(metrics.get("avg_eta_gain_pct", 0.0)) >= min_eta
+        and float(metrics.get("avg_eta_gain_pct", 0.0)) <= max_eta
         and float(metrics.get("err_failures", 0.0)) <= max_err
         and float(metrics.get("start_stop_power_saving_pct", 0.0)) >= min_start_stop
+        and float(metrics.get("start_stop_power_saving_pct", 0.0)) <= max_start_stop
+        and float(metrics.get("worst_current_peak_ratio", 0.0)) <= max_peak_ratio
+        and float(metrics.get("worst_current_mean_ratio", 0.0)) <= max_mean_ratio
     )
 
 
@@ -175,8 +205,12 @@ def main() -> None:
     parser.add_argument("--allow-foc-lut", dest="foc_disable_lut", action="store_false")
     parser.add_argument("--min-avg-power-saving-pct", type=float, default=0.0)
     parser.add_argument("--min-avg-eta-gain-pct", type=float, default=0.0)
+    parser.add_argument("--max-avg-eta-gain-pct", type=float, default=25.0)
     parser.add_argument("--max-err-failures", type=float, default=2.0)
     parser.add_argument("--min-start-stop-saving-pct", type=float, default=-0.5)
+    parser.add_argument("--max-start-stop-saving-pct", type=float, default=20.0)
+    parser.add_argument("--max-worst-current-peak-ratio", type=float, default=1.30)
+    parser.add_argument("--max-worst-current-mean-ratio", type=float, default=1.20)
     parser.set_defaults(use_total_power=True)
     parser.set_defaults(foc_disable_lut=True)
     args = parser.parse_args()
@@ -260,15 +294,23 @@ def main() -> None:
             metrics,
             min_power=float(args.min_avg_power_saving_pct),
             min_eta=float(args.min_avg_eta_gain_pct),
+            max_eta=float(args.max_avg_eta_gain_pct),
             max_err=float(args.max_err_failures),
             min_start_stop=float(args.min_start_stop_saving_pct),
+            max_start_stop=float(args.max_start_stop_saving_pct),
+            max_peak_ratio=float(args.max_worst_current_peak_ratio),
+            max_mean_ratio=float(args.max_worst_current_mean_ratio),
         )
         row["acceptance_pass"] = _pass(
             metrics,
             min_power=float(args.min_avg_power_saving_pct),
             min_eta=float(args.min_avg_eta_gain_pct),
+            max_eta=float(args.max_avg_eta_gain_pct),
             max_err=float(args.max_err_failures),
             min_start_stop=float(args.min_start_stop_saving_pct),
+            max_start_stop=float(args.max_start_stop_saving_pct),
+            max_peak_ratio=float(args.max_worst_current_peak_ratio),
+            max_mean_ratio=float(args.max_worst_current_mean_ratio),
         )
         stage1_rows.append(row)
         print(
@@ -302,15 +344,23 @@ def main() -> None:
             metrics,
             min_power=float(args.min_avg_power_saving_pct),
             min_eta=float(args.min_avg_eta_gain_pct),
+            max_eta=float(args.max_avg_eta_gain_pct),
             max_err=float(args.max_err_failures),
             min_start_stop=float(args.min_start_stop_saving_pct),
+            max_start_stop=float(args.max_start_stop_saving_pct),
+            max_peak_ratio=float(args.max_worst_current_peak_ratio),
+            max_mean_ratio=float(args.max_worst_current_mean_ratio),
         )
         row["acceptance_pass"] = _pass(
             metrics,
             min_power=float(args.min_avg_power_saving_pct),
             min_eta=float(args.min_avg_eta_gain_pct),
+            max_eta=float(args.max_avg_eta_gain_pct),
             max_err=float(args.max_err_failures),
             min_start_stop=float(args.min_start_stop_saving_pct),
+            max_start_stop=float(args.max_start_stop_saving_pct),
+            max_peak_ratio=float(args.max_worst_current_peak_ratio),
+            max_mean_ratio=float(args.max_worst_current_mean_ratio),
         )
         stage2_rows.append(row)
         print(
@@ -338,8 +388,12 @@ def main() -> None:
         "acceptance": {
             "min_avg_power_saving_pct": float(args.min_avg_power_saving_pct),
             "min_avg_eta_gain_pct": float(args.min_avg_eta_gain_pct),
+            "max_avg_eta_gain_pct": float(args.max_avg_eta_gain_pct),
             "max_err_failures": float(args.max_err_failures),
             "min_start_stop_saving_pct": float(args.min_start_stop_saving_pct),
+            "max_start_stop_saving_pct": float(args.max_start_stop_saving_pct),
+            "max_worst_current_peak_ratio": float(args.max_worst_current_peak_ratio),
+            "max_worst_current_mean_ratio": float(args.max_worst_current_mean_ratio),
         },
         "sample_profile": str(args.sample_profile),
         "best": best,

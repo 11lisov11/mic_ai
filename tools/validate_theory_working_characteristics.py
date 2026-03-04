@@ -18,6 +18,29 @@ class CheckResult:
     severity: str = "error"
 
 
+def _count_local_spikes(values: np.ndarray, *, abs_limit: float, rel_factor: float = 6.0) -> Tuple[int, float]:
+    """
+    Detect non-physical local spikes using deviation from neighbor interpolation.
+    Returns (spike_count, threshold_used).
+    """
+    x = np.asarray(values, dtype=float)
+    if x.size < 5:
+        return 0, float(abs_limit)
+    local = np.abs(x[1:-1] - 0.5 * (x[:-2] + x[2:]))
+    finite = local[np.isfinite(local)]
+    if finite.size == 0:
+        return 0, float(abs_limit)
+    med = float(np.median(finite))
+    # Keep absolute physical threshold as primary guard.
+    # Relative threshold is used only when local residual scale is clearly small.
+    if med <= (0.5 * float(abs_limit)):
+        thr = float(max(abs_limit, rel_factor * max(med, 1e-12)))
+    else:
+        thr = float(abs_limit)
+    count = int(np.sum(finite > thr))
+    return count, thr
+
+
 def _pick_first_existing(df: pd.DataFrame, names: List[str]) -> str | None:
     for name in names:
         if name in df.columns:
@@ -145,6 +168,15 @@ def _validate_group(name: str, g: pd.DataFrame) -> List[CheckResult]:
         )
     )
 
+    n2_spikes, n2_thr = _count_local_spikes(n2, abs_limit=25.0, rel_factor=6.0)
+    out.append(
+        CheckResult(
+            name=f"{name}:n2_spike_detector",
+            passed=n2_spikes == 0,
+            details=f"spikes={n2_spikes}, threshold={n2_thr:.3f}",
+        )
+    )
+
     # Soft shape checks (warnings): eta peak and cosphi rise from low load to nominal.
     p2_span = float(max(np.max(p2) - np.min(p2), 1e-9))
     eta_peak_idx = int(np.argmax(eta_pct))
@@ -166,6 +198,23 @@ def _validate_group(name: str, g: pd.DataFrame) -> List[CheckResult]:
             passed=cos_rise > -0.02,
             details=f"delta={cos_rise:.4f}",
             severity="warn",
+        )
+    )
+
+    eta_spikes, eta_thr = _count_local_spikes(eta_pct, abs_limit=3.0, rel_factor=6.0)
+    out.append(
+        CheckResult(
+            name=f"{name}:eta_spike_detector",
+            passed=eta_spikes == 0,
+            details=f"spikes={eta_spikes}, threshold={eta_thr:.3f}",
+        )
+    )
+    cos_spikes, cos_thr = _count_local_spikes(cos, abs_limit=0.08, rel_factor=6.0)
+    out.append(
+        CheckResult(
+            name=f"{name}:cosphi_spike_detector",
+            passed=cos_spikes == 0,
+            details=f"spikes={cos_spikes}, threshold={cos_thr:.4f}",
         )
     )
 

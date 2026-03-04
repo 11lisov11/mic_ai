@@ -1,0 +1,45 @@
+{
+  "csv_path": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic_table.csv",
+  "foc_policy": "FOC",
+  "mic_policy": "MIC_AI",
+  "axis_consistency": {
+    "ok": true,
+    "min_diff_kw": 0.0,
+    "max_diff_kw": 0.0034167918137638087,
+    "x_min_tol_kw": 0.005,
+    "x_max_tol_kw": 0.03
+  },
+  "shape_checks": [
+    {
+      "policy": "FOC",
+      "shape_ok": true,
+      "M2_violation_ratio": 0.0,
+      "I1_violation_ratio": 0.0,
+      "n2_violation_ratio": 0.07142857142857142,
+      "eta_sign_changes": 2.0,
+      "cosphi_sign_changes": 0.0,
+      "eta_range_ok": true,
+      "cosphi_range_ok": true
+    },
+    {
+      "policy": "MIC_AI",
+      "shape_ok": true,
+      "M2_violation_ratio": 0.0,
+      "I1_violation_ratio": 0.07142857142857142,
+      "n2_violation_ratio": 0.0,
+      "eta_sign_changes": 2.0,
+      "cosphi_sign_changes": 2.0,
+      "eta_range_ok": true,
+      "cosphi_range_ok": true
+    }
+  ],
+  "cross_policy_drift": {
+    "M2_nrmse": 0.011627162382636351,
+    "I1_nrmse": 0.0049142547858376864,
+    "n2_nrmse": 0.011967843960885138,
+    "eta_nrmse": 0.008726621930603215,
+    "cosphi_nrmse": 0.006428825329850359
+  },
+  "overlap_ok": true,
+  "passed": true
+}

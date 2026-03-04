@@ -1,13 +1,13 @@
 {
-  "generated_utc": "2026-03-04T08:40:51.549276+00:00",
+  "generated_utc": "2026-03-04T15:37:05.434112+00:00",
   "plan_path": "C:\\mic_theory\\PROJECT_MASTER_PLAN_IEEE_3MOTORS_NEXT_20260304.md",
   "checkboxes": {
-    "total": 12,
-    "done": 12,
-    "todo": 0,
+    "total": 47,
+    "done": 33,
+    "todo": 14,
     "in_progress": 0,
-    "completion_pct": 100.0,
-    "hard_ready": true
+    "completion_pct": 70.21,
+    "hard_ready": false
   },
   "status_lines": {
     "done": 0,
@@ -15,5 +15,76 @@
     "in_progress": 0,
     "blocked": 0
   },
-  "open_items": []
+  "open_items": [
+    {
+      "line": 16,
+      "state": "todo",
+      "text": "По всем 3 моторам подтвержден устойчивый запас MIC (mean и worst-case) на фиксированном seed-протоколе."
+    },
+    {
+      "line": 74,
+      "state": "todo",
+      "text": "D4. Провести рефакторинг `tools/` по слоям: `data`, `eval`, `report`, `release`."
+    },
+    {
+      "line": 79,
+      "state": "todo",
+      "text": "E1. Пересобрать step28 для нового финального frozen тега после AO2 hardening."
+    },
+    {
+      "line": 80,
+      "state": "todo",
+      "text": "E2. Обновить Figures/Tables package и проверить непротиворечивость manuscript ссылок."
+    },
+    {
+      "line": 81,
+      "state": "todo",
+      "text": "E3. Выпустить camera-ready checklist и submission handoff для нового тега."
+    },
+    {
+      "line": 82,
+      "state": "todo",
+      "text": "E4. Сформировать rebuttal evidence pack с хэшами и traceability до raw CSV."
+    },
+    {
+      "line": 83,
+      "state": "todo",
+      "text": "E5. Провести final editorial pass по результатам 3 моторов (одна сводная narrative-логика)."
+    },
+    {
+      "line": 87,
+      "state": "todo",
+      "text": "Phase 1: AO2 margin hardening + robust sweep closure."
+    },
+    {
+      "line": 90,
+      "state": "todo",
+      "text": "Phase 4: Full regression and release dry-run."
+    },
+    {
+      "line": 91,
+      "state": "todo",
+      "text": "Phase 5: Final IEEE freeze + camera-ready handoff."
+    },
+    {
+      "line": 94,
+      "state": "todo",
+      "text": "Completion >= 90% по чекбоксам этого плана."
+    },
+    {
+      "line": 95,
+      "state": "todo",
+      "text": "Ни одного `BLOCKED` пункта в критическом пути (`B1`, `D2`, `E1`)."
+    },
+    {
+      "line": 96,
+      "state": "todo",
+      "text": "Все целевые артефакты нового frozen тега существуют и проходят strict checks."
+    },
+    {
+      "line": 97,
+      "state": "todo",
+      "text": "Научные риски AO2/AL31 документированы и закрыты количественно (mean/std/worst)."
+    }
+  ]
 }

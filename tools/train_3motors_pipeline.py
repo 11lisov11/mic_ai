@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import sys
@@ -99,6 +100,159 @@ def _load_episode_entries(path: Path) -> List[Dict[str, object]]:
                 out.append(dict(row))
         return out
     return []
+
+
+def _run_key(*, motor: str, seed: int, stage: str) -> str:
+    return f"{str(motor).lower()}::{int(seed)}::{str(stage)}"
+
+
+def _load_resume_index(manifest: Dict[str, object]) -> Dict[str, Dict[str, object]]:
+    rows = manifest.get("runs", [])
+    out: Dict[str, Dict[str, object]] = {}
+    if not isinstance(rows, list):
+        return out
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        motor = str(row.get("motor", "")).strip().lower()
+        stage = str(row.get("stage", "")).strip()
+        try:
+            seed = int(row.get("seed", 0))
+        except Exception:
+            continue
+        if not motor or not stage:
+            continue
+        out[_run_key(motor=motor, seed=seed, stage=stage)] = dict(row)
+    return out
+
+
+def _load_acceptance_index(manifest: Dict[str, object]) -> Dict[str, bool]:
+    out: Dict[str, bool] = {}
+    artifacts = manifest.get("artifacts", {})
+    if not isinstance(artifacts, dict):
+        return out
+    csv_path_text = str(artifacts.get("training_acceptance_csv", "")).strip()
+    if not csv_path_text:
+        return out
+    csv_path = Path(csv_path_text).resolve()
+    if not csv_path.exists():
+        return out
+    try:
+        with csv_path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                motor = str(row.get("motor", "")).strip().lower()
+                stage = str(row.get("stage", "")).strip()
+                seed_text = str(row.get("seed", "")).strip()
+                passed_text = str(row.get("acceptance_pass", "")).strip().lower()
+                if not motor or not stage:
+                    continue
+                try:
+                    seed = int(seed_text)
+                except Exception:
+                    continue
+                passed = passed_text in {"1", "true", "yes", "y"}
+                out[_run_key(motor=motor, seed=seed, stage=stage)] = passed
+    except Exception:
+        return {}
+    return out
+
+
+def _checkpoint_paths_exist(row: Dict[str, object]) -> bool:
+    best = _resolve_path(str(row.get("best_checkpoint", "")))
+    episodes = _resolve_path(str(row.get("episodes_log", "")))
+    if not best.exists():
+        return False
+    if not episodes.exists():
+        return False
+    return True
+
+
+def _build_protocol_snapshot(
+    *,
+    args: argparse.Namespace,
+    motors: List[MotorSpec],
+    seeds: List[int],
+    run_root: Path,
+    resume_manifest: str | None,
+) -> Dict[str, object]:
+    motor_rows: List[Dict[str, object]] = []
+    for m in motors:
+        cfg = _resolve_path(m.config_path)
+        motor_rows.append(
+            {
+                "motor": m.key,
+                "config_path": str(cfg),
+                "config_sha256": _file_sha256(cfg),
+            }
+        )
+    protocol = {
+        "mode": str(args.mode),
+        "motors": [m.key for m in motors],
+        "seeds": [int(s) for s in seeds],
+        "scenarios": _parse_csv_list(args.scenarios),
+        "eval_scenarios": _parse_csv_list(args.eval_scenarios),
+        "joint_cycles": int(args.joint_cycles),
+        "joint_cycle_episodes": int(args.joint_cycle_episodes),
+        "episodes": int(args.episodes),
+        "episode_steps": int(args.episode_steps),
+        "control_mode": str(args.control_mode),
+        "resume_manifest": "" if resume_manifest is None else str(Path(resume_manifest).resolve()),
+        "eval_first": bool(args.eval_first),
+    }
+    protocol_hash = hashlib.sha256(json.dumps(protocol, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    payload = {
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "run_root": str(run_root),
+        "protocol": protocol,
+        "protocol_hash": protocol_hash,
+        "motor_configs": motor_rows,
+        "cli_args": {k: v for k, v in vars(args).items()},
+    }
+    return payload
+
+
+def _build_repro_package_manifest(
+    *,
+    run_root: Path,
+    run_rows: List[Dict[str, object]],
+    protocol_hash: str,
+) -> Dict[str, object]:
+    checkpoints: List[Dict[str, object]] = []
+    seen: set[str] = set()
+    for row in run_rows:
+        for field in ("best_checkpoint", "last_checkpoint"):
+            p = _resolve_path(str(row.get(field, "")))
+            key = str(p)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            checkpoints.append(
+                {
+                    "path": key,
+                    "sha256": _file_sha256(p),
+                    "exists": bool(p.exists()),
+                }
+            )
+    artifacts = {
+        "training_runs_csv": str((run_root / "training_runs_3motors.csv").resolve()),
+        "training_summaries_csv": str((run_root / "training_run_summaries_3motors.csv").resolve()),
+        "training_acceptance_csv": str((run_root / "training_acceptance_matrix_3motors.csv").resolve()),
+        "training_eval_snapshots_csv": str((run_root / "training_eval_snapshots_3motors.csv").resolve()),
+        "checkpoint_registry_json": str((run_root / "checkpoints_registry_3motors.json").resolve()),
+    }
+    artifact_hashes = {
+        name: _file_sha256(Path(path))
+        for name, path in artifacts.items()
+    }
+    return {
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "run_root": str(run_root),
+        "protocol_hash": str(protocol_hash),
+        "artifacts": artifacts,
+        "artifact_hashes": artifact_hashes,
+        "checkpoints": checkpoints,
+    }
 
 
 def _summarize_run(
@@ -305,6 +459,16 @@ def main() -> None:
     parser.add_argument("--ai-output-dir", default="")
     parser.add_argument("--results-root", default="")
     parser.add_argument("--base-manifest", default=None, help="Manifest from joint run for fine_tune_per_motor mode.")
+    parser.add_argument(
+        "--resume-manifest",
+        default=None,
+        help="Optional previous training_manifest_3motors.json to reuse accepted runs (eval-first policy).",
+    )
+    parser.add_argument(
+        "--eval-first",
+        action="store_true",
+        help="If set with --resume-manifest, reuse accepted runs when artifacts exist; train only missing/failed runs.",
+    )
     parser.add_argument("--joint-cycles", type=int, default=2)
     parser.add_argument("--joint-cycle-episodes", type=int, default=40)
     parser.add_argument("--control-mode", default="ai_id_ref", choices=["ai_id_ref", "ai_current"])
@@ -373,11 +537,63 @@ def main() -> None:
             raise FileNotFoundError(base_manifest_path)
         base_manifest_data = _load_json(base_manifest_path)
 
+    resume_manifest_data: Dict[str, object] | None = None
+    resume_index: Dict[str, Dict[str, object]] = {}
+    resume_acceptance: Dict[str, bool] = {}
+    if args.resume_manifest:
+        resume_path = Path(str(args.resume_manifest)).resolve()
+        if not resume_path.exists():
+            raise FileNotFoundError(resume_path)
+        resume_manifest_data = _load_json(resume_path)
+        resume_index = _load_resume_index(resume_manifest_data)
+        resume_acceptance = _load_acceptance_index(resume_manifest_data)
+
+    protocol_payload = _build_protocol_snapshot(
+        args=args,
+        motors=motors,
+        seeds=seeds,
+        run_root=run_root,
+        resume_manifest=args.resume_manifest,
+    )
+    protocol_path = run_root / "training_protocol_3motors.json"
+    protocol_path.write_text(json.dumps(protocol_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _maybe_reuse_or_train(
+        *,
+        motor: MotorSpec,
+        seed: int,
+        stage: str,
+        init_checkpoint: str | None,
+        kwargs: Dict[str, object],
+    ) -> Dict[str, object]:
+        key = _run_key(motor=motor.key, seed=int(seed), stage=stage)
+        can_reuse = bool(args.eval_first and resume_manifest_data is not None)
+        if can_reuse:
+            prev = resume_index.get(key)
+            prev_ok = bool(resume_acceptance.get(key, False))
+            if prev is not None and prev_ok and _checkpoint_paths_exist(prev):
+                reused = dict(prev)
+                reused["reused_from_manifest"] = str(Path(str(args.resume_manifest)).resolve()) if args.resume_manifest else ""
+                reused["reused"] = True
+                print(f"[train3] mode={args.mode} seed={seed} motor={motor.key} stage={stage} reused=true")
+                return reused
+
+        row = _run_train(motor=motor, seed=seed, stage=stage, init_checkpoint=init_checkpoint, kwargs=kwargs)
+        row["reused"] = False
+        row["reused_from_manifest"] = ""
+        return row
+
     for seed in seeds:
         kwargs = _base_train_kwargs(args, seed=seed)
         if str(args.mode) == "separate-per-motor":
             for motor in motors:
-                row = _run_train(motor=motor, seed=seed, stage="separate", init_checkpoint=None, kwargs=kwargs)
+                row = _maybe_reuse_or_train(
+                    motor=motor,
+                    seed=seed,
+                    stage="separate",
+                    init_checkpoint=None,
+                    kwargs=kwargs,
+                )
                 run_rows.append(row)
                 print(f"[train3] mode=separate seed={seed} motor={motor.key} best={row['best_checkpoint']}")
             continue
@@ -389,7 +605,13 @@ def main() -> None:
                 kwargs_joint["episodes"] = int(args.joint_cycle_episodes)
                 for motor in motors:
                     stage = f"joint_cycle_{cycle + 1}"
-                    row = _run_train(motor=motor, seed=seed, stage=stage, init_checkpoint=carry_ckpt, kwargs=kwargs_joint)
+                    row = _maybe_reuse_or_train(
+                        motor=motor,
+                        seed=seed,
+                        stage=stage,
+                        init_checkpoint=carry_ckpt,
+                        kwargs=kwargs_joint,
+                    )
                     run_rows.append(row)
                     carry_ckpt = str(row["best_checkpoint"]) if str(row["best_checkpoint"]) else carry_ckpt
                     print(
@@ -406,7 +628,7 @@ def main() -> None:
         if not init_ckpt_seed:
             raise ValueError(f"Base manifest does not contain shared checkpoint for seed={seed}.")
         for motor in motors:
-            row = _run_train(
+            row = _maybe_reuse_or_train(
                 motor=motor,
                 seed=seed,
                 stage="fine_tune",
@@ -450,6 +672,9 @@ def main() -> None:
         "scenarios": _parse_csv_list(args.scenarios),
         "run_root": str(run_root),
         "base_manifest": None if args.base_manifest is None else str(Path(args.base_manifest).resolve()),
+        "resume_manifest": None if args.resume_manifest is None else str(Path(args.resume_manifest).resolve()),
+        "eval_first": bool(args.eval_first),
+        "protocol_hash": str(protocol_payload.get("protocol_hash", "")),
         "per_seed_shared_checkpoints": per_seed_shared,
         "artifacts": {
             "training_runs_csv": str(run_root / "training_runs_3motors.csv"),
@@ -457,6 +682,7 @@ def main() -> None:
             "training_acceptance_csv": str(run_root / "training_acceptance_matrix_3motors.csv"),
             "training_eval_snapshots_csv": str(run_root / "training_eval_snapshots_3motors.csv"),
             "checkpoint_registry_json": str(checkpoint_registry_path),
+            "training_protocol_json": str(protocol_path),
         },
         "acceptance": {
             "total_runs": int(len(acceptance_rows)),
@@ -469,6 +695,13 @@ def main() -> None:
         json.dumps(manifest, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    repro_payload = _build_repro_package_manifest(
+        run_root=run_root,
+        run_rows=run_rows,
+        protocol_hash=str(protocol_payload.get("protocol_hash", "")),
+    )
+    repro_path = run_root / "training_repro_package_3motors.json"
+    repro_path.write_text(json.dumps(repro_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[train3] manifest: {run_root / 'training_manifest_3motors.json'}")
 
 

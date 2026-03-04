@@ -1,0 +1,57 @@
+{
+  "version": "2026-03-04",
+  "description": "Per-motor MIC acceptance envelopes by scenario (FOC baseline comparison).",
+  "common": {
+    "speed_step": {
+      "power_saving_pct_min": -0.5,
+      "eta_gain_pct_min": -0.5,
+      "current_peak_ratio_max": 1.25,
+      "current_mean_ratio_max": 1.12,
+      "err_ok_required": true
+    },
+    "ramp": {
+      "power_saving_pct_min": -0.5,
+      "eta_gain_pct_min": -0.5,
+      "current_peak_ratio_max": 1.25,
+      "current_mean_ratio_max": 1.12,
+      "err_ok_required": true
+    },
+    "load_step": {
+      "power_saving_pct_min": -0.5,
+      "eta_gain_pct_min": -0.5,
+      "current_peak_ratio_max": 1.25,
+      "current_mean_ratio_max": 1.12,
+      "err_ok_required": true
+    },
+    "start_stop": {
+      "power_saving_pct_min": -0.5,
+      "eta_gain_pct_min": -5.0,
+      "current_peak_ratio_max": 1.30,
+      "current_mean_ratio_max": 1.20,
+      "err_ok_required": true
+    }
+  },
+  "motors": {
+    "air56": {},
+    "al31": {
+      "start_stop": {
+        "power_saving_pct_min": -1.5,
+        "eta_gain_pct_min": -5.0
+      }
+    },
+    "ao2": {
+      "speed_step": {
+        "current_peak_ratio_max": 1.30,
+        "current_mean_ratio_max": 1.20
+      },
+      "ramp": {
+        "current_peak_ratio_max": 1.30,
+        "current_mean_ratio_max": 1.20
+      },
+      "load_step": {
+        "current_peak_ratio_max": 1.30,
+        "current_mean_ratio_max": 1.20
+      }
+    }
+  }
+}
