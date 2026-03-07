@@ -934,33 +934,33 @@ def _smooth_xy_curve(
         yy = np.maximum.accumulate(yy)
     if xx.size <= 2:
         ys = yy
-        if y_min is not None or y_max is not None:
-            ys = np.clip(
-                ys,
-                -np.inf if y_min is None else float(y_min),
-                np.inf if y_max is None else float(y_max),
-            )
-        return xx, ys
+    else:
+        x_dense = np.linspace(float(xx[0]), float(xx[-1]), int(max(points, xx.size)))
+        y_dense = np.interp(x_dense, xx, yy)
+        try:
+            from scipy.interpolate import PchipInterpolator
 
-    x_dense = np.linspace(float(xx[0]), float(xx[-1]), int(max(points, xx.size)))
-    y_dense = np.interp(x_dense, xx, yy)
-    try:
-        from scipy.interpolate import PchipInterpolator
-
-        spline = PchipInterpolator(xx, yy, extrapolate=False)
-        y_spl = np.asarray(spline(x_dense), dtype=float)
-        if np.any(np.isfinite(y_spl)):
-            y_dense = y_spl
-    except Exception:
-        pass
-
+            spline = PchipInterpolator(xx, yy, extrapolate=False)
+            y_spl = np.asarray(spline(x_dense), dtype=float)
+            if np.any(np.isfinite(y_spl)):
+                y_dense = y_spl
+        except Exception:
+            pass
+        if str(trend).lower() == "non_increasing":
+            y_dense = np.minimum.accumulate(y_dense)
+        elif str(trend).lower() == "non_decreasing":
+            y_dense = np.maximum.accumulate(y_dense)
+        y_dense[0] = float(yy[0])
+        y_dense[-1] = float(yy[-1])
+        xx = x_dense
+        ys = y_dense
     if y_min is not None or y_max is not None:
-        y_dense = np.clip(
-            y_dense,
+        ys = np.clip(
+            ys,
             -np.inf if y_min is None else float(y_min),
             np.inf if y_max is None else float(y_max),
         )
-    return x_dense, y_dense
+    return xx, ys
 
 
 def _plot_air56_mech_journal(
@@ -969,9 +969,10 @@ def _plot_air56_mech_journal(
     mic: List[Dict[str, float]],
     common_p2_kw: float = 0.25,
     char_load_factors: Tuple[float, float] = (0.5, 1.0),
+    output_formats: Tuple[str, ...] = ("png", "pdf", "svg"),
 ) -> None:
     plt = apply_vak_style(ensure_matplotlib())
-    fig, axes = plt.subplots(2, 1, figsize=(13.6, 10.8), sharex=True)
+    fig, ax_m2 = plt.subplots(1, 1, figsize=(13.6, 6.8))
 
     colors = {
         "M2": "#1f4e79",
@@ -980,6 +981,41 @@ def _plot_air56_mech_journal(
         "eta": "#7a2f2f",
         "cosphi": "#5b4b8a",
     }
+
+    ax_i1 = ax_m2.twinx()
+    ax_n2 = ax_m2.twinx()
+    ax_eta = ax_m2.twinx()
+    ax_cosphi = ax_m2.twinx()
+    i1_axis_x = -0.14
+    n2_axis_x = -0.27
+    eta_axis_x = 1.03
+    cosphi_axis_x = 1.14
+    for ax_extra in (ax_i1, ax_n2, ax_eta, ax_cosphi):
+        ax_extra.set_frame_on(True)
+        ax_extra.patch.set_visible(False)
+
+    # Left axes.
+    ax_i1.spines["right"].set_visible(False)
+    ax_i1.spines["left"].set_visible(True)
+    ax_i1.spines["left"].set_position(("axes", i1_axis_x))
+    ax_i1.yaxis.set_label_position("left")
+    ax_i1.yaxis.set_ticks_position("left")
+
+    ax_n2.spines["right"].set_visible(False)
+    ax_n2.spines["left"].set_visible(True)
+    ax_n2.spines["left"].set_position(("axes", n2_axis_x))
+    ax_n2.yaxis.set_label_position("left")
+    ax_n2.yaxis.set_ticks_position("left")
+
+    # Right axes.
+    ax_eta.spines["right"].set_visible(True)
+    ax_eta.spines["right"].set_position(("axes", eta_axis_x))
+    ax_eta.yaxis.set_label_position("right")
+    ax_eta.yaxis.set_ticks_position("right")
+    ax_cosphi.spines["right"].set_visible(True)
+    ax_cosphi.spines["right"].set_position(("axes", cosphi_axis_x))
+    ax_cosphi.yaxis.set_label_position("right")
+    ax_cosphi.yaxis.set_ticks_position("right")
 
     x_f = np.asarray([float(r["p2_kw"]) for r in foc], dtype=float)
     x_m = np.asarray([float(r["p2_kw"]) for r in mic], dtype=float)
@@ -992,67 +1028,30 @@ def _plot_air56_mech_journal(
     x_pad = max(0.002, 0.05 * x_span_raw)
     x_left = x_min - x_pad
     x_right = x_max + x_pad
-    if np.isfinite(common_p2_kw):
-        # Keep the common power marker visible even when it is slightly
-        # outside sampled P2 points (e.g. target 0.250 kW near right edge).
-        right_extra = max(0.004, 0.04 * x_span_raw)
-        x_right = max(x_right, float(common_p2_kw) + right_extra)
+    x_span = max(1e-9, x_right - x_left)
 
-    def _characteristic_rows(rows: List[Dict[str, float]]) -> List[Dict[str, float]]:
+    def _characteristic_rows(rows: List[Dict[str, float]]) -> List[Tuple[float, Dict[str, float]]]:
         if not rows:
             return []
-        out: List[Dict[str, float]] = []
+        out: List[Tuple[float, Dict[str, float]]] = []
         for lf in char_load_factors:
             idx = int(
                 np.nanargmin(
                     np.asarray([abs(float(r.get("load_factor", float("nan"))) - float(lf)) for r in rows], dtype=float)
                 )
             )
-            out.append(rows[idx])
+            out.append((float(lf), rows[idx]))
         return out
 
-    def _draw_panel(ax_m2, rows: List[Dict[str, float]], panel_title: str) -> None:
-        import matplotlib.ticker as mticker
-
+    def _draw_policy(rows: List[Dict[str, float]], policy_label: str, line_style: str) -> Dict[str, object]:
         x = np.asarray([float(r["p2_kw"]) for r in rows], dtype=float)
         m2 = np.asarray([float(r["m2"]) for r in rows], dtype=float)
         i1 = np.asarray([float(r["i_rms"]) for r in rows], dtype=float)
         n2 = np.asarray([float(r["n2_rpm"]) for r in rows], dtype=float)
         eta = np.asarray([float(r["eta_pct"]) for r in rows], dtype=float)
         cosphi = np.asarray([float(r["cos_phi"]) for r in rows], dtype=float)
-        ax_i1 = ax_m2.twinx()
-        ax_n2 = ax_m2.twinx()
-        ax_eta = ax_m2.twinx()
-        ax_cosphi = ax_m2.twinx()
-        for ax_extra in (ax_i1, ax_n2, ax_eta, ax_cosphi):
-            ax_extra.set_frame_on(True)
-            ax_extra.patch.set_visible(False)
-
-        # Left axes.
-        ax_i1.spines["right"].set_visible(False)
-        ax_i1.spines["left"].set_visible(True)
-        ax_i1.spines["left"].set_position(("axes", -0.14))
-        ax_i1.yaxis.set_label_position("left")
-        ax_i1.yaxis.set_ticks_position("left")
-
-        ax_n2.spines["right"].set_visible(False)
-        ax_n2.spines["left"].set_visible(True)
-        ax_n2.spines["left"].set_position(("axes", -0.27))
-        ax_n2.yaxis.set_label_position("left")
-        ax_n2.yaxis.set_ticks_position("left")
-
-        # Right axes.
-        ax_eta.spines["right"].set_visible(True)
-        ax_eta.spines["right"].set_position(("axes", 1.03))
-        ax_eta.yaxis.set_label_position("right")
-        ax_eta.yaxis.set_ticks_position("right")
-        ax_cosphi.spines["right"].set_visible(True)
-        ax_cosphi.spines["right"].set_position(("axes", 1.14))
-        ax_cosphi.yaxis.set_label_position("right")
-        ax_cosphi.yaxis.set_ticks_position("right")
 
         lw = 1.9
-        ms = 2.4
         x_m2, y_m2 = _smooth_xy_curve(x, m2, points=420, y_min=0.0)
         x_i1, y_i1 = _smooth_xy_curve(x, i1, points=420, y_min=0.0)
         x_n2, y_n2 = _smooth_xy_curve(
@@ -1062,153 +1061,392 @@ def _plot_air56_mech_journal(
             trend="non_increasing",
             pre_smooth_window=3,
         )
-        x_eta, y_eta = _smooth_xy_curve(x, eta, points=420, y_min=0.0, y_max=100.0)
-        x_cos, y_cos = _smooth_xy_curve(x, cosphi, points=420, y_min=0.0, y_max=1.0)
-        ax_m2.plot(x_m2, y_m2, color=colors["M2"], linewidth=lw)
-        ax_i1.plot(x_i1, y_i1, color=colors["I1"], linewidth=lw)
-        ax_n2.plot(x_n2, y_n2, color=colors["n2"], linewidth=lw)
-        ax_eta.plot(x_eta, y_eta, color=colors["eta"], linewidth=lw)
-        ax_cosphi.plot(x_cos, y_cos, color=colors["cosphi"], linewidth=lw)
-        # Keep raw simulation points visible on top of smooth curves.
-        for ax_obj, y_raw, c in (
-            (ax_m2, m2, colors["M2"]),
-            (ax_i1, i1, colors["I1"]),
-            (ax_n2, n2, colors["n2"]),
-            (ax_eta, eta, colors["eta"]),
-            (ax_cosphi, cosphi, colors["cosphi"]),
-        ):
-            ax_obj.plot(
-                x,
-                y_raw,
-                linestyle="None",
-                marker="o",
-                markersize=ms,
-                markerfacecolor="white",
-                markeredgecolor=c,
-                markeredgewidth=0.9,
-                alpha=0.95,
-            )
+        x_eta, y_eta = _smooth_xy_curve(
+            x,
+            eta,
+            points=420,
+            y_min=0.0,
+            y_max=100.0,
+            trend="non_decreasing",
+            pre_smooth_window=3,
+        )
+        x_cos, y_cos = _smooth_xy_curve(
+            x,
+            cosphi,
+            points=420,
+            y_min=0.0,
+            y_max=1.0,
+            trend="non_decreasing",
+            pre_smooth_window=3,
+        )
+        ax_m2.plot(x_m2, y_m2, color=colors["M2"], linewidth=lw, linestyle=line_style)
+        ax_i1.plot(x_i1, y_i1, color=colors["I1"], linewidth=lw, linestyle=line_style)
+        ax_n2.plot(x_n2, y_n2, color=colors["n2"], linewidth=lw, linestyle=line_style)
+        ax_eta.plot(x_eta, y_eta, color=colors["eta"], linewidth=lw, linestyle=line_style)
+        ax_cosphi.plot(x_cos, y_cos, color=colors["cosphi"], linewidth=lw, linestyle=line_style)
 
         char_rows = _characteristic_rows(rows)
+        char_points: List[Dict[str, float | str]] = []
         if char_rows:
-            xc = np.asarray([float(r.get("p2_kw", float("nan"))) for r in char_rows], dtype=float)
+            xc = np.asarray([float(r.get("p2_kw", float("nan"))) for _, r in char_rows], dtype=float)
             if np.any(np.isfinite(xc)):
-                m2c = np.asarray([float(r.get("m2", float("nan"))) for r in char_rows], dtype=float)
-                i1c = np.asarray([float(r.get("i_rms", float("nan"))) for r in char_rows], dtype=float)
-                n2c = np.asarray([float(r.get("n2_rpm", float("nan"))) for r in char_rows], dtype=float)
-                etac = np.asarray([float(r.get("eta_pct", float("nan"))) for r in char_rows], dtype=float)
-                cosc = np.asarray([float(r.get("cos_phi", float("nan"))) for r in char_rows], dtype=float)
-                for ax_obj, yc in (
-                    (ax_m2, m2c),
-                    (ax_i1, i1c),
-                    (ax_n2, n2c),
-                    (ax_eta, etac),
-                    (ax_cosphi, cosc),
-                ):
-                    ax_obj.scatter(
-                        xc,
-                        yc,
-                        marker="D",
-                        s=24,
-                        facecolors="none",
-                        edgecolors="black",
-                        linewidths=0.8,
-                        zorder=7,
-                    )
+                m2c = np.asarray([float(r.get("m2", float("nan"))) for _, r in char_rows], dtype=float)
+                i1c = np.asarray([float(r.get("i_rms", float("nan"))) for _, r in char_rows], dtype=float)
+                n2c = np.asarray([float(r.get("n2_rpm", float("nan"))) for _, r in char_rows], dtype=float)
+                etac = np.asarray([float(r.get("eta_pct", float("nan"))) for _, r in char_rows], dtype=float)
+                cosc = np.asarray([float(r.get("cos_phi", float("nan"))) for _, r in char_rows], dtype=float)
+                lfa = np.asarray([float(r.get("load_factor", float("nan"))) for _, r in char_rows], dtype=float)
+                lft = np.asarray([float(lf) for lf, _ in char_rows], dtype=float)
+                for idx, xci in enumerate(xc):
+                    if np.isfinite(xci):
+                        char_points.append(
+                            {
+                                "policy": str(policy_label),
+                                "target_lf": float(lft[idx]),
+                                "actual_lf": float(lfa[idx]),
+                                "x": float(xci),
+                                "m2": float(m2c[idx]),
+                                "eta": float(etac[idx]),
+                            }
+                        )
 
-        # Common P2 marker and eta projection.
-        has_common = bool(np.isfinite(common_p2_kw) and float(x_left) <= float(common_p2_kw) <= float(x_right))
-        if has_common:
-            ax_m2.axvline(float(common_p2_kw), color="0.55", linestyle="--", linewidth=1.0, zorder=0)
-        from matplotlib.transforms import blended_transform_factory
+        return {
+            "m2": m2,
+            "i1": i1,
+            "n2": n2,
+            "eta": eta,
+            "cosphi": cosphi,
+            "char_points": char_points,
+            "curve_m2_x": x_m2,
+            "curve_m2_y": y_m2,
+            "curve_i1_x": x_i1,
+            "curve_i1_y": y_i1,
+            "curve_n2_x": x_n2,
+            "curve_n2_y": y_n2,
+            "curve_eta_x": x_eta,
+            "curve_eta_y": y_eta,
+            "curve_cos_x": x_cos,
+            "curve_cos_y": y_cos,
+        }
 
-        x_span = max(1e-9, x_right - x_left)
-        eta_at_common = float("nan")
-        if has_common:
-            p2_label = f"P2={common_p2_kw:.3f} кВт".replace(".", ",")
-            ax_m2.text(
-                float(common_p2_kw) - 0.012 * x_span,
-                0.72,
-                p2_label,
-                rotation=90,
-                ha="right",
-                va="center",
-                color="0.45",
-                fontsize=9,
-                transform=blended_transform_factory(ax_m2.transData, ax_m2.transAxes),
+    foc_data = _draw_policy(foc, "FOC", "-")
+    mic_data = _draw_policy(mic, "MIC", "--")
+
+    from matplotlib.transforms import blended_transform_factory
+
+    foc_eta_x = np.asarray(foc_data.get("curve_eta_x", np.zeros(0, dtype=float)), dtype=float)
+    foc_eta_y = np.asarray(foc_data.get("curve_eta_y", np.zeros(0, dtype=float)), dtype=float)
+    mic_eta_x = np.asarray(mic_data.get("curve_eta_x", np.zeros(0, dtype=float)), dtype=float)
+    mic_eta_y = np.asarray(mic_data.get("curve_eta_y", np.zeros(0, dtype=float)), dtype=float)
+
+    foc_char = {round(float(p["target_lf"]), 6): p for p in foc_data.get("char_points", [])}
+    mic_char = {round(float(p["target_lf"]), 6): p for p in mic_data.get("char_points", [])}
+    char_guides: List[Dict[str, float]] = []
+    for lf in char_load_factors:
+        key = round(float(lf), 6)
+        fp = foc_char.get(key)
+        mp = mic_char.get(key)
+        if fp is None and mp is None:
+            continue
+
+        x_f = float(fp.get("x", float("nan"))) if fp is not None else float("nan")
+        x_m = float(mp.get("x", float("nan"))) if mp is not None else float("nan")
+        x_candidates = [v for v in (x_f, x_m) if np.isfinite(v)]
+        if not x_candidates:
+            continue
+        x_mid_raw = float(np.mean(np.asarray(x_candidates, dtype=float)))
+        x_mid = float(x_mid_raw)
+        if foc_eta_x.size and mic_eta_x.size:
+            common_lo = float(max(np.nanmin(foc_eta_x), np.nanmin(mic_eta_x)))
+            common_hi = float(min(np.nanmax(foc_eta_x), np.nanmax(mic_eta_x)))
+            if np.isfinite(common_lo) and np.isfinite(common_hi) and common_lo <= common_hi:
+                x_mid = float(np.clip(x_mid_raw, common_lo, common_hi))
+
+        eta_f = _interp_at_x(foc_eta_x, foc_eta_y, x_mid)
+        eta_m = _interp_at_x(mic_eta_x, mic_eta_y, x_mid)
+        if not np.isfinite(eta_f) and fp is not None:
+            eta_f = float(fp.get("eta", float("nan")))
+        if not np.isfinite(eta_m) and mp is not None:
+            eta_m = float(mp.get("eta", float("nan")))
+
+        # One characteristic vertical guide per load factor (0.5, 1.0 Mnom).
+        ax_m2.axvline(float(x_mid), color="0.50", linestyle=":", linewidth=0.9, zorder=1)
+
+        label_dx = float(0.006 * x_span)
+        label_x = float(x_mid + label_dx)
+        label_ha = "left"
+        if label_x > float(x_right - 0.002 * x_span):
+            label_x = float(x_mid - label_dx)
+            label_ha = "right"
+        ax_m2.text(
+            label_x,
+            0.030,
+            f"{float(lf):.1f}Mном".replace(".", ","),
+            rotation=90,
+            color="0.38",
+            fontsize=8,
+            ha=label_ha,
+            va="bottom",
+            transform=blended_transform_factory(ax_m2.transData, ax_m2.transAxes),
+            bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.75, "pad": 0.05},
+            clip_on=False,
+        )
+        char_guides.append(
+            {
+                "lf": float(lf),
+                "x_mid": float(x_mid),
+                "eta_foc": eta_f,
+                "eta_mic": eta_m,
+            }
+        )
+
+    import matplotlib.ticker as mticker
+
+    m2_all = np.concatenate([foc_data["m2"], mic_data["m2"]])
+    i1_all = np.concatenate([foc_data["i1"], mic_data["i1"]])
+    n2_all = np.concatenate([foc_data["n2"], mic_data["n2"]])
+    eta_all = np.concatenate([foc_data["eta"], mic_data["eta"]])
+    cos_all = np.concatenate([foc_data["cosphi"], mic_data["cosphi"]])
+
+    ax_m2.set_xlim(x_left, x_right)
+    for ax_no_grid in (ax_m2, ax_i1, ax_n2, ax_eta, ax_cosphi):
+        ax_no_grid.grid(False)
+
+    ax_m2.set_ylim(0.0, float(max(np.nanmax(m2_all) * 1.06, 1e-3)))
+    i1_lo = float(np.nanmin(i1_all))
+    i1_hi = float(np.nanmax(i1_all))
+    i1_pad = max(0.02, 0.08 * max(i1_hi - i1_lo, 1e-6))
+    ax_i1.set_ylim(max(0.0, i1_lo - i1_pad), i1_hi + i1_pad)
+    n2_lo = float(np.nanmin(n2_all))
+    n2_hi = float(np.nanmax(n2_all))
+    n2_pad = max(8.0, 0.12 * max(n2_hi - n2_lo, 1.0))
+    ax_n2.set_ylim(n2_lo - n2_pad, n2_hi + n2_pad)
+    ax_n2.ticklabel_format(style="plain", axis="y", useOffset=False)
+    ax_n2.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.0f"))
+    eta_lo = float(np.nanmin(eta_all))
+    eta_hi = float(np.nanmax(eta_all))
+    eta_pad = max(1.0, 0.10 * max(eta_hi - eta_lo, 1.0))
+    ax_eta.set_ylim(max(0.0, eta_lo - eta_pad), eta_hi + eta_pad)
+    cos_lo = float(np.nanmin(cos_all))
+    cos_hi = float(np.nanmax(cos_all))
+    cos_pad = max(0.01, 0.08 * max(cos_hi - cos_lo, 1e-6))
+    ax_cosphi.set_ylim(max(0.0, cos_lo - cos_pad), min(1.0, cos_hi + cos_pad))
+
+    eta_tol = 0.12
+    eta_special_levels: List[float] = []
+    # Characteristic points on eta(P2).
+    for g in char_guides:
+        x_mid = float(g.get("x_mid", float("nan")))
+        eta_f = float(g.get("eta_foc", float("nan")))
+        eta_m = float(g.get("eta_mic", float("nan")))
+        if not np.isfinite(x_mid):
+            continue
+        if np.isfinite(eta_f) and np.isfinite(eta_m) and abs(eta_f - eta_m) <= eta_tol:
+            eta_one = float(0.5 * (eta_f + eta_m))
+            ax_eta.scatter(
+                [x_mid],
+                [eta_one],
+                marker="o",
+                s=18,
+                facecolors="black",
+                edgecolors="black",
+                linewidths=0.3,
+                zorder=8,
             )
-            eta_at_common = _interp_or_extrap_at_x(x_eta, y_eta, float(common_p2_kw))
-            if np.isfinite(eta_at_common):
-                ax_eta.plot([float(common_p2_kw), x_right], [eta_at_common, eta_at_common], linestyle="--", color=colors["eta"], linewidth=1.0)
-                ax_eta.scatter([float(common_p2_kw)], [eta_at_common], s=42, facecolors="white", edgecolors=colors["eta"], linewidths=1.2, zorder=7)
+            continue
+        if np.isfinite(eta_f):
+            ax_eta.scatter(
+                [x_mid],
+                [eta_f],
+                marker="o",
+                s=16,
+                facecolors="black",
+                edgecolors="black",
+                linewidths=0.3,
+                zorder=8,
+            )
+        if np.isfinite(eta_m):
+            ax_eta.scatter(
+                [x_mid],
+                [eta_m],
+                marker="o",
+                s=16,
+                facecolors="black",
+                edgecolors="black",
+                linewidths=0.3,
+                zorder=8,
+            )
 
-        ax_m2.set_title(panel_title, loc="left", fontweight="bold")
-        ax_m2.set_xlim(x_left, x_right)
-        for ax_no_grid in (ax_m2, ax_i1, ax_n2, ax_eta, ax_cosphi):
-            ax_no_grid.grid(False)
+    for g in char_guides:
+        x_mid = float(g.get("x_mid", float("nan")))
+        lf = float(g.get("lf", float("nan")))
+        eta_f = float(g.get("eta_foc", float("nan")))
+        eta_m = float(g.get("eta_mic", float("nan")))
+        if not (np.isfinite(x_mid) and np.isfinite(lf)):
+            continue
+        if not (float(x_left) <= x_mid <= float(x_right)):
+            continue
+        eta_vals = [v for v in (eta_f, eta_m) if np.isfinite(v)]
+        if not eta_vals:
+            continue
 
-        # Axis ranges and plain-number formatting.
-        ax_m2.set_ylim(0.0, float(max(np.nanmax(m2) * 1.06, 1e-3)))
-        i1_lo = float(np.nanmin(i1))
-        i1_hi = float(np.nanmax(i1))
-        i1_pad = max(0.02, 0.08 * max(i1_hi - i1_lo, 1e-6))
-        ax_i1.set_ylim(max(0.0, i1_lo - i1_pad), i1_hi + i1_pad)
-        n2_lo = float(np.nanmin(n2))
-        n2_hi = float(np.nanmax(n2))
-        n2_pad = max(8.0, 0.12 * max(n2_hi - n2_lo, 1.0))
-        ax_n2.set_ylim(n2_lo - n2_pad, n2_hi + n2_pad)
-        ax_n2.ticklabel_format(style="plain", axis="y", useOffset=False)
-        ax_n2.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.0f"))
-        eta_lo = float(np.nanmin(eta))
-        eta_hi = float(np.nanmax(eta))
-        eta_pad = max(1.0, 0.10 * max(eta_hi - eta_lo, 1.0))
-        ax_eta.set_ylim(max(0.0, eta_lo - eta_pad), eta_hi + eta_pad)
-        cos_lo = float(np.nanmin(cosphi))
-        cos_hi = float(np.nanmax(cosphi))
-        cos_pad = max(0.01, 0.08 * max(cos_hi - cos_lo, 1e-6))
-        ax_cosphi.set_ylim(max(0.0, cos_lo - cos_pad), min(1.0, cos_hi + cos_pad))
-        if np.isfinite(eta_at_common):
-            eta_label = f"η={eta_at_common:.1f}%".replace(".", ",")
-            ax_eta.text(
-                1.055,
-                eta_at_common,
-                eta_label,
+        both_eta = bool(np.isfinite(eta_f) and np.isfinite(eta_m))
+        if both_eta and abs(eta_f - eta_m) <= eta_tol:
+            eta_one = float(0.5 * (eta_f + eta_m))
+            ax_eta.plot([x_mid, x_right], [eta_one, eta_one], linestyle=":", color="0.50", linewidth=0.9, alpha=0.9, zorder=1)
+            eta_special_levels.append(float(eta_one))
+            continue
+
+        if np.isfinite(eta_f):
+            ax_eta.plot([x_mid, x_right], [eta_f, eta_f], linestyle=":", color="0.50", linewidth=0.9, alpha=0.9, zorder=1)
+            eta_special_levels.append(float(eta_f))
+        if np.isfinite(eta_m):
+            ax_eta.plot([x_mid, x_right], [eta_m, eta_m], linestyle=":", color="0.50", linewidth=0.9, alpha=0.9, zorder=1)
+            eta_special_levels.append(float(eta_m))
+
+    ax_m2.set_ylabel("M2, Н·м", color=colors["M2"])
+    ax_i1.set_ylabel("I1, A", color=colors["I1"])
+    ax_n2.set_ylabel("n2, об/мин", color=colors["n2"])
+    ax_eta.set_ylabel("η, %", color=colors["eta"])
+    ax_cosphi.set_ylabel("cosφ, о.е.", color=colors["cosphi"])
+    ax_m2.set_xlabel("P2, кВт")
+
+    ax_m2.tick_params(axis="y", colors=colors["M2"])
+    ax_i1.tick_params(axis="y", colors=colors["I1"])
+    ax_n2.tick_params(axis="y", colors=colors["n2"])
+    ax_eta.tick_params(axis="y", colors=colors["eta"])
+    ax_cosphi.tick_params(axis="y", colors=colors["cosphi"])
+
+    eta_special = sorted({round(float(v), 3) for v in eta_special_levels if np.isfinite(v)})
+    # Keep regular eta scale ticks only (hide "80"), and render characteristic
+    # percentages as dedicated scale-like labels to avoid overlaps when values are close.
+    eta_ticks = [
+        float(t)
+        for t in ax_eta.get_yticks()
+        if abs(float(t) - 80.0) >= 0.25 and float(t) <= float(eta_hi + 0.6)
+    ]
+    ax_eta.set_yticks(sorted(eta_ticks))
+    ax_eta.yaxis.set_major_formatter(
+        mticker.FuncFormatter(lambda val, _pos: "" if abs(float(val) - 80.0) < 0.25 else f"{float(val):.0f}")
+    )
+
+    if eta_special:
+        y_min, y_max = [float(v) for v in ax_eta.get_ylim()]
+        special_in_view = [v for v in eta_special if y_min <= float(v) <= y_max]
+    else:
+        special_in_view = []
+
+    if special_in_view:
+        fig.canvas.draw()
+        tick_font = ax_eta.yaxis.get_ticklabels()[0].get_size() if ax_eta.yaxis.get_ticklabels() else 10.0
+        min_gap_px = float(max(8.0, 1.05 * float(tick_font) * fig.dpi / 72.0))
+        y_to_px = lambda y: float(ax_eta.transData.transform((0.0, float(y)))[1])
+        axis_bottom_px = float(ax_eta.transAxes.transform((0.0, 0.0))[1]) + 2.0
+        axis_top_px = float(ax_eta.transAxes.transform((0.0, 1.0))[1]) - 2.0
+
+        # Compute display-space label positions with minimum vertical gap.
+        special_sorted = sorted(float(v) for v in special_in_view)
+        target_px = [y_to_px(v) for v in special_sorted]
+        if len(target_px) >= 2:
+            max_gap = max(2.0, (axis_top_px - axis_bottom_px) / float(len(target_px) - 1))
+            min_gap_px = min(min_gap_px, max_gap)
+        placed_px = target_px[:]
+        for i in range(1, len(placed_px)):
+            placed_px[i] = max(placed_px[i], placed_px[i - 1] + min_gap_px)
+        if placed_px:
+            overflow = placed_px[-1] - axis_top_px
+            if overflow > 0.0:
+                placed_px = [p - overflow for p in placed_px]
+            underflow = axis_bottom_px - placed_px[0]
+            if underflow > 0.0:
+                placed_px = [p + underflow for p in placed_px]
+        for i in range(1, len(placed_px)):
+            placed_px[i] = max(placed_px[i], placed_px[i - 1] + min_gap_px)
+        if placed_px:
+            overflow = placed_px[-1] - axis_top_px
+            if overflow > 0.0:
+                placed_px = [p - overflow for p in placed_px]
+            underflow = axis_bottom_px - placed_px[0]
+            if underflow > 0.0:
+                placed_px = [p + underflow for p in placed_px]
+
+        special_offsets_pts: Dict[float, float] = {}
+        for y_data, py_target in zip(special_sorted, placed_px):
+            py_source = y_to_px(y_data)
+            special_offsets_pts[float(y_data)] = float((py_target - py_source) * 72.0 / fig.dpi)
+
+        scale_transform = blended_transform_factory(ax_eta.transAxes, ax_eta.transData)
+        for y_data in special_sorted:
+            yv = float(y_data)
+            ax_eta.plot(
+                [1.0, 1.035],
+                [yv, yv],
                 color=colors["eta"],
-                fontsize=9,
+                linewidth=1.0,
+                transform=scale_transform,
+                clip_on=False,
+                zorder=6,
+            )
+            ax_eta.annotate(
+                f"{yv:.1f}".replace(".", ","),
+                xy=(1.035, yv),
+                xycoords=scale_transform,
+                xytext=(2.0, special_offsets_pts.get(yv, 0.0)),
+                textcoords="offset points",
                 ha="left",
                 va="center",
-                transform=blended_transform_factory(ax_eta.transAxes, ax_eta.transData),
-                bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.70, "pad": 0.20},
+                color=colors["eta"],
+                fontsize=tick_font,
                 clip_on=False,
+                zorder=7,
             )
 
-        ax_m2.set_ylabel("M2, Н·м", color=colors["M2"])
-        ax_i1.set_ylabel("I1, A", color=colors["I1"])
-        ax_n2.set_ylabel("n2, об/мин", color=colors["n2"])
-        ax_eta.set_ylabel("η, %", color=colors["eta"])
-        ax_cosphi.set_ylabel("cosφ, о.е.", color=colors["cosphi"])
+    ax_m2.spines["left"].set_color(colors["M2"])
+    ax_i1.spines["left"].set_color(colors["I1"])
+    ax_n2.spines["left"].set_color(colors["n2"])
+    ax_eta.spines["right"].set_color(colors["eta"])
+    ax_cosphi.spines["right"].set_color(colors["cosphi"])
+    ax_eta.spines["right"].set_linewidth(1.0)
+    ax_cosphi.spines["right"].set_linewidth(1.0)
+    ax_i1.spines["left"].set_linewidth(1.0)
+    ax_n2.spines["left"].set_linewidth(1.0)
+    ax_m2.spines["left"].set_linewidth(1.0)
+    ax_m2.spines["bottom"].set_linewidth(1.0)
 
-        ax_m2.tick_params(axis="y", colors=colors["M2"])
-        ax_i1.tick_params(axis="y", colors=colors["I1"])
-        ax_n2.tick_params(axis="y", colors=colors["n2"])
-        ax_eta.tick_params(axis="y", colors=colors["eta"])
-        ax_cosphi.tick_params(axis="y", colors=colors["cosphi"])
+    def _add_axis_arrow(
+        ax_obj,
+        x0: float,
+        y0: float,
+        x1: float,
+        y1: float,
+        color: str,
+    ) -> None:
+        ax_obj.annotate(
+            "",
+            xy=(float(x1), float(y1)),
+            xytext=(float(x0), float(y0)),
+            xycoords=ax_obj.transAxes,
+            textcoords=ax_obj.transAxes,
+            arrowprops={
+                "arrowstyle": "-|>",
+                "color": color,
+                "lw": 1.0,
+                "mutation_scale": 9,
+                "shrinkA": 0.0,
+                "shrinkB": 0.0,
+            },
+            annotation_clip=False,
+            zorder=12,
+        )
 
-        ax_m2.spines["left"].set_color(colors["M2"])
-        ax_i1.spines["left"].set_color(colors["I1"])
-        ax_n2.spines["left"].set_color(colors["n2"])
-        ax_eta.spines["right"].set_color(colors["eta"])
-        ax_cosphi.spines["right"].set_color(colors["cosphi"])
-        ax_eta.spines["right"].set_linewidth(1.0)
-        ax_cosphi.spines["right"].set_linewidth(1.0)
-        ax_i1.spines["left"].set_linewidth(1.0)
-        ax_n2.spines["left"].set_linewidth(1.0)
-        ax_m2.spines["left"].set_linewidth(1.0)
-
-    _draw_panel(axes[0], foc, "а) FOC")
-    _draw_panel(axes[1], mic, "б) MIC")
-    axes[1].set_xlabel("P2, кВт")
-    fig.suptitle("Рабочие характеристики AIR56: раздельно для FOC (а) и MIC (б)", y=0.985)
+    arrow_dx = 0.020
+    arrow_dy = 0.030
+    _add_axis_arrow(ax_m2, 1.0 - arrow_dx, 0.0, 1.0 + arrow_dx, 0.0, "0.15")
+    _add_axis_arrow(ax_m2, 0.0, 1.0 - arrow_dy, 0.0, 1.0 + arrow_dy, colors["M2"])
+    _add_axis_arrow(ax_i1, i1_axis_x, 1.0 - arrow_dy, i1_axis_x, 1.0 + arrow_dy, colors["I1"])
+    _add_axis_arrow(ax_n2, n2_axis_x, 1.0 - arrow_dy, n2_axis_x, 1.0 + arrow_dy, colors["n2"])
+    _add_axis_arrow(ax_eta, eta_axis_x, 1.0 - arrow_dy, eta_axis_x, 1.0 + arrow_dy, colors["eta"])
+    _add_axis_arrow(ax_cosphi, cosphi_axis_x, 1.0 - arrow_dy, cosphi_axis_x, 1.0 + arrow_dy, colors["cosphi"])
 
     from matplotlib.lines import Line2D
 
@@ -1218,11 +1456,27 @@ def _plot_air56_mech_journal(
         Line2D([0], [0], color=colors["n2"], linestyle="-", label="n2"),
         Line2D([0], [0], color=colors["eta"], linestyle="-", label="η"),
         Line2D([0], [0], color=colors["cosphi"], linestyle="-", label="cosφ"),
-        Line2D([0], [0], color="black", marker="D", linestyle="None", markerfacecolor="none", label="Характерные точки (0,5Mном; 1,0Mном)"),
+        Line2D([0], [0], color="black", linestyle="-", label="FOC"),
+        Line2D([0], [0], color="black", linestyle="--", label="MIC"),
     ]
-    fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 0.955))
-    fig.subplots_adjust(left=0.20, right=0.84, top=0.88, bottom=0.08, hspace=0.12)
-    save_figure(fig, out_path)
+    fig.legend(handles=handles, loc="upper center", ncol=4, frameon=False, bbox_to_anchor=(0.5, 0.955))
+    fig.subplots_adjust(left=0.20, right=0.84, top=0.86, bottom=0.14)
+    base = out_path.with_suffix("")
+    fmts = tuple(str(f).strip().lower().lstrip(".") for f in output_formats if str(f).strip())
+    valid = {"png", "pdf", "svg"}
+    fmts = tuple(f for f in fmts if f in valid)
+    if not fmts:
+        fmts = ("pdf",)
+    # Drop stale sibling formats when user requests a strict subset (e.g., only pdf).
+    for ext in valid:
+        p = base.with_suffix(f".{ext}")
+        if ext not in fmts and p.exists():
+            try:
+                p.unlink()
+            except Exception:
+                pass
+    for ext in fmts:
+        fig.savefig(base.with_suffix(f".{ext}"), bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1318,6 +1572,11 @@ def main() -> None:
     parser.add_argument("--plot-air56-journal", action="store_true", help="Build split FOC/MIC journal figure with multi-axes.")
     parser.add_argument("--journal-common-p2-kw", type=float, default=0.25, help="Common P2 marker (kW) for eta projection.")
     parser.add_argument("--journal-out-base", default=None, help="Output base path for journal figure (without extension).")
+    parser.add_argument(
+        "--journal-formats",
+        default="png,pdf,svg",
+        help="Output formats for journal figure: comma-separated subset of png,pdf,svg (e.g. 'pdf').",
+    )
     parser.add_argument("--journal-drop-zero-load", action="store_true", help="Drop load_factor=0 points for publication chart.")
     parser.add_argument(
         "--journal-max-speed-err-rel",
@@ -1665,6 +1924,11 @@ def main() -> None:
     _plot_working_characteristics(out_dir / "working_characteristics_valid.png", speeds, loads, foc_grid, mic_grid, valid_grid)
 
     if bool(args.plot_air56_journal):
+        journal_formats = tuple(
+            str(x).strip().lower().lstrip(".")
+            for x in str(args.journal_formats).split(",")
+            if str(x).strip()
+        )
         foc_j, mic_j = _select_journal_rows(
             load_rows=load_rows,
             drop_zero_load=bool(args.journal_drop_zero_load),
@@ -1680,6 +1944,7 @@ def main() -> None:
                 foc=foc_j,
                 mic=mic_j,
                 common_p2_kw=float(args.journal_common_p2_kw),
+                output_formats=journal_formats,
             )
 
     mic_policy = "ai"
@@ -1726,3 +1991,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
