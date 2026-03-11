@@ -1,0 +1,49 @@
+{
+  "generated_utc": "2026-03-08T08:33:34.193990+00:00",
+  "manuscript": "C:\\mic_theory\\paper\\ieee_2026\\manuscript.md",
+  "required_headings": [
+    "Abstract",
+    "I. Introduction",
+    "II. Method",
+    "III. Experimental Setup",
+    "IV. Results",
+    "V. Theory Validation",
+    "VI. Discussion",
+    "VII. Conclusion"
+  ],
+  "headings_found": [
+    "Abstract",
+    "I. Introduction",
+    "II. Method",
+    "III. Experimental Setup",
+    "IV. Results",
+    "V. Theory Validation",
+    "VI. Discussion",
+    "VII. Conclusion",
+    "Reproducibility Notes"
+  ],
+  "missing_headings": [],
+  "required_headings_order_ok": true,
+  "abstract_word_count": 74,
+  "figure_references_detected": [
+    "Fig.1",
+    "Fig.2",
+    "Fig.3",
+    "Fig.4",
+    "Fig.5"
+  ],
+  "table_references_detected": [
+    "Tab.1",
+    "Tab.2",
+    "Tab.3",
+    "Tab.4"
+  ],
+  "warnings_count": 2,
+  "errors_count": 0,
+  "warnings": [
+    "missing 'Index Terms' heading",
+    "missing 'References' heading"
+  ],
+  "errors": [],
+  "ok": true
+}

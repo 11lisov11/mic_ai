@@ -1,0 +1,2 @@
+mode,controller,avg_power_saving_pct_mean,avg_eta_gain_pct_mean,err_failures_max
+mode1,MIC,0.92,0.08,2.0

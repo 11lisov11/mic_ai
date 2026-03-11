@@ -1,0 +1,50 @@
+{
+  "generated_utc": "2026-03-11T06:33:35.933780+00:00",
+  "tag": "pkg",
+  "step28_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg",
+  "ieee_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\ieee",
+  "status": {
+    "checklist_ready_for_submission": true,
+    "lock_ok": true,
+    "candidate_ready_for_submission": true,
+    "release_commit_manifest_ok": true,
+    "verify_ok": true,
+    "manuscript_template_ok": true,
+    "bundle_present": false,
+    "bundle_ok": false,
+    "passport_failures": 0,
+    "passport_warnings": 0,
+    "dossier_ok": true
+  },
+  "hashes": {
+    "submission_lock_aggregate_sha256": "a",
+    "release_manifest_aggregate_sha256": "b"
+  },
+  "git": {
+    "commit": "c",
+    "branch": "main",
+    "dirty": false
+  },
+  "motor_summary_rows": [
+    {
+      "motor": "air56",
+      "acceptance_pass": true,
+      "avg_power_saving_pct_mean": 0.6,
+      "avg_power_saving_pct_min": 0.6,
+      "avg_eta_gain_pct_mean": 0.1,
+      "avg_eta_gain_pct_min": 0.1,
+      "err_failures_max": 0
+    }
+  ],
+  "artifacts": {
+    "checklist_md": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\FINAL_CHECKLIST_AUTO.md",
+    "lock_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\submission_candidate_lock.json",
+    "candidate_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\SUBMISSION_CANDIDATE.json",
+    "release_manifest_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\RELEASE_COMMIT_MANIFEST.json",
+    "verify_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\VERIFY_SUBMISSION_CANDIDATE.json",
+    "template_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\MANUSCRIPT_TEMPLATE_REPORT.json",
+    "bundle_manifest_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\ieee\\submission_bundle\\pkg\\submission_bundle_manifest.json",
+    "motor_summary_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\derived_ieee\\motor_tuning_acceptance_summary.json",
+    "passport_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_dos0\\pkg\\passport\\passport_compare_3motors.json"
+  }
+}

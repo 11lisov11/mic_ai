@@ -4,9 +4,16 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.common_utils import safe_rmtree
 
 
 def _sha256(path: Path) -> str:
@@ -179,7 +186,12 @@ def main() -> None:
     )
     payload_root = out_dir / "content"
     if payload_root.exists():
-        shutil.rmtree(payload_root)
+        safe_rmtree(
+            payload_root,
+            repo_root=repo_root,
+            allowed_leaf_names=("content",),
+            min_relative_depth=2,
+        )
     payload_root.mkdir(parents=True, exist_ok=True)
 
     required_paths, optional_paths = _collect_paths(step28_dir=step28_dir, ieee_root=ieee_root, tag=tag)

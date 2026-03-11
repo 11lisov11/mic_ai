@@ -358,6 +358,22 @@ def _parse_profile_map(text: str) -> Dict[str, str]:
     return out
 
 
+def _validate_out_dir(path: Path) -> Path:
+    target = Path(path).resolve()
+    root = ROOT.resolve()
+    if target == root:
+        raise ValueError("Refuse to use repository root as --out-dir. Use outputs/<run_name>.")
+    try:
+        rel = target.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"--out-dir must be inside repository: {target}") from exc
+    if len(rel.parts) < 2:
+        raise ValueError(f"--out-dir is too broad ({target}). Use outputs/<run_name>.")
+    if rel.parts[0] != "outputs":
+        raise ValueError(f"--out-dir must be under outputs/: {target}")
+    return target
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Robust hardening sweep for AL31/AO2 over perturbation levels without retraining.")
     parser.add_argument("--motors", default="al31,ao2")
@@ -400,7 +416,7 @@ def main() -> None:
     if not scenarios:
         raise ValueError("Empty scenarios list")
 
-    out_dir = Path(args.out_dir).resolve()
+    out_dir = _validate_out_dir(Path(args.out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     profile_map = _parse_profile_map(str(args.sample_profile_map))

@@ -1,0 +1,1 @@
+{"rows": [{"motor":"air56","avg_power_saving_pct_mean":0.8,"avg_power_saving_pct_min":0.7,"acceptance_pass":true},{"motor":"al31","avg_power_saving_pct_mean":0.2,"avg_power_saving_pct_min":0.1,"acceptance_pass":true},{"motor":"ao2","avg_power_saving_pct_mean":0.01,"avg_power_saving_pct_min":0.01,"acceptance_pass":true}]}

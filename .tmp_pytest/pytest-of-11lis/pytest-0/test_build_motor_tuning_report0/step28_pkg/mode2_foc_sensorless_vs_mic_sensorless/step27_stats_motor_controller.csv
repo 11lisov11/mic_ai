@@ -1,0 +1,4 @@
+motor,controller,samples,avg_power_saving_pct_mean,avg_power_saving_pct_min,avg_eta_gain_pct_mean,avg_eta_gain_pct_min,err_failures_mean,err_failures_max,start_stop_power_saving_pct_mean,start_stop_power_saving_pct_min
+air56,MIC,5,0.7,0.7,0.1,0.1,1.0,2.0,-0.2,-0.2
+al31,MIC,5,0.8,0.8,0.05,0.05,0.0,0.0,1.5,1.5
+ao2,MIC,5,0.05,0.05,0.01,0.01,0.0,0.0,-0.01,-0.01

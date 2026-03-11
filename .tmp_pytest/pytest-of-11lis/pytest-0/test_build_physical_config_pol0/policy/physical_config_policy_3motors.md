@@ -1,0 +1,44 @@
+# Physical Config Policy (3 Motors)
+
+- generated_utc: `2026-03-11T06:33:38.334652+00:00`
+
+## Scope
+- Source of truth: research configs in `config/` for AIR56, AL31, AO2.
+- Purpose: фиксировать assumptions физической модели, потерь, инвертора и базового FOC для reproducible сравнения.
+
+## Summary Table
+| Motor | Module | Pn, W | Un, V | In, A | eta_n | cos_phi_n | dt, s | loss_inv_r | loss_core_k |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| AIR56 | config.env_research_air56_025kw | 250.0 | 380.0 | 0.700 | 0.750 | 0.680 | 0.000500 | 3.706943 | 0.090869 |
+| AL31 | config.env_research_al31_4_06kw | 600.0 | 380.0 | 1.700 | 0.780 | 0.740 | 0.001000 | 1.650000 | 0.180000 |
+| AO2 | config.env_research_ao2_32_4_3kw | 3000.0 | 380.0 | 7.200 | 0.840 | 0.820 | 0.001000 | 0.280000 | 0.650000 |
+
+## AIR56
+- module: `config.env_research_air56_025kw`
+- nameplate: `{"P_n": 250.0, "U_ll": 380.0, "I_n": 0.7, "cos_phi_n": 0.68, "eta_n": 0.75, "f_n": 50.0, "p": 2, "n_rated": 1380.0, "connection": "Y", "J": 0.01}`
+- motor_model: `{"Rs": 17.006802721088434, "Rr": 42.17957024079473, "Lm": 2.850407894697701, "Ls_sigma": 0.05, "Lr_sigma": 0.05, "J": 0.01, "B": 0.0011970839277213815, "p": 2, "I_n": 0.7}`
+- inverter_model: `{"Vdc": 540.0, "r_out": 0.12, "dead_time": 2e-06, "v_drop": 1.2}`
+- sim_setup: `{"dt": 0.0005, "t_end": 2.0, "scenario_name": "speed_step", "load_torque": 0.4324862584018895, "save_prefix": "research_air56_025kw"}`
+- foc_setup: `{"id_ref": 1.35, "iq_limit": 2.2, "kp_speed": 0.5, "ki_speed": 2.5}`
+- loss_model: `{"loss_inv_r": 3.706943, "loss_core_k": 0.090869, "loss_core_omega_exp": 0.5, "loss_core_psi_exp": 0.0, "id_ref_lut_path": null}`
+- ai_eval: `{"checkpoint_path": "outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth", "id_ref_alpha": 0.4596083105260094, "delta_id_max": 0.11346054605925186, "id_ref_gate_speed_tol_rel": 0.08, "supervisor_enabled": true, "supervisor_objective": "specific_power"}`
+
+## AL31
+- module: `config.env_research_al31_4_06kw`
+- nameplate: `{"P_n": 600.0, "U_ll": 380.0, "I_n": 1.7, "cos_phi_n": 0.74, "eta_n": 0.78, "f_n": 50.0, "p": 2, "n_rated": 1390.0, "connection": "Y", "J": 0.02}`
+- motor_model: `{"Rs": 5.855735959542187, "Rr": 17.25828458456288, "Lm": 1.1736973684049354, "Ls_sigma": 0.05, "Lr_sigma": 0.05, "J": 0.02, "B": 0.002396148594138248, "p": 2, "I_n": 1.7}`
+- inverter_model: `{"Vdc": 540.0, "r_out": 0.1, "dead_time": 2e-06, "v_drop": 1.2}`
+- sim_setup: `{"dt": 0.001, "t_end": 2.0, "scenario_name": "speed_step", "load_torque": 1.0304996315302577, "save_prefix": "research_al31_4_06kw"}`
+- foc_setup: `{"id_ref": 1.5, "iq_limit": 5.2, "kp_speed": 0.5, "ki_speed": 2.5}`
+- loss_model: `{"loss_inv_r": 1.65, "loss_core_k": 0.18, "loss_core_omega_exp": 0.5, "loss_core_psi_exp": 0.0, "id_ref_lut_path": null}`
+- ai_eval: `{"checkpoint_path": "outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth", "id_ref_alpha": 0.101737574727008, "delta_id_max": 0.1119178632104495, "id_ref_gate_speed_tol_rel": 0.1125906400707956, "supervisor_enabled": true, "supervisor_objective": "specific_power"}`
+
+## AO2
+- module: `config.env_research_ao2_32_4_3kw`
+- nameplate: `{"P_n": 3000.0, "U_ll": 380.0, "I_n": 7.2, "cos_phi_n": 0.82, "eta_n": 0.84, "f_n": 50.0, "p": 2, "n_rated": 1430.0, "connection": "Y", "J": 0.075}`
+- motor_model: `{"Rs": 1.8, "Rr": 1.6, "Lm": 0.18, "Ls_sigma": 0.06, "Lr_sigma": 0.06, "J": 0.02, "B": 0.0015, "p": 2, "I_n": 7.2}`
+- inverter_model: `{"Vdc": 540.0, "r_out": 0.06, "dead_time": 2e-06, "v_drop": 1.3}`
+- sim_setup: `{"dt": 0.001, "t_end": 2.0, "scenario_name": "speed_step", "load_torque": 1.0, "save_prefix": "research_ao2_32_4_3kw"}`
+- foc_setup: `{"id_ref": 1.8, "iq_limit": 12.0, "kp_speed": 0.5, "ki_speed": 2.5}`
+- loss_model: `{"loss_inv_r": 0.28, "loss_core_k": 0.65, "loss_core_omega_exp": 0.5, "loss_core_psi_exp": 0.0, "id_ref_lut_path": null}`
+- ai_eval: `{"checkpoint_path": "outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth", "id_ref_alpha": 0.1376345145348217, "delta_id_max": 0.1142035777048785, "id_ref_gate_speed_tol_rel": 0.0834656357930326, "supervisor_enabled": true, "supervisor_objective": "p_in"}`

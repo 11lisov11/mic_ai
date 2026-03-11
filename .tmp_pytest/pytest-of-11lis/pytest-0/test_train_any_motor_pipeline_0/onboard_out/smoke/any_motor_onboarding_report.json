@@ -1,0 +1,33 @@
+{
+  "created_utc": "2026-03-11T06:35:33.132216+00:00",
+  "dry_run": true,
+  "all_ok": true,
+  "motor_key": "motor_x",
+  "run_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_any_motor_pipeline_0\\onboard_out\\smoke",
+  "passport_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_any_motor_pipeline_0\\passport_motor_x.json",
+  "normalized_passport_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_any_motor_pipeline_0\\onboard_out\\smoke\\normalized_passport.json",
+  "generated_config_path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_any_motor_pipeline_0\\generated_cfg\\env_onboard_motor_x.py",
+  "ident_source": "",
+  "training_result": {},
+  "benchmark_summary_rows": [],
+  "steps": [
+    {
+      "name": "generate_config",
+      "status": "ok",
+      "returncode": 0,
+      "note": "config=C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_any_motor_pipeline_0\\generated_cfg\\env_onboard_motor_x.py; ident_source=nameplate_only"
+    },
+    {
+      "name": "train_policy",
+      "status": "planned",
+      "returncode": 0,
+      "note": "dry-run: train_ai_id_ref call skipped"
+    },
+    {
+      "name": "validate_benchmarks",
+      "status": "planned",
+      "returncode": 0,
+      "note": "dry-run: scenario_compare calls skipped"
+    }
+  ]
+}

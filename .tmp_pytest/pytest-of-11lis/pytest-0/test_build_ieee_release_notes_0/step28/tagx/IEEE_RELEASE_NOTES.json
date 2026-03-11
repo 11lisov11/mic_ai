@@ -1,0 +1,68 @@
+{
+  "generated_utc": "2026-03-11T06:33:34.875313+00:00",
+  "tag": "tagx",
+  "step28_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\step28\\tagx",
+  "ieee_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\ieee",
+  "mic_rows_count": 2,
+  "mic_rows": [
+    {
+      "mode": "mode1",
+      "avg_power_saving_pct_mean": 0.9,
+      "avg_power_saving_pct_min": 0.1,
+      "avg_eta_gain_pct_mean": 0.07,
+      "avg_eta_gain_pct_min": 0.01,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": 2.1,
+      "start_stop_power_saving_pct_min": -0.2
+    },
+    {
+      "mode": "mode2",
+      "avg_power_saving_pct_mean": 0.8,
+      "avg_power_saving_pct_min": 0.05,
+      "avg_eta_gain_pct_mean": 0.06,
+      "avg_eta_gain_pct_min": 0.01,
+      "err_failures_max": 2.0,
+      "start_stop_power_saving_pct_mean": 1.8,
+      "start_stop_power_saving_pct_min": -0.3
+    }
+  ],
+  "aggregate": {
+    "avg_power_saving_pct_mean_avg": 0.8500000000000001,
+    "avg_eta_gain_pct_mean_avg": 0.065,
+    "err_failures_max_worst": 2.0
+  },
+  "release_note_ready": true,
+  "strict_ready": true,
+  "artifacts": {
+    "summary": {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\step28\\tagx\\step28_ieee_summary.csv",
+      "exists": true,
+      "ok": true
+    },
+    "verify": {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\step28\\tagx\\VERIFY_SUBMISSION_CANDIDATE.json",
+      "exists": true,
+      "ok": true
+    },
+    "dossier": {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\step28\\tagx\\IEEE_SUBMISSION_DOSSIER.json",
+      "exists": true,
+      "ok": true
+    },
+    "release_manifest": {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\step28\\tagx\\RELEASE_COMMIT_MANIFEST.json",
+      "exists": true,
+      "ok": true
+    },
+    "bundle_manifest": {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\ieee\\submission_bundle\\tagx\\submission_bundle_manifest.json",
+      "exists": true,
+      "ok": true
+    },
+    "regression_guard": {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_notes_0\\step28\\tagx\\STEP28_REGRESSION_GUARD.json",
+      "exists": true,
+      "ok": true
+    }
+  }
+}

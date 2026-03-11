@@ -1,0 +1,4 @@
+motor,policy,load_factor,p2_kw_model,p2_kw_nameplate,p2_kw_delta_pct,i1_a_model,i1_a_nameplate,i1_a_delta_pct,n2_rpm_model,n2_rpm_nameplate,n2_rpm_delta_pct,eta_pct_model,eta_pct_nameplate,eta_pct_delta_abs,cos_phi_model,cos_phi_nameplate,cos_phi_delta_abs,checkpoint_used,omega_ref_pu_used,load_csv,nominal_proxy_used,nominal_proxy_abs_err
+air56,FOC,1.0,0.25,0.25,0.0,0.58,0.6,-3.33,1378.0,1380.0,-0.14,76.0,74.0,2.0,0.79,0.78,0.01,,1.0,dummy.csv,False,0.0
+al31,FOC,1.0,0.25,0.25,0.0,0.58,0.6,-3.33,1378.0,1380.0,-0.14,76.0,74.0,2.0,0.79,0.78,0.01,,1.0,dummy.csv,False,0.0
+ao2,FOC,1.0,0.25,0.25,0.0,0.58,0.6,-3.33,1378.0,1380.0,-0.14,76.0,74.0,2.0,0.79,0.78,0.01,,1.0,dummy.csv,False,0.0

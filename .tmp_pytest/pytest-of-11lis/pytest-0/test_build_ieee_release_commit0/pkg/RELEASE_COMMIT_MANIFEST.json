@@ -1,0 +1,141 @@
+{
+  "generated_utc": "2026-03-11T06:33:33.750822+00:00",
+  "tag": "smoke_tag",
+  "repo_root": "C:\\mic_theory",
+  "step28_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_commit0\\pkg",
+  "ieee_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_release_commit0\\ieee",
+  "git": {
+    "commit": "6d5cf9ec470eca3e595294c9410fd0464c451290",
+    "branch": "main",
+    "dirty": true,
+    "dirty_lines_count": 62
+  },
+  "allow_dirty": true,
+  "required_ok": true,
+  "manifest_ok": true,
+  "required_missing": [],
+  "optional_missing": [],
+  "files_count": 17,
+  "aggregate_sha256": "748a92e575883d5d777735762fd0eb4ee5c1f91aa62dbef30bd0ebbe9ac6a480",
+  "files": [
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "release",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/data/release/smoke_tag/promotion_manifest.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "group": "release",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/data/release/smoke_tag/release_snapshot.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/guardrails_policy.json",
+      "size_bytes": 69,
+      "sha256": "66eb4a443d323ff55d642f400dae05bdbf6d1a756ac77f3381d28a98b3eacf98"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/ieee/manuscript.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "step28_derived",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "step28_derived",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/derived_ieee/motor_tuning_acceptance_summary.json",
+      "size_bytes": 13,
+      "sha256": "bf85b66d00d7183ad0dd9197764b709ed40e520529eb880dc9f6e0c53c5f3d1f"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/package_manifest.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "group": "step28_passport",
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/passport/passport_compare_3motors.json",
+      "size_bytes": 41,
+      "sha256": "3ed30dff5137ecd590ac8003b03e4edc6ca4394bf3ed9f99781154646c65d4d9"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/step28_ieee_summary.csv",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/step28_ieee_summary.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_release_commit0/pkg/submission_candidate_lock.json",
+      "size_bytes": 49,
+      "sha256": "14a19fd6986d636aac12e7d9d397b96abf70625a2f5efb33b0d91a22bac836a7"
+    }
+  ]
+}

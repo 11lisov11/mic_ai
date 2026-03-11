@@ -1,0 +1,2 @@
+motor,seed,checkpoint,supervisor_source,mic_mode,seed_perturbation_enabled,seed_perturbation_level,seed_perturb_load_torque_scale,seed_perturb_sigma_omega_add,seed_perturb_sigma_i_abc_add,mic_rows_path,foc_sensorless_rows_path
+air56,101,,rule,rule,False,1.0,1.0,0.0,0.0,C:\mic_theory\.tmp_pytest\pytest-of-11lis\pytest-0\test_step27_pipeline_smoke_rul0\step27_smoke\runs\air56\seed_101\mic_summary_rows.json,C:\mic_theory\.tmp_pytest\pytest-of-11lis\pytest-0\test_step27_pipeline_smoke_rul0\step27_smoke\runs\air56\seed_101\foc_sensorless_summary_rows.json

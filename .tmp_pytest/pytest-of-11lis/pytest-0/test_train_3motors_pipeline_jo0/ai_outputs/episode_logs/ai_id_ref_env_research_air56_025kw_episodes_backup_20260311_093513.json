@@ -1,0 +1,22 @@
+[
+  {
+    "episode": 0.0,
+    "steps": 20.0,
+    "mean_speed_error": 0.22696930775418878,
+    "mean_p_in_pos": 0.38495618320138336,
+    "mean_p_shaft_pos": 4.51245539941581e-06,
+    "mean_p_shaft_target_pos": 0.0,
+    "mean_eta_inst": 1.9835314964116784e-06,
+    "eta_energy": 1.1721997454071792e-05,
+    "mean_current_rms": 0.05828207285711855,
+    "mean_action_norm": 0.18143833316862584,
+    "mean_reward": -10.0,
+    "actor_loss": 0.06946927309036255,
+    "value_loss": 6135.5029296875,
+    "scenario": "speed_step",
+    "omega_ref": 31.41592653589793,
+    "load_torque": 0.4324862584018895,
+    "w_power_eff": 0.0,
+    "exploration_sigma": 0.2
+  }
+]

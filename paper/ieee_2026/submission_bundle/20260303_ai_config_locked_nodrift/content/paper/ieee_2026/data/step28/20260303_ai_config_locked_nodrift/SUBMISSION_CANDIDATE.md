@@ -1,6 +1,6 @@
 # Submission Candidate
 
-- generated_utc: `2026-03-03T21:40:38.304765+00:00`
+- generated_utc: `2026-03-11T05:38:01.480824+00:00`
 - candidate_tag: `20260303_ai_config_locked_nodrift`
 - step28_dir: `C:\mic_theory\paper\ieee_2026\data\step28\20260303_ai_config_locked_nodrift`
 - ready_for_submission: `True`

@@ -1,0 +1,31 @@
+{
+  "created_utc": "2026-03-11T06:35:19.560040+00:00",
+  "run_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\base\\20260311_093518_separate_per_motor",
+  "protocol_hash": "a7cc13b88ac66e6c2e680c0c846111a51732ccca98e7daacde94ba8f19901c16",
+  "artifacts": {
+    "training_runs_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\base\\20260311_093518_separate_per_motor\\training_runs_3motors.csv",
+    "training_summaries_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\base\\20260311_093518_separate_per_motor\\training_run_summaries_3motors.csv",
+    "training_acceptance_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\base\\20260311_093518_separate_per_motor\\training_acceptance_matrix_3motors.csv",
+    "training_eval_snapshots_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\base\\20260311_093518_separate_per_motor\\training_eval_snapshots_3motors.csv",
+    "checkpoint_registry_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\base\\20260311_093518_separate_per_motor\\checkpoints_registry_3motors.json"
+  },
+  "artifact_hashes": {
+    "training_runs_csv": "0ec7589c5e20f100fab3886a7c6c79c4a7814c1bbc2376e1e696bc816e2f1c30",
+    "training_summaries_csv": "2d8bf8631d01d60ac4dfa2f84c239a81e5f7b13113e5425f0acbc85e79e7c6d5",
+    "training_acceptance_csv": "5ba1db10689dad5d4b0c2a376134cb920434de17be0b1d2166eb4055219bb02e",
+    "training_eval_snapshots_csv": "27ddde46051d58cc20f53575452b01e293a80219ca985bbbc07fe796cc5d783d",
+    "checkpoint_registry_json": "9ba514ccb4923ed25e48247c6b9496359410775449e9b3bf5cf038898a5d36da"
+  },
+  "checkpoints": [
+    {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\ai_outputs\\checkpoints\\env_research_air56_025kw\\best_actor.pth",
+      "sha256": "7f864bc28302f4871763b596755dfbb2b3084921250c307fbde88c98a95db8c7",
+      "exists": true
+    },
+    {
+      "path": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_re0\\ai_outputs\\checkpoints\\env_research_air56_025kw\\last_actor.pth",
+      "sha256": "41045a7e122271c76e74f5fe0e97f2a81c6466d25272dba15f1a0ec0426d7737",
+      "exists": true
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "scenario": "speed_step",
+    "err_ok": true,
+    "err_limit": 0.06109919013977051,
+    "power_saving_pct": 0.0,
+    "eta_gain_pct": 0.0,
+    "foc_mean_err": 0.05818970489501953,
+    "mic_mean_err": 0.05818970489501953,
+    "current_peak_ratio": 1.0,
+    "current_mean_ratio": 1.0,
+    "foc_p_el_pos": 83.52994435595139,
+    "mic_p_el_pos": 83.52994435595139,
+    "foc_eta": 0.8862174389898707,
+    "mic_eta": 0.8862174389898707,
+    "perturb_enabled": 1.0,
+    "perturb_level": 0.2,
+    "perturb_load_torque_scale": 1.0030947437229085,
+    "perturb_sigma_omega_add": 0.0,
+    "perturb_sigma_i_abc_add": 0.0
+  }
+]

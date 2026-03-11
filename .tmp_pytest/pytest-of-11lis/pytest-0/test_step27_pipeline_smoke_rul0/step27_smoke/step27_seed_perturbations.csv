@@ -1,0 +1,2 @@
+motor,seed,enabled,level,load_torque_scale,sigma_omega_add,sigma_i_abc_add
+air56,101,0.0,1.0,1.0,0.0,0.0

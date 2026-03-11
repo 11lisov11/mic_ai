@@ -1,0 +1,110 @@
+{
+  "tag": "smoke_release",
+  "step28_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg",
+  "ieee_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee",
+  "promoted_count": 17,
+  "files": [
+    {
+      "label": "fig2_pi_foc_mic_power",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\fig_ieee_pi_foc_mic_power.png",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig2_pi_foc_mic_power.png",
+      "sha256": "51a1f05af85e342e3c849b47d387086476282d5f50dc240c19216d6edfb1eb5a"
+    },
+    {
+      "label": "fig2_pi_foc_mic_power",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\fig_ieee_pi_foc_mic_power.pdf",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig2_pi_foc_mic_power.pdf",
+      "sha256": "51a1f05af85e342e3c849b47d387086476282d5f50dc240c19216d6edfb1eb5a"
+    },
+    {
+      "label": "fig2_pi_foc_mic_power",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\fig_ieee_pi_foc_mic_power.svg",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig2_pi_foc_mic_power.svg",
+      "sha256": "51a1f05af85e342e3c849b47d387086476282d5f50dc240c19216d6edfb1eb5a"
+    },
+    {
+      "label": "fig3_air56_working_characteristics",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\pgups_fig\\working_characteristics_air56_foc_mic.png",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig3_air56_working_characteristics.png",
+      "sha256": "b29814cf5792e684cd75d6a7fce7a67a11887e312f87ca2ac2496d81f365ff72"
+    },
+    {
+      "label": "fig4_cross_motor_robustness",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\pgups_fig\\fig_multi_motor_scenario_heatmap_ru.png",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig4_cross_motor_robustness.png",
+      "sha256": "b29814cf5792e684cd75d6a7fce7a67a11887e312f87ca2ac2496d81f365ff72"
+    },
+    {
+      "label": "fig5_training_to_foc",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\pgups_fig\\fig_learning_vs_foc_ru.png",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig5_training_to_foc.png",
+      "sha256": "b29814cf5792e684cd75d6a7fce7a67a11887e312f87ca2ac2496d81f365ff72"
+    },
+    {
+      "label": "fig1_mic_methodology",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\pgups_fig\\fig_algorithm_block_ru.png",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\fig\\fig1_mic_methodology.png",
+      "sha256": "b29814cf5792e684cd75d6a7fce7a67a11887e312f87ca2ac2496d81f365ff72"
+    },
+    {
+      "label": "table:ieee_pi_foc_mic_stats.csv",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\ieee_pi_foc_mic_stats.csv",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\ieee_pi_foc_mic_stats.csv",
+      "sha256": "ea14f99c47575613ab22111122c847728c61007f6bfd7b062d02fcb99df3feb0"
+    },
+    {
+      "label": "table:ieee_pi_foc_mic_stats.md",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\ieee_pi_foc_mic_stats.md",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\ieee_pi_foc_mic_stats.md",
+      "sha256": "f0935f6a511dbdaf4ff73be2ad29a8ced742b508401af532f2862352bb8658e6"
+    },
+    {
+      "label": "table:motor_tuning_acceptance_summary.csv",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\motor_tuning_acceptance_summary.csv",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\motor_tuning_acceptance_summary.csv",
+      "sha256": "7c1023202329d368639c8f70e3ffc99ffb0c22096aa96e26dc64fab7e9015676"
+    },
+    {
+      "label": "table:motor_tuning_acceptance_summary.json",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\motor_tuning_acceptance_summary.json",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\motor_tuning_acceptance_summary.json",
+      "sha256": "6bc0da1f42f96fc37b8bd7ed20ba57606d2a0da5cda2b135c7854fbdc985b8a3"
+    },
+    {
+      "label": "table:motor_air56_tuning_report.md",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\derived_ieee\\motor_air56_tuning_report.md",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\motor_air56_tuning_report.md",
+      "sha256": "b3c710feec4089f6ca38dded4a3b4696b19722a2ea61bf965c5c9c41b034573d"
+    },
+    {
+      "label": "table:step28_ieee_summary.csv",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\step28_ieee_summary.csv",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\step28_ieee_summary.csv",
+      "sha256": "8682bd8e0256c1874e750c4f0a2ddd638dc676468a18daa1100bba3b6dc0a98a"
+    },
+    {
+      "label": "table:step28_ieee_summary.md",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\step28_ieee_summary.md",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\step28_ieee_summary.md",
+      "sha256": "cbabb9a6c51baa8d1795f161a93f20e270a6dc52476fe8481386533e12f6efde"
+    },
+    {
+      "label": "table:package_manifest.json",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\package_manifest.json",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\package_manifest.json",
+      "sha256": "6bc0da1f42f96fc37b8bd7ed20ba57606d2a0da5cda2b135c7854fbdc985b8a3"
+    },
+    {
+      "label": "table:passport_compare_3motors.csv",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\step28_pkg\\passport\\passport_compare_3motors.csv",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\tables\\passport_compare_3motors.csv",
+      "sha256": "c06a173922af81cfb23c54cc77c8b4878eedd0a0c02343bfa6db76c1d3724583"
+    },
+    {
+      "label": "release_snapshot",
+      "src": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\release_snapshot.json",
+      "dst": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_promote_ieee_release_smok0\\paper_ieee\\data\\release\\smoke_release\\release_snapshot.json",
+      "sha256": "d912fa323fa97629a71b34e48002e89f3b9e97af481bf1d3730256c0405fc226"
+    }
+  ]
+}

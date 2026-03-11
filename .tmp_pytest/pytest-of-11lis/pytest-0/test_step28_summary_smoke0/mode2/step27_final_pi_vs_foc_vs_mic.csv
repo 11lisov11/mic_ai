@@ -1,0 +1,4 @@
+controller,avg_power_saving_pct_mean,avg_power_saving_pct_std,avg_power_saving_pct_min,avg_eta_gain_pct_mean,avg_eta_gain_pct_std,avg_eta_gain_pct_min,err_failures_mean,err_failures_max,start_stop_power_saving_pct_mean,start_stop_power_saving_pct_min
+PI,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+FOC,0.8,0.2,0.4,0.2,0.1,0.1,0.0,1.0,0.2,0.0
+MIC,1.5,0.3,0.8,0.5,0.1,0.2,0.0,1.0,0.6,0.2

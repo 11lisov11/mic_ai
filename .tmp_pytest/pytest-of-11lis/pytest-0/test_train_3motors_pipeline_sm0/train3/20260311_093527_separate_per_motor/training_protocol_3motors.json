@@ -1,0 +1,96 @@
+{
+  "created_utc": "2026-03-11T06:35:27.466794+00:00",
+  "run_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_sm0\\train3\\20260311_093527_separate_per_motor",
+  "protocol": {
+    "mode": "separate-per-motor",
+    "motors": [
+      "air56"
+    ],
+    "seeds": [
+      101
+    ],
+    "scenarios": [
+      "speed_step"
+    ],
+    "eval_scenarios": [
+      "speed_step",
+      "ramp",
+      "load_step"
+    ],
+    "joint_cycles": 2,
+    "joint_cycle_episodes": 40,
+    "episodes": 1,
+    "episode_steps": 20,
+    "control_mode": "ai_id_ref",
+    "resume_manifest": "",
+    "eval_first": false
+  },
+  "protocol_hash": "a7cc13b88ac66e6c2e680c0c846111a51732ccca98e7daacde94ba8f19901c16",
+  "motor_configs": [
+    {
+      "motor": "air56",
+      "config_path": "C:\\mic_theory\\config\\env_research_air56_025kw.py",
+      "config_sha256": "8df36d797b4799aded6dcc2a87c0a220fab188e33b24f929b31c01eb372e4294"
+    }
+  ],
+  "cli_args": {
+    "mode": "separate-per-motor",
+    "motors": "air56",
+    "seeds": "101",
+    "out_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_sm0\\train3",
+    "ai_output_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_sm0\\ai_outputs",
+    "results_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_sm0\\results_run",
+    "base_manifest": null,
+    "resume_manifest": null,
+    "eval_first": false,
+    "joint_cycles": 2,
+    "joint_cycle_episodes": 40,
+    "control_mode": "ai_id_ref",
+    "episodes": 1,
+    "episode_steps": 20,
+    "fast": true,
+    "time_budget_min": null,
+    "scenarios": "speed_step",
+    "scenario_sample": "random",
+    "relative": false,
+    "delta_id_max": 0.3,
+    "w_speed": 1.0,
+    "w_power": 6.0,
+    "w_current": null,
+    "w_smooth": 0.05,
+    "w_mag": 0.0,
+    "w_shaft": 2.0,
+    "w_eta": 1.0,
+    "eta_clip": 1.2,
+    "id_ref_alpha": 1.0,
+    "id_ref_rate_limit": null,
+    "ai_id_speed_tol": 0.5,
+    "ai_id_speed_tol_rel": null,
+    "id_ref_gate_speed_tol": null,
+    "id_ref_gate_speed_tol_rel": null,
+    "id_ref_gate_min_scale": 0.0,
+    "id_ref_gate_exponent": 1.0,
+    "sigma_start": 0.2,
+    "sigma_end": 0.05,
+    "sigma_decay_episodes": 100,
+    "power_warmup_episodes": 0,
+    "power_ramp_episodes": 50,
+    "eval_interval": 0,
+    "eval_scenarios": "speed_step,ramp,load_step",
+    "eval_dt": null,
+    "eval_t_end": null,
+    "eval_window_frac": 0.25,
+    "eval_error_tol_rel": 0.05,
+    "eval_error_tol_abs": 0.0,
+    "eval_use_total_power": false,
+    "include_energy_obs": true,
+    "update_every_episodes": 1,
+    "accept_max_speed_error": 30.0,
+    "accept_min_eta_energy": 0.0,
+    "accept_max_current_rms": 10.0,
+    "accept_max_p_in_pos": null,
+    "degradation_window": 5,
+    "degradation_speed_delta": 2.0,
+    "degradation_eta_delta": 0.05
+  }
+}

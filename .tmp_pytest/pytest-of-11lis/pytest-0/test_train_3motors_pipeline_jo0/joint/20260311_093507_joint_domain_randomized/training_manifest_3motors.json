@@ -1,0 +1,61 @@
+{
+  "timestamp": "20260311_093507",
+  "mode": "joint-domain-randomized",
+  "motors": [
+    "air56",
+    "al31"
+  ],
+  "seeds": [
+    101
+  ],
+  "scenarios": [
+    "speed_step"
+  ],
+  "run_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized",
+  "base_manifest": null,
+  "resume_manifest": null,
+  "eval_first": false,
+  "protocol_hash": "41e80667f47ffba0b6022924a880172de25fdb57021c9fc765a7426b8bfd8404",
+  "per_seed_shared_checkpoints": {
+    "101": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\checkpoints\\env_research_al31_4_06kw\\best_actor.pth"
+  },
+  "artifacts": {
+    "training_runs_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized\\training_runs_3motors.csv",
+    "training_summaries_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized\\training_run_summaries_3motors.csv",
+    "training_acceptance_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized\\training_acceptance_matrix_3motors.csv",
+    "training_eval_snapshots_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized\\training_eval_snapshots_3motors.csv",
+    "checkpoint_registry_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized\\checkpoints_registry_3motors.json",
+    "training_protocol_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\joint\\20260311_093507_joint_domain_randomized\\training_protocol_3motors.json"
+  },
+  "acceptance": {
+    "total_runs": 2,
+    "passed_runs": 2,
+    "failed_runs": 0
+  },
+  "runs": [
+    {
+      "motor": "air56",
+      "seed": 101,
+      "stage": "joint_cycle_1",
+      "init_checkpoint": "",
+      "best_checkpoint": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\checkpoints\\env_research_air56_025kw\\best_actor.pth",
+      "last_checkpoint": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\checkpoints\\env_research_air56_025kw\\last_actor.pth",
+      "episodes_log": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\episode_logs\\ai_id_ref_env_research_air56_025kw_episodes.json",
+      "run_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\results_run\\20260311_093508_env_research_air56_025kw_ai_id_ref",
+      "reused": false,
+      "reused_from_manifest": ""
+    },
+    {
+      "motor": "al31",
+      "seed": 101,
+      "stage": "joint_cycle_1",
+      "init_checkpoint": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\checkpoints\\env_research_air56_025kw\\best_actor.pth",
+      "best_checkpoint": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\checkpoints\\env_research_al31_4_06kw\\best_actor.pth",
+      "last_checkpoint": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\checkpoints\\env_research_al31_4_06kw\\last_actor.pth",
+      "episodes_log": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\ai_outputs\\episode_logs\\ai_id_ref_env_research_al31_4_06kw_episodes.json",
+      "run_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_train_3motors_pipeline_jo0\\results_run\\20260311_093508_env_research_al31_4_06kw_ai_id_ref",
+      "reused": false,
+      "reused_from_manifest": ""
+    }
+  ]
+}

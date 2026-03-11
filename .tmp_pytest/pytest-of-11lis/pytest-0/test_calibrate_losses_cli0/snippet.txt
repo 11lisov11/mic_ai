@@ -1,0 +1,4 @@
+loss_inv_r = 0.5
+loss_core_k = 2
+loss_core_omega_exp = 1
+loss_core_psi_exp = 0

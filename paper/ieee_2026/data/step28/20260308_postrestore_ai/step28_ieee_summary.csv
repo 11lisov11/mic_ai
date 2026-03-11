@@ -1,0 +1,7 @@
+mode,controller,avg_power_saving_pct_mean,avg_power_saving_pct_std,avg_power_saving_pct_min,avg_eta_gain_pct_mean,avg_eta_gain_pct_std,avg_eta_gain_pct_min,err_failures_mean,err_failures_max,start_stop_power_saving_pct_mean,start_stop_power_saving_pct_min,air56_mean_pass,air56_worst_case_pass,stable_vs_previous,table_sha256
+mode1_foc_encoder_vs_mic_sensorless,PI,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,,b975f3d7ff145b7ebade3db54edb0b84b8f162c126d6a924c28d4f808860eea2
+mode1_foc_encoder_vs_mic_sensorless,FOC,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,,b975f3d7ff145b7ebade3db54edb0b84b8f162c126d6a924c28d4f808860eea2
+mode1_foc_encoder_vs_mic_sensorless,MIC,2.9857964170136495,5.854866602538136,-0.4855734406960299,5.773755066223852,11.269583679387832,-0.09880883713040411,2.4444444444444446,3.0,11.24578616533232,-1.9070666216066012,False,False,,b975f3d7ff145b7ebade3db54edb0b84b8f162c126d6a924c28d4f808860eea2
+mode2_foc_sensorless_vs_mic_sensorless,PI,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,,b975f3d7ff145b7ebade3db54edb0b84b8f162c126d6a924c28d4f808860eea2
+mode2_foc_sensorless_vs_mic_sensorless,FOC,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,,b975f3d7ff145b7ebade3db54edb0b84b8f162c126d6a924c28d4f808860eea2
+mode2_foc_sensorless_vs_mic_sensorless,MIC,2.9857964170136495,5.854866602538136,-0.4855734406960299,5.773755066223852,11.269583679387832,-0.09880883713040411,2.4444444444444446,3.0,11.24578616533232,-1.9070666216066012,False,False,,b975f3d7ff145b7ebade3db54edb0b84b8f162c126d6a924c28d4f808860eea2

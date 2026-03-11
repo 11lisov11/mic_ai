@@ -1,0 +1,45 @@
+{
+  "generated_utc": "2026-03-11T06:33:42.644713+00:00",
+  "manuscript": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_check_ieee_manuscript_tem0\\manuscript.md",
+  "required_headings": [
+    "Abstract",
+    "I. Introduction",
+    "II. Method",
+    "III. Experimental Setup",
+    "IV. Results",
+    "V. Theory Validation",
+    "VI. Discussion",
+    "VII. Conclusion"
+  ],
+  "headings_found": [
+    "Abstract",
+    "I. Introduction",
+    "II. Method",
+    "III. Experimental Setup",
+    "IV. Results",
+    "V. Theory Validation",
+    "VI. Discussion",
+    "VII. Conclusion"
+  ],
+  "missing_headings": [],
+  "required_headings_order_ok": true,
+  "abstract_word_count": 24,
+  "figure_references_detected": [
+    "Fig. 1",
+    "Fig. 2"
+  ],
+  "table_references_detected": [
+    "Tab. 1",
+    "Table 2"
+  ],
+  "warnings_count": 4,
+  "errors_count": 0,
+  "warnings": [
+    "abstract word count is outside typical IEEE range (60..260): 24",
+    "low number of figure references detected: 2",
+    "missing 'Index Terms' heading",
+    "missing 'References' heading"
+  ],
+  "errors": [],
+  "ok": true
+}

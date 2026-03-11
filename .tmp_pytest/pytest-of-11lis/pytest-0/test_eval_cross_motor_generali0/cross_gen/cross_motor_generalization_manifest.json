@@ -1,0 +1,33 @@
+{
+  "created_utc": "2026-03-11T06:33:52.687714+00:00",
+  "elapsed_sec": 1.788,
+  "mode": "heldout",
+  "source_motors": [
+    "air56",
+    "al31"
+  ],
+  "target_motors": [
+    "ao2"
+  ],
+  "seeds": [
+    101,
+    202
+  ],
+  "scenarios": [
+    "speed_step"
+  ],
+  "dry_run": true,
+  "checkpoint_registry": "C:\\mic_theory\\config\\checkpoint_registry.json",
+  "train_manifest": "",
+  "artifacts": {
+    "pair_plan_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_pair_plan.csv",
+    "pair_plan_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_pair_plan.json",
+    "per_seed_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_per_seed.csv",
+    "per_seed_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_per_seed.json",
+    "summary_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_summary.csv",
+    "summary_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_summary.json",
+    "gap_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_gap_vs_native.csv",
+    "gap_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_gap_vs_native.json",
+    "report_md": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_eval_cross_motor_generali0\\cross_gen\\cross_motor_generalization_report.md"
+  }
+}

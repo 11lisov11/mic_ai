@@ -1,0 +1,206 @@
+{
+  "generated_utc": "2026-03-11T06:33:35.651159+00:00",
+  "tag": "tag1",
+  "repo_root": "C:\\mic_theory",
+  "step28_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_bun0\\step28\\tag1",
+  "ieee_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_bun0\\ieee",
+  "bundle_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_bun0\\bundle_out",
+  "payload_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_bun0\\bundle_out\\content",
+  "bundle_ok": true,
+  "files_copied": 31,
+  "required_missing_count": 0,
+  "required_missing": [],
+  "aggregate_sha256": "e43d3682ea069c3a09b6c25e4df208f9279c179b66bfcb96d9253a8f37e17e70",
+  "files": [
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/FINAL_CHECKLIST.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/fig/README.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/fig/fig1_mic_methodology.png",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/fig/fig2_pi_foc_mic_power.pdf",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/fig/fig3_air56_working_characteristics.pdf",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/fig/fig4_cross_motor_robustness.pdf",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/fig/fig5_training_to_foc.pdf",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/guardrails_policy.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/ieee/manuscript.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/IEEE_SUBMISSION_DOSSIER.json",
+      "size_bytes": 33,
+      "sha256": "fbdd0fd08693b82d2c2d0451cbda97d2a500a56fdc0ac2f895a05ac02323aab6"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/IEEE_SUBMISSION_DOSSIER.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/MANUSCRIPT_CONSISTENCY_REPORT.json",
+      "size_bytes": 14,
+      "sha256": "a279e7d08cda65913894cb9377745073ead7577384559c2ee509ba6ada18ed7a"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/MANUSCRIPT_CONSISTENCY_REPORT.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/MANUSCRIPT_TEMPLATE_REPORT.json",
+      "size_bytes": 14,
+      "sha256": "a279e7d08cda65913894cb9377745073ead7577384559c2ee509ba6ada18ed7a"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/MANUSCRIPT_TEMPLATE_REPORT.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/RELEASE_COMMIT_MANIFEST.json",
+      "size_bytes": 23,
+      "sha256": "f489f1ee5a4b70a7cb6673478d62c63e02d04903a816501706ffb83d94768b1d"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/RELEASE_COMMIT_MANIFEST.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 32,
+      "sha256": "e39ea7c2e2461189ee80a124a795199e098539349cffa4d77108fc262caa518c"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/VERIFY_SUBMISSION_CANDIDATE.json",
+      "size_bytes": 27,
+      "sha256": "37be090f370d720f87770faacb94e70691f91bffc82064221c8e30d035066ef4"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/derived_ieee/motor_tuning_acceptance_summary.csv",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/derived_ieee/motor_tuning_acceptance_summary.json",
+      "size_bytes": 13,
+      "sha256": "bf85b66d00d7183ad0dd9197764b709ed40e520529eb880dc9f6e0c53c5f3d1f"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/package_manifest.json",
+      "size_bytes": 4,
+      "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+    },
+    {
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/passport/passport_compare_3motors.csv",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/passport/passport_compare_3motors.json",
+      "size_bytes": 13,
+      "sha256": "bf85b66d00d7183ad0dd9197764b709ed40e520529eb880dc9f6e0c53c5f3d1f"
+    },
+    {
+      "required": false,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/passport/passport_compare_3motors.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/step28_ieee_summary.csv",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/step28_ieee_summary.md",
+      "size_bytes": 3,
+      "sha256": "b35e09fa2ced9ebcad9d16336fb961146fe34bfbebc562679da85f8a314c9dca"
+    },
+    {
+      "required": true,
+      "path": ".tmp_pytest/pytest-of-11lis/pytest-0/test_build_ieee_submission_bun0/step28/tag1/submission_candidate_lock.json",
+      "size_bytes": 19,
+      "sha256": "6405ad7feb6d8f8c534701877bf3f9d1535ac8cb97371aa74373f4bf4bf3323f"
+    }
+  ],
+  "archives": {
+    "zip": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_bun0\\bundle_out\\ieee_submission_tag1.zip",
+    "tar_gz": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_build_ieee_submission_bun0\\bundle_out\\ieee_submission_tag1.tar.gz"
+  }
+}

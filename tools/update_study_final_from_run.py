@@ -3,12 +3,19 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 import warnings
 from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.common_utils import safe_rmtree
 
 
 SCENARIOS = ("hold:0.8", "speed_step", "ramp", "load_step", "start_stop")
@@ -120,7 +127,12 @@ def _copy_run_to_final_best(run_dir: Path, final_best: Path) -> None:
     backup = final_best.parent / "final_best_prev"
     if final_best.exists() and any(final_best.iterdir()):
         if backup.exists():
-            shutil.rmtree(backup)
+            safe_rmtree(
+                backup,
+                repo_root=final_best.parent,
+                allowed_leaf_names=("final_best_prev",),
+                min_relative_depth=1,
+            )
         shutil.copytree(final_best, backup)
 
     for p in run_dir.glob("*"):

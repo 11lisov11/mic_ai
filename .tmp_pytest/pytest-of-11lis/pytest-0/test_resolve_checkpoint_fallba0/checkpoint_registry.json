@@ -1,0 +1,5 @@
+{
+  "motors": {
+    "air56": "best_actor.pth"
+  }
+}

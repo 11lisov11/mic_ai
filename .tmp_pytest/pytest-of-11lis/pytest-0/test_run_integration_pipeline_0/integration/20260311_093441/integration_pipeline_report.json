@@ -1,0 +1,74 @@
+{
+  "created_utc": "2026-03-11T06:34:41.383124+00:00",
+  "dry_run": true,
+  "out_root": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_integration_pipeline_0\\integration\\20260311_093441",
+  "all_ok": true,
+  "steps": [
+    {
+      "cmd": [
+        "C:\\Users\\11lis\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "tools/step27_pipeline.py",
+        "--motors",
+        "air56",
+        "--seeds",
+        "101",
+        "--scenarios",
+        "speed_step",
+        "--mic-mode",
+        "rule",
+        "--skip-air56-tune",
+        "--out-dir",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_integration_pipeline_0\\integration\\20260311_093441\\step27"
+      ],
+      "cwd": "C:\\mic_theory",
+      "started_utc": "2026-03-11T06:34:41.383124+00:00",
+      "dry_run": true,
+      "returncode": 0,
+      "elapsed_sec": 0.0
+    },
+    {
+      "cmd": [
+        "C:\\Users\\11lis\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "tools/robust_motor_hardening.py",
+        "--motors",
+        "al31",
+        "--out-dir",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_integration_pipeline_0\\integration\\20260311_093441\\robust",
+        "--dry-run"
+      ],
+      "cwd": "C:\\mic_theory",
+      "started_utc": "2026-03-11T06:34:41.383124+00:00",
+      "dry_run": true,
+      "returncode": 0,
+      "elapsed_sec": 0.0
+    },
+    {
+      "cmd": [
+        "C:\\Users\\11lis\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "tools/reproduce_ieee_step28.py",
+        "--out-root",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_integration_pipeline_0\\integration\\20260311_093441\\step28",
+        "--package-root",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_integration_pipeline_0\\integration\\20260311_093441\\pkg",
+        "--package-tag",
+        "integration_smoke",
+        "--motors",
+        "air56",
+        "--seeds",
+        "101",
+        "--scenarios",
+        "speed_step",
+        "--mic-mode",
+        "rule",
+        "--skip-air56-tune",
+        "--submission-bundle-out-dir",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_integration_pipeline_0\\integration\\20260311_093441\\bundle"
+      ],
+      "cwd": "C:\\mic_theory",
+      "started_utc": "2026-03-11T06:34:41.383124+00:00",
+      "dry_run": true,
+      "returncode": 0,
+      "elapsed_sec": 0.0
+    }
+  ]
+}

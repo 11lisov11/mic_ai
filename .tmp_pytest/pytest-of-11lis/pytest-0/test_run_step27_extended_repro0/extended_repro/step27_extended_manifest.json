@@ -1,0 +1,91 @@
+{
+  "generated_utc": "2026-03-11T06:34:54.962410+00:00",
+  "motors": "air56",
+  "seeds": "101",
+  "scenarios": "speed_step",
+  "perturb_levels": [
+    0.0,
+    0.2
+  ],
+  "mic_mode": "rule",
+  "skip_air56_tune": true,
+  "runs": [
+    {
+      "run_tag": "baseline",
+      "perturb_level": 0.0,
+      "run_out_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\runs\\baseline",
+      "command": [
+        "C:\\Users\\11lis\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "tools/step27_pipeline.py",
+        "--motors",
+        "air56",
+        "--seeds",
+        "101",
+        "--scenarios",
+        "speed_step",
+        "--out-dir",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\runs\\baseline",
+        "--window-frac",
+        "0.25",
+        "--error-tol-rel",
+        "0.05",
+        "--error-tol-abs",
+        "0.0",
+        "--foc-feedback-mode",
+        "encoder",
+        "--mic-feedback-mode",
+        "sensorless",
+        "--mic-mode",
+        "rule",
+        "--checkpoint-registry",
+        "config/checkpoint_registry.json",
+        "--use-total-power",
+        "--skip-air56-tune",
+        "--foc-disable-lut"
+      ]
+    },
+    {
+      "run_tag": "perturb_0p2",
+      "perturb_level": 0.2,
+      "run_out_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\runs\\perturb_0p2",
+      "command": [
+        "C:\\Users\\11lis\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "tools/step27_pipeline.py",
+        "--motors",
+        "air56",
+        "--seeds",
+        "101",
+        "--scenarios",
+        "speed_step",
+        "--out-dir",
+        "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\runs\\perturb_0p2",
+        "--window-frac",
+        "0.25",
+        "--error-tol-rel",
+        "0.05",
+        "--error-tol-abs",
+        "0.0",
+        "--foc-feedback-mode",
+        "encoder",
+        "--mic-feedback-mode",
+        "sensorless",
+        "--mic-mode",
+        "rule",
+        "--checkpoint-registry",
+        "config/checkpoint_registry.json",
+        "--use-total-power",
+        "--skip-air56-tune",
+        "--foc-disable-lut",
+        "--seed-perturbation",
+        "--seed-perturb-level",
+        "0.2"
+      ]
+    }
+  ],
+  "files": {
+    "extended_per_seed_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\step27_extended_per_seed_metrics.csv",
+    "extended_stats_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\step27_extended_stats.csv",
+    "extended_stress_csv": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\step27_extended_stress_sweep.csv",
+    "extended_report_md": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_run_step27_extended_repro0\\extended_repro\\step27_extended_report.md"
+  }
+}

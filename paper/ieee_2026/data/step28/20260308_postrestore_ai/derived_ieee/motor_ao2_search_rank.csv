@@ -1,0 +1,3 @@
+motor,mode,samples,avg_power_saving_pct_mean,avg_power_saving_pct_min,avg_eta_gain_pct_mean,avg_eta_gain_pct_min,err_failures_mean,err_failures_max,start_stop_power_saving_pct_mean,start_stop_power_saving_pct_min,score
+ao2,mode1_foc_encoder_vs_mic_sensorless,3,8.51955014676245,0.8389329550159476,17.44473169891393,1.7572863508128729,2.6666666666666665,3.0,31.989266220268547,1.493773123708142,6.666666666666665
+ao2,mode2_foc_sensorless_vs_mic_sensorless,3,8.51955014676245,0.8389329550159476,17.44473169891393,1.7572863508128729,2.6666666666666665,3.0,31.989266220268547,1.493773123708142,6.666666666666665

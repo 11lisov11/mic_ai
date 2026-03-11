@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-03-03T21:40:38.660247+00:00",
+  "generated_utc": "2026-03-11T05:38:01.950064+00:00",
   "tag": "20260303_ai_config_locked_nodrift",
   "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
   "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
@@ -10,20 +10,20 @@
     "release_commit_manifest_ok": true,
     "verify_ok": true,
     "manuscript_template_ok": true,
-    "bundle_present": false,
-    "bundle_ok": false,
+    "bundle_present": true,
+    "bundle_ok": true,
     "passport_failures": 0,
     "passport_warnings": 2,
     "dossier_ok": true
   },
   "hashes": {
     "submission_lock_aggregate_sha256": "bea3a48a292d31f4de50ffd955faf5dfecdf41bd9c1256c5f0651b831f746dd2",
-    "release_manifest_aggregate_sha256": "937d09ac2b925e50838d0ed3b95448b9a94d5a38739dfb9e91c8c55f4f5e8022"
+    "release_manifest_aggregate_sha256": "1a89deffa4007d8a6205667ab3758ee7af6aefc9b510a441174432fbb17bcb40"
   },
   "git": {
-    "commit": "8839763090de2a77228bac254cd057f53bb66591",
-    "branch": "main",
-    "dirty": true
+    "commit": "",
+    "branch": "",
+    "dirty": false
   },
   "motor_summary_rows": [
     {

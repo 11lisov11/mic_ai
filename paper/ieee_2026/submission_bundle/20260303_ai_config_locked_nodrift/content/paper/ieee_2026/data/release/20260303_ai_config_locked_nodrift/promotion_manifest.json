@@ -2,7 +2,7 @@
   "tag": "20260303_ai_config_locked_nodrift",
   "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift",
   "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
-  "promoted_count": 27,
+  "promoted_count": 25,
   "files": [
     {
       "label": "fig2_pi_foc_mic_power",
@@ -20,25 +20,13 @@
       "label": "fig2_pi_foc_mic_power",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\fig_ieee_pi_foc_mic_power.svg",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig2_pi_foc_mic_power.svg",
-      "sha256": "a1f318170154de6187f00a125916ac57b3525a86d97bc4c8fd1095141db449a9"
-    },
-    {
-      "label": "fig3_air56_working_characteristics",
-      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic.png",
-      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.png",
-      "sha256": "e3c317498a55ba770e1dbd744a86b3cc6595eda44caa279328c47ca85e11fd5b"
+      "sha256": "063c1b6142be24fb9be8e8369a9c01b4c2376f81a9c93e8a58147889e173398b"
     },
     {
       "label": "fig3_air56_working_characteristics",
       "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic.pdf",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.pdf",
-      "sha256": "265bbb64dcc3761f3ebf5a045f938d94e14d22f40ca3b556ab0ec09db01de375"
-    },
-    {
-      "label": "fig3_air56_working_characteristics",
-      "src": "C:\\mic_theory\\paper\\pgups_2026\\fig\\working_characteristics_air56_foc_mic.svg",
-      "dst": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.svg",
-      "sha256": "74389bb8e7a69df593f7a674624bbcf2df8c02089ef7fbb6e98fe499c019061c"
+      "sha256": "148e9f34d23c7c3016e9b3f3b2766d79df0e3bc89443ac8cb8aa8ffc39e2ace2"
     },
     {
       "label": "fig4_cross_motor_robustness",
@@ -86,79 +74,79 @@
       "label": "table:ieee_pi_foc_mic_stats.csv",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\ieee_pi_foc_mic_stats.csv",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\ieee_pi_foc_mic_stats.csv",
-      "sha256": "5468c964c6a856d297796f5c711fc0af25c804f5cd5ae8741002f7f6bba3d8e8"
+      "sha256": "2d5ac1fdb47cce50ed60bab5051b54ef325e121a8cfe37c0839882f8bba7a8a1"
     },
     {
       "label": "table:ieee_pi_foc_mic_stats.md",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\ieee_pi_foc_mic_stats.md",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\ieee_pi_foc_mic_stats.md",
-      "sha256": "fd6b7793046c5ef7f2444749d8d360813173cec00ee148e72d4c02182cff3fdd"
+      "sha256": "e190df77b6958c803e1256bba7377c72f19e23bd2cc7ec65835dc3f0a7ece318"
     },
     {
       "label": "table:motor_tuning_acceptance_summary.csv",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_tuning_acceptance_summary.csv",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\motor_tuning_acceptance_summary.csv",
-      "sha256": "e7cd461e52ec6551c8946b90aeb59e7a7ac952122eaaee47d46fc2089a90a50f"
+      "sha256": "683640612f97c94d151953335696385ddbc90df61be8d874671dbce69bcb4ad4"
     },
     {
       "label": "table:motor_tuning_acceptance_summary.json",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_tuning_acceptance_summary.json",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\motor_tuning_acceptance_summary.json",
-      "sha256": "064e82da4c5a0796097aef241b9c6ae4f0bd62c9ceafb54a0a2f0abea7608a3f"
+      "sha256": "d2ed2075eeeb7fe0a5940a6c7841f328a58a7f62ad1258411e3303e36258537b"
     },
     {
       "label": "table:motor_air56_tuning_report.md",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_air56_tuning_report.md",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\motor_air56_tuning_report.md",
-      "sha256": "4d2c7e00d886fe4c25b05df1c2ca7ae7fffd90a4813572243803d62f5459538c"
+      "sha256": "8b4b9f7deb141c2db1cc5bc43754ece2393d976aa64cab2cc036a8d0f2523845"
     },
     {
       "label": "table:motor_al31_tuning_report.md",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_al31_tuning_report.md",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\motor_al31_tuning_report.md",
-      "sha256": "09885e2ada3bb29f864f8f2f02497e9e0f3d1ee51a6f033b6c5a5aee9ac36edc"
+      "sha256": "3995f94ea2495155d35978143974ab49fe80f3e53357f80631910ce28213165b"
     },
     {
       "label": "table:motor_ao2_tuning_report.md",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_ao2_tuning_report.md",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\motor_ao2_tuning_report.md",
-      "sha256": "c306ebceb34667820ef8d830388061bf8effeee0eb1f4b2a1fe9a90ff0743a0e"
+      "sha256": "bef785aa6189ac335666c7a9326b4de2d230ea3c1fdd362449a3574445e3a65a"
     },
     {
       "label": "table:step28_ieee_summary.csv",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\step28_ieee_summary.csv",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\step28_ieee_summary.csv",
-      "sha256": "5be6c19ecd5ba5c1f3ffde0b2b00008fc6892d6e90114335a06472bbd526da2d"
+      "sha256": "71b67a401a1fa2e95bdf7dca6de2a0a68080f1f8e35e8a37dad75250a5012405"
     },
     {
       "label": "table:step28_ieee_summary.md",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\step28_ieee_summary.md",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\step28_ieee_summary.md",
-      "sha256": "a6fdf5b3a3a616fa1382cf06223a54367e16d6d3af1f9eacfd99864259ad3cdb"
+      "sha256": "8220d4d2bfe0b912ac3fa791f1dcc075646c9cccf0e10e01a7057d690f3d8d76"
     },
     {
       "label": "table:package_manifest.json",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\package_manifest.json",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\package_manifest.json",
-      "sha256": "80798ae967b1ed9238a5221b9ee09b4bbe9ae0f5217a85cccc843cb8c7bf9896"
+      "sha256": "5d7bb75769f4c64e9a548897ed9605dc6e468b5f207d610849e6cbf85ab16fa9"
     },
     {
       "label": "table:passport_compare_3motors.csv",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\passport\\passport_compare_3motors.csv",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\passport_compare_3motors.csv",
-      "sha256": "cacf6538189846c1323be889b92b9367fee3a0349fcf2ee64983ca5011de7df1"
+      "sha256": "cc8cd17558cba9a6d00ba9ca50356e42431fe41db23c920748441597d6d136bf"
     },
     {
       "label": "table:passport_compare_3motors.md",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\passport\\passport_compare_3motors.md",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\passport_compare_3motors.md",
-      "sha256": "9073a362cfa44613f0bc930e53411a72497a4c860e6a4ff5b3e07c1d3da5f92c"
+      "sha256": "e89c93dd5311f5d0aa8073afd4654d0b1b8df45155e2ddc42de1ababafafd2cc"
     },
     {
       "label": "table:passport_compare_3motors.json",
       "src": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\passport\\passport_compare_3motors.json",
       "dst": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\passport_compare_3motors.json",
-      "sha256": "33e2de54858cbb07d47a9fc3e3a44400b98494a6fc925c0175ede2652ef6c278"
+      "sha256": "b4de88980a7f25c74c6031b4d1345339e64f4c13ff2e1f401eea67cda1907cc0"
     },
     {
       "label": "release_snapshot",

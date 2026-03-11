@@ -1,0 +1,55 @@
+{
+  "generated_utc": "2026-03-11T06:34:23.852505+00:00",
+  "tag": "smoke01",
+  "step28_dir": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "status": {
+    "checklist_ready_for_submission": false,
+    "lock_ok": true,
+    "candidate_ready_for_submission": false,
+    "release_commit_manifest_ok": true,
+    "verify_ok": false,
+    "manuscript_template_ok": true,
+    "bundle_present": false,
+    "bundle_ok": false,
+    "passport_failures": 0,
+    "passport_warnings": 0,
+    "dossier_ok": false
+  },
+  "hashes": {
+    "submission_lock_aggregate_sha256": "35a1f1bf366608d54c9f72a10ddcf2a3ff55eee92cf9b2065f411ec8085c6a84",
+    "release_manifest_aggregate_sha256": "4c416262bb98a7e8d8ca306b88e16e54456eb9bd6797d4273779c19b04d9ce0a"
+  },
+  "git": {
+    "commit": "6d5cf9ec470eca3e595294c9410fd0464c451290",
+    "branch": "main",
+    "dirty": true
+  },
+  "motor_summary_rows": [
+    {
+      "motor": "air56",
+      "avg_power_saving_pct_mean": -19.924090915615245,
+      "avg_power_saving_pct_min": -19.924090915615245,
+      "avg_eta_gain_pct_mean": -9.834180898486787,
+      "avg_eta_gain_pct_min": -9.834180898486787,
+      "err_failures_mean": 1.0,
+      "err_failures_max": 1.0,
+      "start_stop_power_saving_pct_mean": 0.0,
+      "start_stop_power_saving_pct_min": 0.0,
+      "mean_pass": false,
+      "worst_case_pass": false,
+      "acceptance_pass": false
+    }
+  ],
+  "artifacts": {
+    "checklist_md": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\FINAL_CHECKLIST_AUTO.md",
+    "lock_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\submission_candidate_lock.json",
+    "candidate_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\SUBMISSION_CANDIDATE.json",
+    "release_manifest_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\RELEASE_COMMIT_MANIFEST.json",
+    "verify_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\VERIFY_SUBMISSION_CANDIDATE.json",
+    "template_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\MANUSCRIPT_TEMPLATE_REPORT.json",
+    "bundle_manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\smoke01\\submission_bundle_manifest.json",
+    "motor_summary_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\derived_ieee\\motor_tuning_acceptance_summary.json",
+    "passport_json": "C:\\mic_theory\\.tmp_pytest\\pytest-of-11lis\\pytest-0\\test_reproduce_ieee_step28_smo0\\pkg_step28\\smoke01\\passport\\passport_compare_3motors.json"
+  }
+}

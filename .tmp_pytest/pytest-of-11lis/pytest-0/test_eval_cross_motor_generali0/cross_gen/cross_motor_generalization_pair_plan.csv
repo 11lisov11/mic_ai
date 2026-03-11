@@ -1,0 +1,7 @@
+source_motor,target_motor,seed,checkpoint,checkpoint_source
+air56,ao2,101,C:\mic_theory\outputs\ai_id_ref\checkpoints\env_research_air56_025kw\best_actor.pth,registry_or_env
+air56,ao2,202,C:\mic_theory\outputs\ai_id_ref\checkpoints\env_research_air56_025kw\best_actor.pth,registry_or_env
+al31,ao2,101,C:\mic_theory\outputs\ai_id_ref\checkpoints\env_research_al31_4_06kw\best_actor.pth,registry_or_env
+al31,ao2,202,C:\mic_theory\outputs\ai_id_ref\checkpoints\env_research_al31_4_06kw\best_actor.pth,registry_or_env
+ao2,ao2,101,C:\mic_theory\outputs\ai_id_ref\checkpoints\env_research_ao2_32_4_3kw\best_actor.pth,registry_or_env
+ao2,ao2,202,C:\mic_theory\outputs\ai_id_ref\checkpoints\env_research_ao2_32_4_3kw\best_actor.pth,registry_or_env

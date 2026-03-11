@@ -1,6 +1,6 @@
 ﻿# PROJECT MASTER PLAN (UNIFIED)
 
-Дата обновления: 2026-03-06  
+Дата обновления: 2026-03-11  
 Репозиторий: `c:\mic_theory`
 
 ## Канонический источник
@@ -119,3 +119,89 @@
 - Репродукция ключевых фигур одной командой:
   - скрипт: `tools/repro_key_figures.py`
   - отчёт прогона: `outputs/key_figures_repro_report.json`.
+
+## Инцидент и прогресс 2026-03-08
+- Инцидент: рабочая директория `C:\mic_theory` была очищена; проект восстановлен из remote-backup (`main`, `6d5cf9e`).
+- RCA и hardening по удалению:
+  - отчёт: `docs/incidents/20260308_workspace_deletion_rca.md`
+  - добавлены guardrails удаления и валидации путей:
+    - `tools/common_utils.py` (`safe_rmtree`)
+    - `tools/build_ieee_submission_bundle.py`
+    - `tools/update_study_final_from_run.py`
+    - `tools/robust_motor_hardening.py`
+- После восстановления отсутствовали локальные AI-checkpoint файлы, поэтому выполнено повторное обучение 3 моторов:
+  - `outputs/train3_20260308_recover/20260308_101928_joint_domain_randomized/`
+- Выполнен checkpoint-scan для AO2 и выбран стабильный кандидат:
+  - `outputs/ao2_ckpt_scan_20260308/ao2_ckpt_scan_summary.csv`
+  - выбран `actor_ep005` из `results_run/20260308_105129_env_research_ao2_32_4_3kw_ai_id_ref/eval/`
+- Пересобраны baseline/Step28 и key-figures после восстановления:
+  - `outputs/step27_baseline_20260308_postrestore_s3_fixao2/`
+  - `outputs/step28_20260308_postrestore_ai/`
+  - `paper/ieee_2026/data/step28/20260308_postrestore_ai/`
+  - `outputs/key_figures_repro_report.json`
+- Текущий статус gate:
+  - `verification_ok=false` (см. `paper/ieee_2026/data/step28/20260308_postrestore_ai/VERIFY_SUBMISSION_CANDIDATE.json`)
+  - envelope gate не закрыт (`all_rows_pass=false`; см. `outputs/step27_baseline_20260308_postrestore_s3_fixao2/acceptance_envelopes/acceptance_envelope_summary.json`)
+- Следующий шаг цикла:
+  1) донастройка AL31/AO2 под envelope-ограничения,
+  2) повтор Step27/Step28,
+  3) повтор verify + freeze.
+
+## Актуальный статус 2026-03-11 (проверка факта)
+- В репозитории есть исторические submission-ready теги (`20260303_ai_config_locked_nodrift`, `20260304_*_nodrift`) с `verification_ok=true`.
+- Текущий post-restore кандидат (`paper/ieee_2026/data/step28/20260308_postrestore_ai`) не закрывает выпуск:
+  - `ready_for_submission=false`
+  - `verification_ok=false`
+  - AIR56 acceptance: mean/worst-case = `False`
+  - motor guardrails: `air56/al31/ao2 acceptance_pass=False`
+  - envelope gate: `all_rows_pass=false`
+  - passport для post-restore пакета отсутствует (`passport checks skipped`).
+- В root (`paper/ieee_2026/SUBMISSION_CANDIDATE.md`) по-прежнему указан старый готовый кандидат `20260303_ai_config_locked_nodrift`.
+
+## Решение и завершение 2026-03-11 (100%)
+- [x] Решение P0 принято: выбран `Path A` (релиз по стабильному frozen тегу `20260303_ai_config_locked_nodrift`).
+- [x] Выполнена строгая верификация выбранного тега:
+  - `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/VERIFY_SUBMISSION_CANDIDATE.json` -> `checklist_ready_for_submission=true`, `verification_ok=true`.
+- [x] Выполнен promote release:
+  - `paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/promotion_manifest.json`.
+- [x] Пересобран submission bundle:
+  - `paper/ieee_2026/submission_bundle/20260303_ai_config_locked_nodrift/submission_bundle_manifest.json` (`bundle_ok=true`).
+- [x] Root IEEE файлы синхронизированы с финальным тегом:
+  - `paper/ieee_2026/SUBMISSION_CANDIDATE.md`
+  - `paper/ieee_2026/FINAL_CHECKLIST_AUTO.md`
+  - `paper/ieee_2026/MANUSCRIPT_TEMPLATE_REPORT.md`
+  - `paper/ieee_2026/MANUSCRIPT_CONSISTENCY_REPORT.md`.
+
+## Исполнение фаз плана
+### P1. Техническое закрытие метрик (post-restore)
+- [x] Для релиза `Path A` не требуется (ветка post-restore перенесена в отдельный backlog).
+
+### P2. Пересборка frozen пакета
+- [x] Для релиза `Path A` выполнено на frozen теге `20260303_ai_config_locked_nodrift`.
+
+### P3. Верификация и freeze
+- [x] `ready_for_submission=true`.
+- [x] `verification_ok=true`.
+- [x] Root-артефакты синхронизированы на выбранный финальный тег.
+- [x] Template warnings (`Index Terms`, `References`) оставлены как не-блокирующие замечания IEEE шаблона.
+
+### P4. Инженерный freeze и release discipline
+- [x] Актуализирован smoke-test: `tests/test_robust_motor_hardening_smoke.py` под guardrail `--out-dir` внутри `outputs/`.
+- [x] Прогнан обязательный минимум release-тестов:
+  - `tests/test_build_ieee_final_checklist_smoke.py`
+  - `tests/test_verify_ieee_submission_candidate_smoke.py`
+  - `tests/test_build_ieee_submission_bundle_smoke.py`
+  - `tests/test_robust_motor_hardening_smoke.py`
+- [x] Прогнан полный `pytest -q`: `116 passed`.
+
+## Критерии полного завершения (Definition of Done)
+- [x] Для целевого тега (`20260303_ai_config_locked_nodrift`) выполнены `checklist_ready_for_submission=true` и `verification_ok=true`.
+- [x] Root IEEE candidate указывает на тот же целевой тег, что и verify/checklist.
+- [x] Smoke/regression тесты по release цепочке зелёные.
+- [x] Есть финальный submission bundle manifest и SHA lock без missing required files.
+
+## Backlog (вне текущего релиза)
+- Post-restore ветка `20260308_postrestore_ai` остаётся отдельным исследовательским треком:
+  - закрытие envelope gate,
+  - доводка AL31/AO2/AIR56 под policy,
+  - выпуск нового пост-восстановительного frozen тега.
