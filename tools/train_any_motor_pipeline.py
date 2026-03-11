@@ -335,6 +335,140 @@ def _aggregate_summary_rows(rows: Sequence[Dict[str, object]]) -> Dict[str, floa
     }
 
 
+def _parse_float_csv(text: str) -> List[float]:
+    values: List[float] = []
+    seen: set[Tuple[int, int]] = set()
+    for token in parse_csv_list(str(text)):
+        value = float(token)
+        key = (int(value * 1_000_000), int(value * 1_000))
+        if key in seen:
+            continue
+        seen.add(key)
+        values.append(value)
+    return values
+
+
+def _fmt_float_tag(value: float) -> str:
+    text = f"{float(value):.6g}".replace("-", "m").replace(".", "p")
+    return text or "0"
+
+
+def _build_validation_pairs(
+    *,
+    base_alpha: float,
+    base_delta: float,
+    alpha_grid: str,
+    delta_grid: str,
+) -> List[Tuple[float, float]]:
+    alphas = _parse_float_csv(alpha_grid) if str(alpha_grid).strip() else [float(base_alpha)]
+    deltas = _parse_float_csv(delta_grid) if str(delta_grid).strip() else [float(base_delta)]
+
+    pairs: List[Tuple[float, float]] = []
+    seen: set[Tuple[int, int]] = set()
+    base_pair = (float(base_alpha), float(base_delta))
+    for alpha, delta in [base_pair, *[(a, d) for a in alphas for d in deltas]]:
+        key = (int(alpha * 1_000_000), int(delta * 1_000_000))
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append((float(alpha), float(delta)))
+    return pairs
+
+
+def _evaluate_benchmark_acceptance(
+    *,
+    summary_rows: Sequence[Dict[str, object]],
+    expected_motors: Sequence[str],
+    err_ok_rate_min: float,
+    power_saving_mean_min: Optional[float],
+    required_pass_count: int,
+) -> Dict[str, object]:
+    expected = [str(m).strip().lower() for m in expected_motors if str(m).strip()]
+    summary_by_motor = {str(r.get("motor", "")).strip().lower(): r for r in summary_rows if isinstance(r, dict)}
+
+    details: List[Dict[str, object]] = []
+    pass_count = 0
+    mean_err_terms: List[float] = []
+    mean_power_terms: List[float] = []
+    mean_mic_err_terms: List[float] = []
+    missing: List[str] = []
+
+    for motor in expected:
+        row = summary_by_motor.get(motor)
+        if row is None:
+            missing.append(motor)
+            details.append(
+                {
+                    "motor": motor,
+                    "missing": True,
+                    "pass": False,
+                }
+            )
+            continue
+
+        err_ok_rate = float(row.get("err_ok_rate", 0.0))
+        power_mean = float(row.get("power_saving_pct_mean", 0.0))
+        scenarios_count = int(row.get("scenarios_count", 0))
+        mic_mean_err = float(row.get("mic_mean_err", 0.0))
+        pass_err = bool(err_ok_rate >= float(err_ok_rate_min))
+        pass_power = True if power_saving_mean_min is None else bool(power_mean >= float(power_saving_mean_min))
+        pass_scenarios = bool(scenarios_count > 0)
+        passed = bool(pass_err and pass_power and pass_scenarios)
+        if passed:
+            pass_count += 1
+        mean_err_terms.append(err_ok_rate)
+        mean_power_terms.append(power_mean)
+        mean_mic_err_terms.append(mic_mean_err)
+        details.append(
+            {
+                "motor": motor,
+                "missing": False,
+                "err_ok_rate": err_ok_rate,
+                "power_saving_pct_mean": power_mean,
+                "scenarios_count": scenarios_count,
+                "mic_mean_err": mic_mean_err,
+                "pass_err_ok_rate": pass_err,
+                "pass_power_saving": pass_power,
+                "pass_scenarios": pass_scenarios,
+                "pass": passed,
+            }
+        )
+
+    required = int(required_pass_count)
+    if required <= 0:
+        required = len(expected)
+    required = min(max(required, 1), max(len(expected), 1))
+
+    mean_err = float(sum(mean_err_terms) / len(mean_err_terms)) if mean_err_terms else 0.0
+    mean_power = float(sum(mean_power_terms) / len(mean_power_terms)) if mean_power_terms else 0.0
+    mean_mic_err = float(sum(mean_mic_err_terms) / len(mean_mic_err_terms)) if mean_mic_err_terms else 0.0
+
+    return {
+        "expected_motors": expected,
+        "summary_rows_count": int(len(summary_rows)),
+        "missing_motors": missing,
+        "required_pass_count": required,
+        "pass_count": int(pass_count),
+        "all_pass": bool(pass_count >= required and len(missing) == 0),
+        "err_ok_rate_min": float(err_ok_rate_min),
+        "power_saving_mean_min": None if power_saving_mean_min is None else float(power_saving_mean_min),
+        "mean_err_ok_rate": mean_err,
+        "mean_power_saving_pct": mean_power,
+        "mean_mic_err": mean_mic_err,
+        "details": details,
+    }
+
+
+def _acceptance_rank(payload: Dict[str, object]) -> Tuple[int, int, float, float, float]:
+    return (
+        1 if bool(payload.get("all_pass", False)) else 0,
+        int(payload.get("pass_count", 0)),
+        float(payload.get("mean_err_ok_rate", 0.0)),
+        float(payload.get("mean_power_saving_pct", 0.0)),
+        -float(payload.get("mean_mic_err", 0.0)),
+    )
+
+
 def _run_benchmark_validation(
     *,
     checkpoint_path: Path,
@@ -425,6 +559,15 @@ def _render_report(payload: Dict[str, object]) -> str:
     lines.append(f"- motor_key: `{payload.get('motor_key', '')}`")
     lines.append(f"- run_root: `{payload.get('run_root', '')}`")
     lines.append(f"- all_ok: `{bool(payload.get('all_ok', False))}`")
+    selected = payload.get("selected_validation", {})
+    if isinstance(selected, dict) and selected:
+        lines.append(
+            "- selected_validation: `attempt={a} alpha={alpha:.4f} delta={delta:.4f}`".format(
+                a=int(selected.get("train_attempt", 0)),
+                alpha=float(selected.get("id_ref_alpha", 0.0)),
+                delta=float(selected.get("delta_id_max", 0.0)),
+            )
+        )
     lines.append("")
     lines.append("## Steps")
     for i, step in enumerate(payload.get("steps", []), start=1):
@@ -455,6 +598,30 @@ def _render_report(payload: Dict[str, object]) -> str:
                     r=float(row.get("err_ok_rate", 0.0)),
                 )
             )
+        lines.append("")
+    acc = payload.get("benchmark_acceptance", {})
+    if isinstance(acc, dict) and acc:
+        lines.append("## Acceptance Gate")
+        lines.append(
+            "- pass_count/required: `{}/{}; all_pass={}`".format(
+                int(acc.get("pass_count", 0)),
+                int(acc.get("required_pass_count", 0)),
+                bool(acc.get("all_pass", False)),
+            )
+        )
+        lines.append(
+            "- thresholds: `err_ok_rate_min={:.3f}, power_saving_mean_min={}`".format(
+                float(acc.get("err_ok_rate_min", 0.0)),
+                (
+                    "disabled"
+                    if acc.get("power_saving_mean_min", None) is None
+                    else "{:+.3f}%".format(float(acc.get("power_saving_mean_min", 0.0)))
+                ),
+            )
+        )
+        missing = acc.get("missing_motors", [])
+        if isinstance(missing, list) and missing:
+            lines.append(f"- missing_motors: `{','.join(str(x) for x in missing)}`")
         lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -488,12 +655,20 @@ def main() -> None:
     parser.add_argument("--scenarios", default="speed_step,ramp,load_step,start_stop")
     parser.add_argument("--delta-id-max", type=float, default=0.3)
     parser.add_argument("--id-ref-alpha", type=float, default=1.0)
+    parser.add_argument("--max-train-attempts", type=int, default=1)
+    parser.add_argument("--train-episodes-scale", type=float, default=1.5)
 
     parser.add_argument("--benchmark-motors", default="air56,al31,ao2")
     parser.add_argument("--benchmark-scenarios", default="speed_step,ramp,load_step,start_stop")
     parser.add_argument("--benchmark-seed", type=int, default=101)
     parser.add_argument("--benchmark-dt", type=float, default=None)
     parser.add_argument("--benchmark-t-end", type=float, default=None)
+    parser.add_argument("--benchmark-search-alpha-grid", default="")
+    parser.add_argument("--benchmark-search-delta-grid", default="")
+    parser.add_argument("--accept-err-ok-rate-min", type=float, default=1.0)
+    parser.add_argument("--accept-power-saving-mean-min", type=float, default=None)
+    parser.add_argument("--accept-required-motor-pass-count", type=int, default=0)
+    parser.add_argument("--no-acceptance-gate", action="store_true")
 
     parser.add_argument("--sim-dt", type=float, default=1e-3)
     parser.add_argument("--sim-t-end", type=float, default=2.0)
@@ -587,13 +762,53 @@ def main() -> None:
 
     train_result: Dict[str, str] = {}
     best_checkpoint = Path()
+    train_attempt_rows: List[Dict[str, object]] = []
+
+    benchmark_plan_rows: List[Dict[str, object]] = []
+    benchmark_summary_rows: List[Dict[str, object]] = []
+    benchmark_search_rows: List[Dict[str, object]] = []
+    benchmark_acceptance: Dict[str, object] = {}
+    selected_validation: Dict[str, object] = {}
+    selected_candidate: Optional[Dict[str, object]] = None
+
+    benchmark_motors: List[str] = []
+    for raw_motor in parse_csv_list(str(args.benchmark_motors)):
+        key = str(raw_motor).strip().lower()
+        if not key:
+            continue
+        if key not in benchmark_motors:
+            benchmark_motors.append(key)
+    if not benchmark_motors and not bool(args.skip_benchmark_validation):
+        raise ValueError("Empty benchmark motors list")
+
+    validation_pairs = _build_validation_pairs(
+        base_alpha=float(args.id_ref_alpha),
+        base_delta=float(args.delta_id_max),
+        alpha_grid=str(args.benchmark_search_alpha_grid),
+        delta_grid=str(args.benchmark_search_delta_grid),
+    )
+    max_train_attempts = max(1, int(args.max_train_attempts))
+    episodes_base = max(1, int(args.episodes))
+    episodes_scale = max(1.0, float(args.train_episodes_scale))
+    external_checkpoint = Path(str(args.init_checkpoint).strip()).expanduser().resolve() if str(args.init_checkpoint).strip() else Path()
+
     if bool(args.skip_training):
+        if external_checkpoint.exists():
+            best_checkpoint = external_checkpoint
+            train_result = {
+                "best": str(best_checkpoint),
+                "source": "external_init_checkpoint",
+            }
         steps.append(
             {
                 "name": "train_policy",
                 "status": "skipped",
                 "returncode": 0,
-                "note": "training skipped by flag",
+                "note": (
+                    f"training skipped by flag; external_checkpoint={best_checkpoint}"
+                    if best_checkpoint.exists()
+                    else "training skipped by flag"
+                ),
             }
         )
     elif bool(args.dry_run):
@@ -606,84 +821,214 @@ def main() -> None:
             }
         )
     else:
-        try:
-            train_result = train_ai_id_ref(
-                env_config=str(config_path),
-                episodes=int(args.episodes),
-                episode_steps=int(args.episode_steps),
-                control_mode="ai_id_ref",
-                w_speed=1.0,
-                w_power=6.0,
-                w_current=None,
-                w_smooth=0.05,
-                w_mag=0.0,
-                w_shaft=2.0,
-                w_eta=1.0,
-                eta_clip=1.2,
-                id_ref_alpha=float(args.id_ref_alpha),
-                id_ref_rate_limit=None,
-                ai_id_speed_tol=0.5,
-                ai_id_speed_tol_rel=0.08,
-                id_ref_gate_speed_tol=None,
-                id_ref_gate_speed_tol_rel=0.08,
-                id_ref_gate_min_scale=0.1,
-                id_ref_gate_exponent=1.0,
-                fast=bool(args.fast),
-                time_budget_min=None,
-                override_load_torque=False,
-                override_omega_ref=False,
-                ai_id_ref_relative=True,
-                delta_id_max=float(args.delta_id_max),
-                load_torque=None,
-                omega_ref_override=None,
-                scenarios=parse_csv_list(str(args.scenarios)),
-                scenario_sample="random",
-                omega_ref_range=None,
-                load_torque_range=None,
-                seed=int(args.seed),
-                sigma_start=0.2,
-                sigma_end=0.05,
-                sigma_decay_episodes=100,
-                power_warmup_episodes=0,
-                power_ramp_episodes=50,
-                eval_interval=0,
-                eval_scenarios=str(args.scenarios),
-                eval_dt=None,
-                eval_t_end=None,
-                eval_window_frac=0.25,
-                eval_error_tol_rel=0.05,
-                eval_error_tol_abs=0.0,
-                eval_use_total_power=True,
-                include_energy_obs=True,
-                update_every_episodes=1 if bool(args.fast) else 4,
-                init_checkpoint=str(args.init_checkpoint).strip() or None,
-                output_dir=str((run_root / "ai_id_ref").resolve()),
-                results_root=str((run_root / "results_run").resolve()),
-            )
-            best_checkpoint = Path(str(train_result.get("best", ""))).expanduser().resolve()
-            ok = best_checkpoint.exists()
-            all_ok = all_ok and bool(ok)
-            steps.append(
-                {
-                    "name": "train_policy",
-                    "status": "ok" if ok else "failed",
-                    "returncode": 0 if ok else 2,
-                    "note": f"best_checkpoint={best_checkpoint}",
-                }
-            )
-        except Exception as exc:
-            all_ok = False
-            steps.append(
-                {
-                    "name": "train_policy",
-                    "status": "failed",
-                    "returncode": 2,
-                    "note": str(exc),
-                }
-            )
+        init_checkpoint = str(args.init_checkpoint).strip() or None
+        for attempt_idx in range(1, max_train_attempts + 1):
+            episodes_now = max(1, int(round(episodes_base * (episodes_scale ** (attempt_idx - 1)))))
+            attempt_output = (run_root / "ai_id_ref" / f"attempt_{attempt_idx:02d}").resolve()
+            attempt_results = (run_root / "results_run" / f"attempt_{attempt_idx:02d}").resolve()
 
-    benchmark_plan_rows: List[Dict[str, object]] = []
-    benchmark_summary_rows: List[Dict[str, object]] = []
+            try:
+                result = train_ai_id_ref(
+                    env_config=str(config_path),
+                    episodes=episodes_now,
+                    episode_steps=int(args.episode_steps),
+                    control_mode="ai_id_ref",
+                    w_speed=1.0,
+                    w_power=6.0,
+                    w_current=None,
+                    w_smooth=0.05,
+                    w_mag=0.0,
+                    w_shaft=2.0,
+                    w_eta=1.0,
+                    eta_clip=1.2,
+                    id_ref_alpha=float(args.id_ref_alpha),
+                    id_ref_rate_limit=None,
+                    ai_id_speed_tol=0.5,
+                    ai_id_speed_tol_rel=0.08,
+                    id_ref_gate_speed_tol=None,
+                    id_ref_gate_speed_tol_rel=0.08,
+                    id_ref_gate_min_scale=0.1,
+                    id_ref_gate_exponent=1.0,
+                    fast=bool(args.fast),
+                    time_budget_min=None,
+                    override_load_torque=False,
+                    override_omega_ref=False,
+                    ai_id_ref_relative=True,
+                    delta_id_max=float(args.delta_id_max),
+                    load_torque=None,
+                    omega_ref_override=None,
+                    scenarios=parse_csv_list(str(args.scenarios)),
+                    scenario_sample="random",
+                    omega_ref_range=None,
+                    load_torque_range=None,
+                    seed=int(args.seed),
+                    sigma_start=0.2,
+                    sigma_end=0.05,
+                    sigma_decay_episodes=100,
+                    power_warmup_episodes=0,
+                    power_ramp_episodes=50,
+                    eval_interval=0,
+                    eval_scenarios=str(args.scenarios),
+                    eval_dt=None,
+                    eval_t_end=None,
+                    eval_window_frac=0.25,
+                    eval_error_tol_rel=0.05,
+                    eval_error_tol_abs=0.0,
+                    eval_use_total_power=True,
+                    include_energy_obs=True,
+                    update_every_episodes=1 if bool(args.fast) else 4,
+                    init_checkpoint=init_checkpoint,
+                    output_dir=str(attempt_output),
+                    results_root=str(attempt_results),
+                )
+                ckpt = Path(str(result.get("best", ""))).expanduser().resolve()
+                ok = ckpt.exists()
+                row = {
+                    "train_attempt": attempt_idx,
+                    "episodes": int(episodes_now),
+                    "episode_steps": int(args.episode_steps),
+                    "init_checkpoint": init_checkpoint or "",
+                    "best_checkpoint": str(ckpt),
+                    "ok": bool(ok),
+                }
+                train_attempt_rows.append(row)
+                if not ok:
+                    continue
+                train_result = result
+                best_checkpoint = ckpt
+                init_checkpoint = str(ckpt)
+
+                if bool(args.skip_benchmark_validation):
+                    break
+
+                attempt_best: Optional[Dict[str, object]] = None
+                for alpha, delta in validation_pairs:
+                    pair_tag = f"alpha_{_fmt_float_tag(alpha)}_delta_{_fmt_float_tag(delta)}"
+                    pair_out = run_root / "benchmark_validation" / f"train_attempt_{attempt_idx:02d}" / pair_tag
+                    pair_plan, pair_summary = _run_benchmark_validation(
+                        checkpoint_path=ckpt,
+                        benchmark_motors=benchmark_motors,
+                        scenarios=str(args.benchmark_scenarios),
+                        out_root=pair_out,
+                        delta_id_max=float(delta),
+                        id_ref_alpha=float(alpha),
+                        seed=int(args.benchmark_seed),
+                        dt=float(args.benchmark_dt) if args.benchmark_dt is not None else None,
+                        t_end=float(args.benchmark_t_end) if args.benchmark_t_end is not None else None,
+                        dry_run=False,
+                    )
+                    for r in pair_plan:
+                        r["train_attempt"] = int(attempt_idx)
+                        r["id_ref_alpha"] = float(alpha)
+                        r["delta_id_max"] = float(delta)
+                        r["checkpoint"] = str(ckpt)
+                        benchmark_plan_rows.append(r)
+                    for s in pair_summary:
+                        s["train_attempt"] = int(attempt_idx)
+                        s["id_ref_alpha"] = float(alpha)
+                        s["delta_id_max"] = float(delta)
+
+                    pair_rc_ok = all(int(r.get("returncode", 1)) == 0 for r in pair_plan)
+                    pair_acceptance = _evaluate_benchmark_acceptance(
+                        summary_rows=pair_summary,
+                        expected_motors=benchmark_motors,
+                        err_ok_rate_min=float(args.accept_err_ok_rate_min),
+                        power_saving_mean_min=(
+                            None
+                            if args.accept_power_saving_mean_min is None
+                            else float(args.accept_power_saving_mean_min)
+                        ),
+                        required_pass_count=int(args.accept_required_motor_pass_count),
+                    )
+                    pair_acceptance["train_attempt"] = int(attempt_idx)
+                    pair_acceptance["id_ref_alpha"] = float(alpha)
+                    pair_acceptance["delta_id_max"] = float(delta)
+                    pair_acceptance["plan_rc_ok"] = bool(pair_rc_ok)
+                    pair_acceptance["gate_pass"] = bool(pair_rc_ok and bool(pair_acceptance.get("all_pass", False)))
+
+                    benchmark_search_rows.append(
+                        {
+                            "train_attempt": int(attempt_idx),
+                            "id_ref_alpha": float(alpha),
+                            "delta_id_max": float(delta),
+                            "plan_rc_ok": bool(pair_rc_ok),
+                            "all_pass": bool(pair_acceptance.get("all_pass", False)),
+                            "pass_count": int(pair_acceptance.get("pass_count", 0)),
+                            "required_pass_count": int(pair_acceptance.get("required_pass_count", 0)),
+                            "mean_err_ok_rate": float(pair_acceptance.get("mean_err_ok_rate", 0.0)),
+                            "mean_power_saving_pct": float(pair_acceptance.get("mean_power_saving_pct", 0.0)),
+                            "mean_mic_err": float(pair_acceptance.get("mean_mic_err", 0.0)),
+                            "missing_motors": ",".join(str(x) for x in pair_acceptance.get("missing_motors", [])),
+                            "summary_rows_count": int(pair_acceptance.get("summary_rows_count", 0)),
+                        }
+                    )
+
+                    candidate = {
+                        "train_attempt": int(attempt_idx),
+                        "checkpoint": str(ckpt),
+                        "id_ref_alpha": float(alpha),
+                        "delta_id_max": float(delta),
+                        "summary_rows": pair_summary,
+                        "acceptance": pair_acceptance,
+                        "plan_rc_ok": bool(pair_rc_ok),
+                    }
+                    if attempt_best is None:
+                        attempt_best = candidate
+                    else:
+                        left_rank = (
+                            1 if bool(candidate.get("plan_rc_ok", False)) else 0,
+                            *_acceptance_rank(dict(candidate.get("acceptance", {}))),
+                        )
+                        right_rank = (
+                            1 if bool(attempt_best.get("plan_rc_ok", False)) else 0,
+                            *_acceptance_rank(dict(attempt_best.get("acceptance", {}))),
+                        )
+                        if left_rank > right_rank:
+                            attempt_best = candidate
+
+                if attempt_best is not None:
+                    if selected_candidate is None:
+                        selected_candidate = attempt_best
+                    else:
+                        left_rank = (
+                            1 if bool(attempt_best.get("plan_rc_ok", False)) else 0,
+                            *_acceptance_rank(dict(attempt_best.get("acceptance", {}))),
+                        )
+                        right_rank = (
+                            1 if bool(selected_candidate.get("plan_rc_ok", False)) else 0,
+                            *_acceptance_rank(dict(selected_candidate.get("acceptance", {}))),
+                        )
+                        if left_rank > right_rank:
+                            selected_candidate = attempt_best
+
+                    if bool(attempt_best.get("plan_rc_ok", False)) and bool(
+                        dict(attempt_best.get("acceptance", {})).get("all_pass", False)
+                    ):
+                        break
+            except Exception as exc:
+                train_attempt_rows.append(
+                    {
+                        "train_attempt": attempt_idx,
+                        "episodes": int(episodes_now),
+                        "episode_steps": int(args.episode_steps),
+                        "init_checkpoint": init_checkpoint or "",
+                        "best_checkpoint": "",
+                        "ok": False,
+                        "error": str(exc),
+                    }
+                )
+
+        train_ok = best_checkpoint.exists()
+        all_ok = all_ok and bool(train_ok)
+        steps.append(
+            {
+                "name": "train_policy",
+                "status": "ok" if train_ok else "failed",
+                "returncode": 0 if train_ok else 2,
+                "note": f"attempts={len(train_attempt_rows)}; best_checkpoint={best_checkpoint}",
+            }
+        )
+
     if bool(args.skip_benchmark_validation):
         steps.append(
             {
@@ -694,20 +1039,26 @@ def main() -> None:
             }
         )
     else:
-        benchmark_motors = [m.strip().lower() for m in parse_csv_list(str(args.benchmark_motors))]
         if bool(args.dry_run):
-            benchmark_plan_rows, benchmark_summary_rows = _run_benchmark_validation(
+            base_alpha, base_delta = validation_pairs[0]
+            benchmark_plan_rows, _ = _run_benchmark_validation(
                 checkpoint_path=Path("dry_run_checkpoint.pth"),
                 benchmark_motors=benchmark_motors,
                 scenarios=str(args.benchmark_scenarios),
-                out_root=run_root / "benchmark_validation",
-                delta_id_max=float(args.delta_id_max),
-                id_ref_alpha=float(args.id_ref_alpha),
+                out_root=run_root / "benchmark_validation" / "dry_run",
+                delta_id_max=float(base_delta),
+                id_ref_alpha=float(base_alpha),
                 seed=int(args.benchmark_seed),
                 dt=float(args.benchmark_dt) if args.benchmark_dt is not None else None,
                 t_end=float(args.benchmark_t_end) if args.benchmark_t_end is not None else None,
                 dry_run=True,
             )
+            selected_validation = {
+                "train_attempt": 0,
+                "checkpoint": "dry_run_checkpoint.pth",
+                "id_ref_alpha": float(base_alpha),
+                "delta_id_max": float(base_delta),
+            }
             steps.append(
                 {
                     "name": "validate_benchmarks",
@@ -717,36 +1068,137 @@ def main() -> None:
                 }
             )
         else:
-            if bool(args.skip_training):
-                raise ValueError("Benchmark validation requires trained checkpoint when --skip-training is used.")
-            if not best_checkpoint.exists():
-                raise FileNotFoundError(f"Best checkpoint not found: {best_checkpoint}")
-            benchmark_plan_rows, benchmark_summary_rows = _run_benchmark_validation(
-                checkpoint_path=best_checkpoint,
-                benchmark_motors=benchmark_motors,
-                scenarios=str(args.benchmark_scenarios),
-                out_root=run_root / "benchmark_validation",
-                delta_id_max=float(args.delta_id_max),
-                id_ref_alpha=float(args.id_ref_alpha),
-                seed=int(args.benchmark_seed),
-                dt=float(args.benchmark_dt) if args.benchmark_dt is not None else None,
-                t_end=float(args.benchmark_t_end) if args.benchmark_t_end is not None else None,
-                dry_run=False,
-            )
-            rc = 0 if all(int(r.get("returncode", 1)) == 0 for r in benchmark_plan_rows) else 3
+            if selected_candidate is None:
+                if not best_checkpoint.exists():
+                    raise FileNotFoundError(f"Best checkpoint not found: {best_checkpoint}")
+                fallback_best: Optional[Dict[str, object]] = None
+                fallback_attempt = int(max_train_attempts) if not bool(args.skip_training) else 0
+                for alpha, delta in validation_pairs:
+                    pair_tag = f"alpha_{_fmt_float_tag(alpha)}_delta_{_fmt_float_tag(delta)}"
+                    pair_plan, pair_summary = _run_benchmark_validation(
+                        checkpoint_path=best_checkpoint,
+                        benchmark_motors=benchmark_motors,
+                        scenarios=str(args.benchmark_scenarios),
+                        out_root=run_root / "benchmark_validation" / "fallback" / pair_tag,
+                        delta_id_max=float(delta),
+                        id_ref_alpha=float(alpha),
+                        seed=int(args.benchmark_seed),
+                        dt=float(args.benchmark_dt) if args.benchmark_dt is not None else None,
+                        t_end=float(args.benchmark_t_end) if args.benchmark_t_end is not None else None,
+                        dry_run=False,
+                    )
+                    for r in pair_plan:
+                        r["train_attempt"] = int(fallback_attempt)
+                        r["id_ref_alpha"] = float(alpha)
+                        r["delta_id_max"] = float(delta)
+                        r["checkpoint"] = str(best_checkpoint)
+                        benchmark_plan_rows.append(r)
+                    for s in pair_summary:
+                        s["train_attempt"] = int(fallback_attempt)
+                        s["id_ref_alpha"] = float(alpha)
+                        s["delta_id_max"] = float(delta)
+
+                    pair_rc_ok = all(int(r.get("returncode", 1)) == 0 for r in pair_plan)
+                    pair_acceptance = _evaluate_benchmark_acceptance(
+                        summary_rows=pair_summary,
+                        expected_motors=benchmark_motors,
+                        err_ok_rate_min=float(args.accept_err_ok_rate_min),
+                        power_saving_mean_min=(
+                            None
+                            if args.accept_power_saving_mean_min is None
+                            else float(args.accept_power_saving_mean_min)
+                        ),
+                        required_pass_count=int(args.accept_required_motor_pass_count),
+                    )
+                    pair_acceptance["train_attempt"] = int(fallback_attempt)
+                    pair_acceptance["id_ref_alpha"] = float(alpha)
+                    pair_acceptance["delta_id_max"] = float(delta)
+                    pair_acceptance["plan_rc_ok"] = bool(pair_rc_ok)
+                    pair_acceptance["gate_pass"] = bool(pair_rc_ok and bool(pair_acceptance.get("all_pass", False)))
+
+                    benchmark_search_rows.append(
+                        {
+                            "train_attempt": int(fallback_attempt),
+                            "id_ref_alpha": float(alpha),
+                            "delta_id_max": float(delta),
+                            "plan_rc_ok": bool(pair_rc_ok),
+                            "all_pass": bool(pair_acceptance.get("all_pass", False)),
+                            "pass_count": int(pair_acceptance.get("pass_count", 0)),
+                            "required_pass_count": int(pair_acceptance.get("required_pass_count", 0)),
+                            "mean_err_ok_rate": float(pair_acceptance.get("mean_err_ok_rate", 0.0)),
+                            "mean_power_saving_pct": float(pair_acceptance.get("mean_power_saving_pct", 0.0)),
+                            "mean_mic_err": float(pair_acceptance.get("mean_mic_err", 0.0)),
+                            "missing_motors": ",".join(str(x) for x in pair_acceptance.get("missing_motors", [])),
+                            "summary_rows_count": int(pair_acceptance.get("summary_rows_count", 0)),
+                        }
+                    )
+
+                    candidate = {
+                        "train_attempt": int(fallback_attempt),
+                        "checkpoint": str(best_checkpoint),
+                        "id_ref_alpha": float(alpha),
+                        "delta_id_max": float(delta),
+                        "summary_rows": pair_summary,
+                        "acceptance": pair_acceptance,
+                        "plan_rc_ok": bool(pair_rc_ok),
+                    }
+                    if fallback_best is None:
+                        fallback_best = candidate
+                    else:
+                        left_rank = (
+                            1 if bool(candidate.get("plan_rc_ok", False)) else 0,
+                            *_acceptance_rank(dict(candidate.get("acceptance", {}))),
+                        )
+                        right_rank = (
+                            1 if bool(fallback_best.get("plan_rc_ok", False)) else 0,
+                            *_acceptance_rank(dict(fallback_best.get("acceptance", {}))),
+                        )
+                        if left_rank > right_rank:
+                            fallback_best = candidate
+                selected_candidate = fallback_best
+
+            benchmark_summary_rows = list(selected_candidate.get("summary_rows", []))  # type: ignore[arg-type]
+            benchmark_acceptance = dict(selected_candidate.get("acceptance", {}))  # type: ignore[arg-type]
+            selected_validation = {
+                "train_attempt": int(selected_candidate.get("train_attempt", 0)),
+                "checkpoint": str(selected_candidate.get("checkpoint", "")),
+                "id_ref_alpha": float(selected_candidate.get("id_ref_alpha", 0.0)),
+                "delta_id_max": float(selected_candidate.get("delta_id_max", 0.0)),
+            }
+            rc_commands = 0 if bool(selected_candidate.get("plan_rc_ok", False)) else 3
+            gate_required = not bool(args.no_acceptance_gate)
+            gate_pass = bool(benchmark_acceptance.get("all_pass", False)) if gate_required else True
+            rc_gate = 0 if gate_pass else 4
+            rc = rc_commands if rc_commands != 0 else rc_gate
             all_ok = all_ok and bool(rc == 0)
             steps.append(
                 {
                     "name": "validate_benchmarks",
                     "status": "ok" if rc == 0 else "failed",
                     "returncode": rc,
-                    "note": f"motors={','.join(benchmark_motors)}",
+                    "note": (
+                        "motors={motors}; selected_attempt={attempt}; alpha={alpha:.4f}; delta={delta:.4f}; "
+                        "gate_required={gate_required}; gate_pass={gate_pass}"
+                    ).format(
+                        motors=",".join(benchmark_motors),
+                        attempt=int(selected_validation.get("train_attempt", 0)),
+                        alpha=float(selected_validation.get("id_ref_alpha", 0.0)),
+                        delta=float(selected_validation.get("delta_id_max", 0.0)),
+                        gate_required=gate_required,
+                        gate_pass=gate_pass,
+                    ),
                 }
             )
 
+    if train_attempt_rows:
+        write_csv(run_root / "training_attempts.csv", train_attempt_rows)
+        json_dump(run_root / "training_attempts.json", train_attempt_rows)
     if benchmark_plan_rows:
         write_csv(run_root / "benchmark_validation_plan.csv", benchmark_plan_rows)
         json_dump(run_root / "benchmark_validation_plan.json", benchmark_plan_rows)
+    if benchmark_search_rows:
+        write_csv(run_root / "benchmark_search_summary.csv", benchmark_search_rows)
+        json_dump(run_root / "benchmark_search_summary.json", benchmark_search_rows)
     if benchmark_summary_rows:
         write_csv(run_root / "benchmark_validation_summary.csv", benchmark_summary_rows)
         json_dump(run_root / "benchmark_validation_summary.json", benchmark_summary_rows)
@@ -762,7 +1214,13 @@ def main() -> None:
         "generated_config_path": str(config_path),
         "ident_source": ident_source,
         "training_result": train_result,
+        "training_attempts": train_attempt_rows,
+        "benchmark_search_pairs": [
+            {"id_ref_alpha": float(alpha), "delta_id_max": float(delta)} for alpha, delta in validation_pairs
+        ],
+        "selected_validation": selected_validation,
         "benchmark_summary_rows": benchmark_summary_rows,
+        "benchmark_acceptance": benchmark_acceptance,
         "steps": steps,
     }
     report_json = run_root / "any_motor_onboarding_report.json"

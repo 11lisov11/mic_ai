@@ -205,3 +205,26 @@
   - закрытие envelope gate,
   - доводка AL31/AO2/AIR56 под policy,
   - выпуск нового пост-восстановительного frozen тега.
+
+## Универсальный onboarding (прогресс 2026-03-11)
+- [x] Реализован единый pipeline для нового двигателя по паспорту:
+  - `tools/train_any_motor_pipeline.py`
+  - `docs/any_motor_onboarding.md`
+  - `tests/test_train_any_motor_pipeline_smoke.py`
+- [x] Добавлены авто-повторы обучения с warm-start:
+  - флаги `--max-train-attempts`, `--train-episodes-scale`.
+- [x] Добавлен auto-search параметров валидации без переобучения:
+  - флаги `--benchmark-search-alpha-grid`, `--benchmark-search-delta-grid`.
+- [x] Добавлен приемочный gate по benchmark:
+  - `err_ok_rate` / `power_saving_pct_mean` / требуемое число прошедших моторов;
+  - флаги `--accept-*`, отключение через `--no-acceptance-gate`.
+- [x] Артефакты для трассировки попыток и поиска:
+  - `training_attempts.(csv|json)`
+  - `benchmark_search_summary.(csv|json)`
+  - расширенный `any_motor_onboarding_report.json`.
+- [ ] Открытый пункт: добиться прохождения *энергетического* gate `3/3` (опциональный порог `power_saving`) на демонстрационном кейсе `demo_any`.
+  - последний прогон: `outputs/train_any_motor_pipeline/eval_demo_any_plan_v2`
+  - факт: `pass_count=2/3`, узкое место: `ao2 power_saving_pct_mean < 0`.
+- [x] Базовый gate корректности управления (без energy-порога) закрыт:
+  - прогон без переобучения: `outputs/train_any_motor_pipeline/eval_demo_any_reval_gate_default2`
+  - `--skip-training --init-checkpoint ...` + benchmark-search, результат `pass_count=3/3`, `all_ok=true`.
