@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import random
 import statistics
 import sys
@@ -52,6 +53,56 @@ def _write_csv(path: Path, rows: List[Dict[str, object]]) -> None:
 
 def _json_dump(path: Path, payload: object) -> None:
     _json_dump_shared(path, payload)
+
+
+def _to_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _normalize_candidate_value(key: str, value: object) -> object:
+    if key in {"tag", "source", "objective"}:
+        return str(value)
+    if key in {"update_steps", "idle_exit_boost_steps"}:
+        return int(float(value))
+    if key == "idle_enable":
+        return _to_bool(value)
+    if key == "objective_clip":
+        if value in {"", None, "None", "none"}:
+            return None
+        return float(value)
+    return float(value)
+
+
+def _load_custom_candidates(path: Path, *, base: Dict[str, object]) -> List[Dict[str, object]]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if isinstance(payload, dict):
+        raw_candidates = payload.get("candidates", [])
+    elif isinstance(payload, list):
+        raw_candidates = payload
+    else:
+        raise ValueError(f"Unsupported candidate JSON payload in {path}")
+    if not isinstance(raw_candidates, list):
+        raise ValueError(f"'candidates' must be a list in {path}")
+
+    out: List[Dict[str, object]] = []
+    for idx, raw in enumerate(raw_candidates, start=1):
+        if not isinstance(raw, dict):
+            raise ValueError(f"Candidate #{idx} in {path} is not an object")
+        cand = dict(base)
+        for key, value in raw.items():
+            if key not in cand:
+                raise ValueError(f"Unknown candidate field '{key}' in {path}")
+            cand[key] = _normalize_candidate_value(key, value)
+        if not str(cand.get("tag", "")).strip():
+            cand["tag"] = f"custom_{idx:03d}"
+        if not str(cand.get("source", "")).strip():
+            cand["source"] = str(path.name)
+        out.append(cand)
+    return out
 
 
 def _score(
@@ -196,6 +247,8 @@ def main() -> None:
     parser.add_argument("--foc-feedback-mode", default="encoder", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-feedback-mode", default="sensorless", choices=["encoder", "sensorless"])
     parser.add_argument("--checkpoint-registry", default="config/checkpoint_registry.json")
+    parser.add_argument("--candidate-json", default="")
+    parser.add_argument("--candidate-json-mode", default="append", choices=["append", "replace"])
     parser.add_argument("--seed-perturbation", action="store_true")
     parser.add_argument("--seed-perturb-level", type=float, default=0.2)
     parser.add_argument("--sample-profile", default="global", choices=["global", "local_safe"])
@@ -254,18 +307,30 @@ def main() -> None:
         }
     )
 
-    rng = random.Random(int(args.search_seed))
-    candidates: List[Dict[str, object]] = [dict(base_cand)]
-    candidates.extend(_build_handcrafted_candidates(base_cand))
-    for i in range(int(args.stage1_trials)):
-        candidates.append(
-            _sample_supervisor_candidate(
-                rng,
-                idx=i + 1,
-                base=base_cand,
-                profile=str(args.sample_profile),
+    custom_candidates: List[Dict[str, object]] = []
+    candidate_json = str(args.candidate_json).strip()
+    if candidate_json:
+        custom_candidates = _load_custom_candidates(Path(candidate_json).expanduser().resolve(), base=base_cand)
+
+    candidates: List[Dict[str, object]] = []
+    if str(args.candidate_json_mode) == "append":
+        rng = random.Random(int(args.search_seed))
+        candidates.append(dict(base_cand))
+        candidates.extend(_build_handcrafted_candidates(base_cand))
+        for i in range(int(args.stage1_trials)):
+            candidates.append(
+                _sample_supervisor_candidate(
+                    rng,
+                    idx=i + 1,
+                    base=base_cand,
+                    profile=str(args.sample_profile),
+                )
             )
-        )
+        candidates.extend(custom_candidates)
+    else:
+        candidates.extend(custom_candidates)
+    if not candidates:
+        raise ValueError("No candidates to evaluate. Provide --candidate-json or keep --candidate-json-mode=append.")
 
     seed_perturb = SeedPerturbationSettings(
         enabled=bool(args.seed_perturbation),
@@ -385,6 +450,9 @@ def main() -> None:
         "stage1_seed": stage1_seed,
         "stage2_seed": stage2_seed,
         "search_seed": int(args.search_seed),
+        "candidate_json": candidate_json,
+        "candidate_json_mode": str(args.candidate_json_mode),
+        "custom_candidate_count": int(len(custom_candidates)),
         "acceptance": {
             "min_avg_power_saving_pct": float(args.min_avg_power_saving_pct),
             "min_avg_eta_gain_pct": float(args.min_avg_eta_gain_pct),
