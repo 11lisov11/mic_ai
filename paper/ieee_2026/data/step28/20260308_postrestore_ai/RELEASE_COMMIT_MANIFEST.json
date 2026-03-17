@@ -1,68 +1,67 @@
 {
-  "generated_utc": "2026-03-08T08:33:35.807513+00:00",
+  "generated_utc": "2026-03-17T17:24:18.603478+00:00",
   "tag": "20260308_postrestore_ai",
   "repo_root": "C:\\mic_theory",
   "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260308_postrestore_ai",
   "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
   "git": {
-    "commit": "6d5cf9ec470eca3e595294c9410fd0464c451290",
+    "commit": "80992e38960866b13a6d819d422e65380e0b9cf4",
     "branch": "main",
     "dirty": true,
-    "dirty_lines_count": 6
+    "dirty_lines_count": 11
   },
   "allow_dirty": true,
   "required_ok": true,
   "manifest_ok": true,
   "required_missing": [],
   "optional_missing": [
-    "paper/ieee_2026/data/step28/20260308_postrestore_ai/passport/passport_compare_3motors.json",
     "paper/ieee_2026/data/release/20260308_postrestore_ai/promotion_manifest.json",
     "paper/ieee_2026/data/release/20260308_postrestore_ai/release_snapshot.json"
   ],
-  "files_count": 14,
-  "aggregate_sha256": "ba53e84413a3bd6f3840de20a2897782c981d03a97d70c57ee9e6d4fae16ddb6",
+  "files_count": 15,
+  "aggregate_sha256": "38039b3f7406a8709ee082124f7f67674a109c38edc6fd09ab6423aeecaf10c0",
   "files": [
     {
       "group": "ieee_root",
       "required": false,
       "path": "paper/ieee_2026/FINAL_CHECKLIST_AUTO.md",
-      "size_bytes": 2897,
-      "sha256": "ffae6d163300bb4363f1ed231121a0325fce489e5e920c611f129e50b26c5def"
+      "size_bytes": 2961,
+      "sha256": "e0a8045357d5ca822016b59c548b15bfc898cf042bc41c54b5863c57bb98abf5"
     },
     {
       "group": "ieee_root",
       "required": false,
       "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.json",
-      "size_bytes": 560,
-      "sha256": "61b74b37dc4528cd169388c33092054336c9659e822db50432f2ef79d9ce71a1"
+      "size_bytes": 621,
+      "sha256": "41c76f70c56904738f0b8a8ab710331a061a977be3b1a6b279ff31e0da30f898"
     },
     {
       "group": "ieee_root",
       "required": false,
       "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.md",
-      "size_bytes": 819,
-      "sha256": "7df57fa0f3c004dccbb1a8041ec23bb63bc69f24eacd64712ada174564cebf0f"
+      "size_bytes": 834,
+      "sha256": "51bf86bf89e0d1d80b86b4f2f94ce7e64e5509d1873231b1d3b6ee2b2461efa5"
     },
     {
       "group": "step28_quality",
       "required": true,
       "path": "paper/ieee_2026/data/step28/20260308_postrestore_ai/FINAL_CHECKLIST_AUTO.md",
-      "size_bytes": 3062,
-      "sha256": "63fb945049cc9e06559e74259affd15e55a25065863309fbd179c8d7987dce81"
+      "size_bytes": 3067,
+      "sha256": "81fdc47175792dc77f6a8d37bd172473d78d09e50ab0a98067b8787e7a414b21"
     },
     {
       "group": "step28_quality",
       "required": true,
       "path": "paper/ieee_2026/data/step28/20260308_postrestore_ai/SUBMISSION_CANDIDATE.json",
       "size_bytes": 592,
-      "sha256": "9aac0b5944866933b2185ef4bef00277d003beeb612aa6cf0894b5fc3f5d007f"
+      "sha256": "094b445f4b796333bd5bfb658e92d80ddcaa8784cedaa6e3090e66dba091e5e0"
     },
     {
       "group": "step28_quality",
       "required": true,
       "path": "paper/ieee_2026/data/step28/20260308_postrestore_ai/SUBMISSION_CANDIDATE.md",
       "size_bytes": 819,
-      "sha256": "0ec28e3bdcdcf9f39eb714902c1a615141fae6d4d1d6ad87bc17f4a049659209"
+      "sha256": "e5e59952b8bbd3de981eab54913f1f8d218e65898c60729bc904d2e9540ae436"
     },
     {
       "group": "step28_derived",
@@ -84,6 +83,13 @@
       "path": "paper/ieee_2026/data/step28/20260308_postrestore_ai/package_manifest.json",
       "size_bytes": 2625,
       "sha256": "aac58a621dcec28211447132a438f3b5a5813107a8136f5610f3632641f51d4e"
+    },
+    {
+      "group": "step28_passport",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260308_postrestore_ai/passport/passport_compare_3motors.json",
+      "size_bytes": 6619,
+      "sha256": "7f1b18bd8aafd4df1a53244999f50cd2e30148da51a79b2d20876e8b343e0fc5"
     },
     {
       "group": "step28_root",

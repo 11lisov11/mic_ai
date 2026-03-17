@@ -44,8 +44,9 @@
 - [ ] motor=ao2 acceptance_pass=False saving_mean=+8.520% saving_min=+0.839% threshold=+0.050%
 
 ## Passport
-- [ ] `passport/passport_compare_3motors.(csv|md|json)`
-- [x] passport checks skipped (artifacts missing)
+- [x] `passport/passport_compare_3motors.(csv|md|json)`
+- [x] passport failures: 0
+- [x] passport warnings: 2
 
 ## Publication assets
 - [x] `manuscript.md`

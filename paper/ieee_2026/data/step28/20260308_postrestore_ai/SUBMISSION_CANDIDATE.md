@@ -1,6 +1,6 @@
 # Submission Candidate
 
-- generated_utc: `2026-03-08T08:33:35.305783+00:00`
+- generated_utc: `2026-03-17T17:24:17.980786+00:00`
 - candidate_tag: `20260308_postrestore_ai`
 - step28_dir: `C:\mic_theory\paper\ieee_2026\data\step28\20260308_postrestore_ai`
 - ready_for_submission: `False`

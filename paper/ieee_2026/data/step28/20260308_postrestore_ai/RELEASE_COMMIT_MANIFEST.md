@@ -1,12 +1,12 @@
 # Release Commit Manifest
 
-- generated_utc: `2026-03-08T08:33:35.807513+00:00`
+- generated_utc: `2026-03-17T17:24:18.603478+00:00`
 - tag: `20260308_postrestore_ai`
-- git_commit: `6d5cf9ec470eca3e595294c9410fd0464c451290`
+- git_commit: `80992e38960866b13a6d819d422e65380e0b9cf4`
 - git_branch: `main`
 - git_dirty: `True`
-- dirty_lines_count: `6`
+- dirty_lines_count: `11`
 - required_ok: `True`
 - manifest_ok: `True`
-- files_count: `14`
-- aggregate_sha256: `ba53e84413a3bd6f3840de20a2897782c981d03a97d70c57ee9e6d4fae16ddb6`
+- files_count: `15`
+- aggregate_sha256: `38039b3f7406a8709ee082124f7f67674a109c38edc6fd09ab6423aeecaf10c0`

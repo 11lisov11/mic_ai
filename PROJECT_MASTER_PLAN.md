@@ -146,17 +146,21 @@ Current facts:
   - A robustness-oriented AO2 finetune from the best external snapshot using randomized `omega/load` training conditions also failed to beat the incoming checkpoint:
     - `outputs/ao2_ft_pilot3_randrobust_20260317/checkpoint_scan_tool_3seed/ao2_checkpoint_scan_summary.json`
     - best external snapshot again remained `actor_ep000.pth`, while later snapshots drifted below zero on energy/start-stop metrics
-  - Conclusion: the cheap and medium-budget AO2 path is now exhausted; the next real step is a materially different longer AO2 finetune/retrain cycle with external checkpoint selection against the full Step27 acceptance objective.
+  - A longer mild-randomized AO2 finetune from the best external snapshot also failed to improve the external acceptance profile:
+    - `outputs/ao2_ft_pilot4_mildrand_20260317/checkpoint_scan_tool_3seed/ao2_checkpoint_scan_summary.json`
+    - best external snapshot again remained `actor_ep000.pth` (`4.116% / 9.513% / 2.333 / 13.822%`)
+  - Conclusion: the cheap and medium-budget AO2 path is now exhausted; the next real step is a materially different longer AO2 retrain cycle with external checkpoint selection against the full Step27 acceptance objective.
 - Passport/package update (`2026-03-17`):
   - The post-restore passport gap was traced to the reproduce/package path, not to missing motor configs:
     - `tools/reproduce_ieee_step28.py` only built passport artifacts when `--build-passport` was requested
     - `scripts/package_ieee_step28.py` only copied passport artifacts when `--passport-dir` was explicitly passed
   - The reproduce pipeline was updated so passport artifacts are built by default unless `--no-build-passport` is used.
   - Smoke coverage was updated to require `passport/passport_compare_3motors.{csv,md,json}` in the packaged output.
-  - This fixes the pipeline-level gap, but the old `20260308_postrestore_ai` candidate still needs to be rebuilt/repackaged to actually carry the passport block.
+  - The old `paper/ieee_2026/data/step28/20260308_postrestore_ai` candidate was rebuilt with a real `passport/` block and downstream checklist/candidate/dossier/verify files were refreshed.
+  - `verification_ok` still remains red, but passport is no longer one of the missing package elements; the remaining blockers are acceptance/guardrails.
 
 Work:
-- [ ] Rebuild the missing passport block for the post-restore candidate so the package no longer skips passport checks.
+- [x] Rebuild the missing passport block for the post-restore candidate so the package no longer skips passport checks.
 - [x] Re-run low-compute AL31/AO2/AIR56 tuning under the current envelope constraints instead of relying only on the old recovered checkpoint set.
 - [x] Add targeted-candidate support to the tuning tool so local refinement can be evaluated without random sweeps.
 - [x] Run a short AO2 warm-start pilot from the recovered checkpoint to test whether cheap checkpoint adaptation is sufficient.

@@ -1,6 +1,6 @@
 # Manuscript Template Report
 
-- generated_utc: `2026-03-08T08:33:34.193990+00:00`
+- generated_utc: `2026-03-17T17:24:16.979967+00:00`
 - manuscript: `C:\mic_theory\paper\ieee_2026\manuscript.md`
 - ok: `True`
 - required_headings_order_ok: `True`

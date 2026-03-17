@@ -1,6 +1,6 @@
 # IEEE Submission Dossier
 
-- generated_utc: `2026-03-08T08:33:37.224218+00:00`
+- generated_utc: `2026-03-17T17:24:18.809559+00:00`
 - tag: `20260308_postrestore_ai`
 - step28_dir: `C:\mic_theory\paper\ieee_2026\data\step28\20260308_postrestore_ai`
 - dossier_ok: `False`
@@ -15,14 +15,14 @@
 - bundle_present: `True`
 - bundle_ok: `True`
 - passport_failures: `0`
-- passport_warnings: `0`
+- passport_warnings: `2`
 
 ## Hashes
 - submission_lock_aggregate_sha256: `c0e487811b89842862be76565799474adc8f3e95a619f0976fbf8fb0fb7146f5`
-- release_manifest_aggregate_sha256: `ba53e84413a3bd6f3840de20a2897782c981d03a97d70c57ee9e6d4fae16ddb6`
+- release_manifest_aggregate_sha256: `38039b3f7406a8709ee082124f7f67674a109c38edc6fd09ab6423aeecaf10c0`
 
 ## Git
-- commit: `6d5cf9ec470eca3e595294c9410fd0464c451290`
+- commit: `80992e38960866b13a6d819d422e65380e0b9cf4`
 - branch: `main`
 - dirty: `True`
 
