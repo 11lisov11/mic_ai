@@ -44,6 +44,9 @@ def test_reproduce_ieee_step28_smoke(tmp_path: Path) -> None:
     assert (pkg_dir / "step28_ieee_summary.csv").exists()
     assert (pkg_dir / "step28_ieee_summary.md").exists()
     assert (pkg_dir / "package_manifest.json").exists()
+    assert (pkg_dir / "passport" / "passport_compare_3motors.csv").exists()
+    assert (pkg_dir / "passport" / "passport_compare_3motors.md").exists()
+    assert (pkg_dir / "passport" / "passport_compare_3motors.json").exists()
     assert (pkg_dir / "derived_ieee" / "ieee_pi_foc_mic_stats.csv").exists()
     assert (pkg_dir / "derived_ieee" / "fig_ieee_pi_foc_mic_power.png").exists()
     assert (pkg_dir / "derived_ieee" / "motor_tuning_acceptance_summary.csv").exists()
@@ -70,4 +73,4 @@ def test_reproduce_ieee_step28_smoke(tmp_path: Path) -> None:
 
     manifest = json.loads((out_root / "step28_reproduce_manifest.json").read_text(encoding="utf-8"))
     assert str(manifest.get("package_tag", "")) == "smoke01"
-    assert len(list(manifest.get("executed_commands", []))) >= 11
+    assert len(list(manifest.get("executed_commands", []))) >= 12

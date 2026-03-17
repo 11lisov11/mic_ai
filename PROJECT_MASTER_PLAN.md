@@ -121,13 +121,50 @@ Current facts:
     - tracking-biased pilot reduced errors only to `2.3` but pushed power/eta below zero:
       - `outputs/tune_ao2_20260316_tracking_eval/ao2_tuning_summary.json`
   - Conclusion: further W1 progress now requires checkpoint-level finetuning/retraining, not more supervisor-only sweeps.
+- AO2 checkpoint-level update (`2026-03-17`):
+  - A new short warm-start pilot from the current AO2 checkpoint materially improved the external Step27 profile, but still did not pass the full gate:
+    - `outputs/ao2_ft_pilot1_20260317/checkpoint_eval/new_best/ao2_tuning_summary.json`
+    - best result moved to `avg_power_saving_pct=4.116%`, `avg_eta_gain_pct=9.513%`, `err_failures=2.333`, `start_stop_power_saving_pct=13.822%`
+    - this is much closer than the old AO2 baseline (`8.520% / 17.445% / 2.667 / 31.989%`), but it still fails on `err_failures` and current peaks
+  - A targeted guardrail sweep around that new AO2 checkpoint did not beat the same `base_current` candidate:
+    - `outputs/ao2_ft_pilot1_20260317/checkpoint_eval/new_best_guardrail_sweep/ao2_tuning_summary.json`
+  - A dedicated external snapshot-scan tool was added so actor snapshots can be ranked against Step27 directly instead of relying on the trainer's internal score:
+    - `tools/scan_step27_checkpoints.py`
+    - `outputs/ao2_ft_pilot1_20260317/checkpoint_scan_tool_seed101/ao2_checkpoint_scan_summary.json`
+  - Cheap `seed101` snapshot ranking turned out to be unreliable for AO2:
+    - the one-seed scan preferred early aggressive snapshots such as `actor_ep007.pth`, but full `3-seed` evaluation still favored the later `new_best` checkpoint
+    - conclusion: AO2 checkpoint selection must use the external Step27 gate on the real seed set, not a single-seed proxy
+  - Full `3-seed` external scan of all `pilot1` snapshots confirmed that there is no hidden passing AO2 checkpoint inside the short warm-start run:
+    - `outputs/ao2_ft_pilot1_20260317/checkpoint_scan_tool_3seed/ao2_checkpoint_scan_summary.json`
+    - best external snapshot was `actor_ep019.pth`, matching the already known `new_best` profile (`4.116% / 9.513% / 2.333 / 13.822%`)
+  - A second-stage AO2 finetune with small current penalty (`w_current=0.2`) did not improve the selected checkpoint:
+    - `outputs/ao2_ft_pilot2_currentpen_20260317/checkpoint_eval/best/ao2_tuning_summary.json`
+    - the resulting `best_actor.pth` was byte-identical to the prior AO2 `best_actor.pth`
+  - Full `3-seed` external scan of all `pilot2_currentpen` snapshots also confirmed no improvement:
+    - `outputs/ao2_ft_pilot2_currentpen_20260317/checkpoint_scan_tool_3seed/ao2_checkpoint_scan_summary.json`
+    - best external snapshot remained `actor_ep000.pth`, i.e. the incoming checkpoint before the current-penalty finetune
+  - A robustness-oriented AO2 finetune from the best external snapshot using randomized `omega/load` training conditions also failed to beat the incoming checkpoint:
+    - `outputs/ao2_ft_pilot3_randrobust_20260317/checkpoint_scan_tool_3seed/ao2_checkpoint_scan_summary.json`
+    - best external snapshot again remained `actor_ep000.pth`, while later snapshots drifted below zero on energy/start-stop metrics
+  - Conclusion: the cheap and medium-budget AO2 path is now exhausted; the next real step is a materially different longer AO2 finetune/retrain cycle with external checkpoint selection against the full Step27 acceptance objective.
+- Passport/package update (`2026-03-17`):
+  - The post-restore passport gap was traced to the reproduce/package path, not to missing motor configs:
+    - `tools/reproduce_ieee_step28.py` only built passport artifacts when `--build-passport` was requested
+    - `scripts/package_ieee_step28.py` only copied passport artifacts when `--passport-dir` was explicitly passed
+  - The reproduce pipeline was updated so passport artifacts are built by default unless `--no-build-passport` is used.
+  - Smoke coverage was updated to require `passport/passport_compare_3motors.{csv,md,json}` in the packaged output.
+  - This fixes the pipeline-level gap, but the old `20260308_postrestore_ai` candidate still needs to be rebuilt/repackaged to actually carry the passport block.
 
 Work:
 - [ ] Rebuild the missing passport block for the post-restore candidate so the package no longer skips passport checks.
 - [x] Re-run low-compute AL31/AO2/AIR56 tuning under the current envelope constraints instead of relying only on the old recovered checkpoint set.
 - [x] Add targeted-candidate support to the tuning tool so local refinement can be evaluated without random sweeps.
 - [x] Run a short AO2 warm-start pilot from the recovered checkpoint to test whether cheap checkpoint adaptation is sufficient.
+- [x] Add a reusable external Step27 checkpoint-scan tool so actor snapshots can be selected by the real acceptance objective.
+- [x] Run AO2 low-budget checkpoint selection experiments (`new_best`, `new_last`, selected `actor_epXXX`, guardrail sweep, cheap current-penalty finetune).
+- [x] Fix the Step28 reproduce/package pipeline so passport artifacts are built and packaged by default.
 - [ ] Run explicit checkpoint-level finetuning/retraining for the failing post-restore motors (AO2 first, then AL31/AIR56 if still needed).
+- [ ] For AO2, couple the next finetune/retrain run with external snapshot selection on the real Step27 seed set before promoting any checkpoint.
 - [ ] Re-run baseline Step27 for the selected post-restore checkpoints.
 - [ ] Re-run acceptance envelopes and identify scenario-level failures by motor:
   - AIR56: `load_step`, `speed_step`

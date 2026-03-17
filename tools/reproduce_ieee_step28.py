@@ -62,10 +62,12 @@ def main() -> None:
     )
 
     parser.add_argument("--theory-csv", default="")
-    parser.add_argument("--build-passport", action="store_true")
+    parser.add_argument("--build-passport", dest="build_passport", action="store_true")
+    parser.add_argument("--no-build-passport", dest="build_passport", action="store_false")
     parser.add_argument("--passport-out-root", default="paper/ieee_2026/data/passport")
     parser.add_argument("--passport-tag", default="")
     parser.add_argument("--passport-dir", default="")
+    parser.set_defaults(build_passport=True)
     parser.add_argument("--build-submission-bundle", dest="build_submission_bundle", action="store_true")
     parser.add_argument("--no-build-submission-bundle", dest="build_submission_bundle", action="store_false")
     parser.set_defaults(build_submission_bundle=True)
