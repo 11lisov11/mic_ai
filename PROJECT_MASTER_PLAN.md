@@ -1,7 +1,7 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-03-16`
-Repository: `c:\mic_theory`
+Date updated: `2026-03-19`
+Repository: `C:\mic_theory`
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -11,8 +11,14 @@ Repository: `c:\mic_theory`
   - `docs/plan_archive/2026-03-16_plan_refresh/PROJECT_MASTER_EXECUTION_LOG_20260303_cycle2.md`
 
 ## Current factual baseline
+- Stable working git root is now `C:\mic_theory`:
+  - the workspace was consolidated back into `C:\mic_theory`
+  - `C:\mt` and `C:\mic_theory_repo_restored` are now only duplicate/transition roots and must not be treated as canonical
 - Test baseline is green:
   - `pytest -q` -> `117 passed` on `2026-03-16`.
+- Focused restoration tests are green in the restored repo:
+  - `pytest -q tests/test_tune_motor_step27_candidates.py tests/test_scan_step27_checkpoints.py tests/test_scenario_randomization.py tests/test_train_ai_id_ref_external_step27.py tests/test_train_ai_voltage.py`
+  - `15 passed` on `2026-03-18`
 - Stable release path is already closed for the frozen tag:
   - `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/VERIFY_SUBMISSION_CANDIDATE.json`
   - `checklist_ready_for_submission=true`
@@ -43,6 +49,13 @@ Repository: `c:\mic_theory`
   - focused AIR56/AL31/AO2 config-only sweeps were run on current checkpoints
   - short AO2 warm-start pilots were run from the existing checkpoint
   - result: no cheap closure; the red branch did not become green without checkpoint-level retraining/finetuning
+- Restored repo reality on `2026-03-18`:
+  - the restored root no longer contains any live motor checkpoints:
+    - `outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth` -> missing
+    - `outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth` -> missing
+    - `outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth` -> missing
+  - `config/checkpoint_registry.json` still points to those paths, so the registry is structurally present but currently unresolved
+  - only partial AO2 logs/summaries survived from the latest branch (`pilot8b/9/10`); no live `actor_ep*.pth` survived
 
 ## What is still not finished to 100%
 1. A new post-restore frozen release has not been produced.
@@ -150,6 +163,263 @@ Current facts:
     - `outputs/ao2_ft_pilot4_mildrand_20260317/checkpoint_scan_tool_3seed/ao2_checkpoint_scan_summary.json`
     - best external snapshot again remained `actor_ep000.pth` (`4.116% / 9.513% / 2.333 / 13.822%`)
   - Conclusion: the cheap and medium-budget AO2 path is now exhausted; the next real step is a materially different longer AO2 retrain cycle with external checkpoint selection against the full Step27 acceptance objective.
+- AO2 research continuation (`2026-03-18`):
+  - The live workspace under `C:\mic_theory` lost the code tree and retained only `outputs/`; a stable git root was restored separately at `C:\mt` so research can continue in a controlled environment.
+  - The restored git root was behind the latest local research state; the missing trainer/selector patches have now been re-applied in `C:\mt`.
+  - Joint `checkpoint x candidate` search was closed for the surviving `pilot1` AO2 snapshots:
+    - the full `3-seed` pairwise re-check still favored `actor_ep019.pth + base_current`
+    - no alternative candidate/ checkpoint pair beat the known `4.116% / 9.513% / 2.333 / 13.822%` profile under the real `p0.2` objective
+  - A current-penalized AO2 warm-start with external Step27 checkpoint selection materially improved the best live result:
+    - `outputs/ao2_ft_pilot8b_ep019_wcurrent05_extsel_20260317/.../external_step27_selection.json`
+    - selected `actor_ep013.pth`
+    - best metrics moved to `avg_power_saving_pct=5.444%`, `avg_eta_gain_pct=5.566%`, `err_failures=2.333`, `start_stop_power_saving_pct=19.751%`, `worst_current_peak_ratio=1.379`
+    - this improved `power`, `start_stop`, and `peak` versus the old `actor_ep019 + base_current` baseline, but still failed the gate on `err_failures` and current peaks
+  - A full candidate-grid re-check around that improved `actor_ep013.pth` snapshot did not find a better supervisor/id_ref setting:
+    - `outputs/ao2_pilot8b_ep013_candidate_grid_3seed_20260318/ao2_checkpoint_candidate_grid_summary.json`
+    - `base_current` remained the best candidate for `actor_ep013.pth`
+  - Two follow-up AO2 runs uncovered an engineering failure mode in the external selector:
+    - `outputs/ao2_ft_pilot9_ep009_peakbias_extsel_20260318/train.log`
+    - `outputs/ao2_ft_pilot10_ep007_supalign_tracktight_20260318/run.log`
+    - both runs crashed during external checkpoint selection when a snapshot path such as `actor_ep006.pth` disappeared between collection and loading
+    - `tools/scan_step27_checkpoints.py` is now hardened to skip missing snapshots instead of crashing
+  - The partially completed `pilot10` log still showed the best AO2 profile seen so far in this branch before the selector crash:
+    - `avg_power_saving_pct=4.441%`, `avg_eta_gain_pct=4.490%`, `err_failures=2.333`, `start_stop_power_saving_pct=15.155%`, `worst_current_peak_ratio=1.365`
+    - this is better than the previous supervisor-aware control point (`4.110% / 4.345% / 2.333 / 14.844% / 1.396`) on `power`, `start_stop`, and `peak`, but the final selection artifact was not produced because the scan crashed
+  - A second infrastructure issue appeared after the workspace loss:
+    - the latest AO2 checkpoint files for `pilot8/9/10` are no longer present in the surviving `outputs/` tree
+    - only logs and summaries remain for those runs
+    - the next AO2 rerun must therefore rebuild a live checkpoint lineage from a reproducible starting point inside the restored repo/workspace
+  - Trainer capability restoration completed on `2026-03-18`:
+    - `mic_ai/ai/train_ai_id_ref.py` now contains the restored scenario-range handling, training-time supervisor hook, and external Step27 checkpoint promotion path
+    - new regression: `tests/test_train_ai_id_ref_external_step27.py`
+    - external selection now fails explicitly if no evaluated checkpoint exists, instead of accidentally resolving an empty path
+  - AO2 live-lineage rebuild completed in `C:\mt`:
+    - cold-start `AO2` pilots were run because no surviving AO2 `.pth` remained in the restored workspace
+    - the best current live AO2 pair found is:
+      - checkpoint: `outputs/ao2_rebuild_pilot3_stableft_20260318/results_run/.../eval/actor_ep005.pth`
+      - envelope candidate: `jitter_004`
+      - source artifact:
+        - `outputs/ao2_rebuild_pilot3_manualsafe02_localsearch_20260318/ao2_manualsafe02_localsearch_summary.json`
+      - aggregate `3-seed + p0.2` metrics:
+        - `avg_power_saving_pct = +0.0086%`
+        - `avg_eta_gain_pct = +0.1983%`
+        - `err_failures = 1.0`
+        - `start_stop_power_saving_pct = +0.0690%`
+        - `worst_current_peak_ratio = 1.1855`
+    - the AO2 checkpoint was copied back to the standard registry path:
+      - `outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth`
+    - `config/env_research_ao2_32_4_3kw.py` was updated to the restored live AO2 envelope so the standard Step27 pipeline can reproduce the same mean metrics
+  - AO2 canonical verification status after that rebuild:
+    - `python tools/step27_pipeline.py --motors ao2 ... --seed-perturbation --seed-perturb-level 0.2`
+      - `outputs/step27_ao2_rebuild_verify_20260318/step27_final_pi_vs_foc_vs_mic.csv`
+      - reproduced the aggregate AO2 metrics from the local scan
+    - but canonical envelope closure is still red:
+      - `outputs/step27_ao2_rebuild_verify_20260318/acceptance_envelopes/acceptance_envelope_summary.json`
+      - `all_rows_pass = false`
+      - failing scenarios: `speed_step`, `ramp`, `load_step`
+    - scenario-level failure pattern:
+      - `speed_step`: `power_saving_pct_min < -0.5`
+      - `load_step`: `power_saving_pct_min < -0.5` and `eta_gain_pct_min < -0.5`
+      - `ramp`: `eta_gain_pct_min < -0.5` and some rows lose `err_ok`
+    - conclusion:
+      - aggregate Step27 pass is not sufficient; the next AO2 search must optimize the per-scenario envelope directly
+  - Envelope-aligned selector closure completed on `2026-03-18`:
+    - `tools/tune_motor_step27.py` and `tools/scan_step27_checkpoints.py` now compute and rank by canonical per-scenario envelope, not only aggregate means
+    - regression coverage now protects the ranking layer directly:
+      - `tests/test_scan_step27_checkpoints.py`
+      - `tests/test_tune_motor_step27_candidates.py`
+    - canonical re-scan of the current live AO2 pair confirmed that the old aggregate-green result was false-green:
+      - `outputs/ao2_rebuild_pilot3_envelope_selector_scan_20260318/ao2_checkpoint_scan_summary.json`
+      - current live pair `actor_ep005 + current_cfg(jitter_004)` remains red with:
+        - `envelope_fail_count = 9`
+        - `envelope_scenario_fail_count = 3`
+        - `envelope_gap_total = 4.5836`
+      - failing scenarios remain:
+        - `speed_step`
+        - `ramp`
+        - `load_step`
+  - AO2 cheap supervisor-only closure was re-tested under the aligned selector on `2026-03-18`:
+    - bounded DOE round 1:
+      - `outputs/ao2_envelope_targeted_tune_20260318a/ao2_tuning_summary.json`
+    - bounded DOE round 2:
+      - `outputs/ao2_envelope_targeted_tune_round2_20260318a/ao2_tuning_summary.json`
+    - both rounds converged to the same best cheap candidate on the current live checkpoint:
+      - tag: `eff_02`
+      - metrics:
+        - `envelope_fail_count = 8`
+        - `envelope_scenario_fail_count = 3`
+        - `envelope_gap_total = 4.1800`
+        - `avg_power_saving_pct = -0.1404%`
+        - `avg_eta_gain_pct = -0.3233%`
+        - `err_failures = 1.0`
+      - scenario pattern for `eff_02`:
+        - `speed_step` improved from `0/3` to `1/3` pass
+        - `load_step` still fails `3/3`
+        - `ramp` still fails `3/3`, now mainly due to `eta`
+      - conclusion:
+        - cheap supervisor/id_ref tuning on the current live AO2 checkpoint is now scientifically exhausted
+        - the next AO2 step must be checkpoint-level finetuning or retraining with canonical-envelope external selection
+  - AO2 canonical closure was then recovered on `2026-03-18` with a compute-capped warm-start retrain:
+    - the AO2 config was updated to the best live pre-retrain envelope candidate:
+      - `config/env_research_ao2_32_4_3kw.py`
+      - best pre-retrain candidate tag: `ug2_relax_1`
+      - last cheap-tuning artifact before retrain:
+        - `outputs/ao2_targeted_envelope_search12_lastmile_p02_20260318/ao2_tuning_summary.json`
+      - this reduced AO2 to one remaining failing `ramp` row under canonical `p0.2`
+    - a warm-start AO2 retrain was run from the rebuilt `actor_ep005.pth` lineage using:
+      - `mic_ai.ai.train_ai_id_ref`
+      - `--fast`
+      - `--init-checkpoint outputs/ao2_rebuild_pilot3_stableft_20260318/results_run/.../actor_ep005.pth`
+      - external canonical-envelope checkpoint selection on `seed_perturbation=0.2`
+      - output root:
+        - `outputs/ao2_retrain_ug2relax1_warmstart_20260318/`
+    - external selection chose:
+      - checkpoint: `actor_ep028.pth`
+      - artifact:
+        - `outputs/ao2_retrain_ug2relax1_warmstart_20260318/results_run/20260318_094614_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_selection.json`
+      - selected checkpoint metrics:
+        - `avg_power_saving_pct = +0.1395%`
+        - `avg_eta_gain_pct = +0.0508%`
+        - `err_failures = 0.0`
+        - `start_stop_power_saving_pct = +0.2438%`
+        - `worst_current_peak_ratio = 1.2138`
+        - `envelope_all_rows_pass = true`
+    - the selected AO2 checkpoint was promoted back into the standard registry path:
+      - `outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth`
+    - standard AO2 Step27 verification now reproduces the green result:
+      - `outputs/step27_ao2_post_warmstart_verify_20260318/step27_final_pi_vs_foc_vs_mic.csv`
+      - `outputs/step27_ao2_post_warmstart_verify_20260318/acceptance_envelopes/acceptance_envelope_summary.json`
+      - `all_rows_pass = true`
+      - all four AO2 scenarios now pass `3/3`
+  - AO2 canonical closure was re-established again on `2026-03-18` inside the restored `C:\mt` branch after a deeper alignment pass:
+    - the remaining AO2 tail was reduced to one row on `actor_ep010 + micro_tight_01`:
+      - `envelope_fail_count = 1`
+      - `envelope_gap_total = 0.2059`
+      - only failing row: `start_stop power_saving_pct_min = -0.7059`
+    - cheap residual searches were exhausted and documented:
+      - micro local candidate search around `blend_03_softbias`
+      - cross-scan of all surviving `round1` AO2 snapshots with the improved candidate set
+      - short power-biased and dynamic-biased continuation runs
+      - soft-idle supervisor probe with a new `idle_blend` capability
+      - none of those cheap paths closed the final row
+    - a train/eval misalignment was then identified:
+      - current `config/env_research_ao2_32_4_3kw.py` had a dead training supervisor (`update=98`, `dither=0`, `bias_step=0`, `bias_max=0`)
+      - the continuation runs were therefore training under a different supervisor regime than the external canonical selector (`micro_tight_01`)
+    - after aligning the training supervisor with the best eval candidate, a longer warm-start continuation finally produced a passing checkpoint:
+      - run:
+        - `outputs/ao2_envelope_ft_round6_alignedsup_long_20260318a/`
+      - selected checkpoint:
+        - `actor_ep003.pth`
+      - selected canonical metrics:
+        - `avg_power_saving_pct = +0.1037%`
+        - `avg_eta_gain_pct = +0.2483%`
+        - `err_failures = 0.0`
+        - `start_stop_power_saving_pct = +0.2170%`
+        - `envelope_all_rows_pass = true`
+        - `acceptance_pass = true`
+      - source artifact:
+        - `outputs/ao2_envelope_ft_round6_alignedsup_long_20260318a/results_run/20260318_105823_tmp_ao2_train_sup_microtight_20260318_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+    - the selected AO2 checkpoint was promoted into the standard registry path:
+      - `outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth`
+      - backup:
+        - `outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor_before_round6_20260318.pth`
+    - `config/env_research_ao2_32_4_3kw.py` was updated to the promoted live AO2 pair (`micro_tight_01`)
+    - live AO2 Step27 verification via the standard pipeline now confirms row-level green status on the promoted config:
+      - run:
+        - `outputs/step27_ao2_liveverify_round6_20260318a/`
+      - aggregate live metrics (`5` seeds):
+        - `avg_power_saving_pct_mean = +0.1684%`
+        - `avg_eta_gain_pct_mean = +0.3188%`
+        - `err_failures_mean = 0.0`
+        - `start_stop_power_saving_pct_mean = +0.6941%`
+      - direct canonical row check on the promoted live run:
+        - `load_step`: pass
+        - `ramp`: pass
+        - `speed_step`: pass
+        - `start_stop`: pass
+        - `all_rows_pass = true`
+  - Full `3-motor` post-restore rebaseline was attempted immediately after the AO2 promotion:
+    - run:
+      - `outputs/step27_postrestore_rebaseline_round6_20260318a/`
+    - AO2 is no longer the first blocker in W1
+    - AIR56 is still red on the current live config even before reaching AL31:
+      - seed-level partial results from the aborted rebaseline:
+        - `seed101`: `mic_avg_power=-0.038%`, `mic_start_stop=-1.908%`
+        - `seed202`: `mic_avg_power=-0.225%`, `mic_start_stop=-2.266%`
+        - `seed303`: `mic_avg_power=+0.001%`, `mic_start_stop=-2.114%`
+        - `seed404`: `mic_avg_power=-0.127%`, `mic_start_stop=-1.800%`
+        - `seed505`: `mic_avg_power=-0.122%`, `mic_start_stop=-1.521%`
+    - the run then stopped on infrastructure, not on AO2:
+      - `AL31` has no live checkpoint in the standard registry path
+      - `tools/step27_pipeline.py` now fails at load time with:
+        - `FileNotFoundError: Checkpoint not found in resolved candidates ... env_research_al31_4_06kw`
+    - updated W1 blocker order after AO2 closure:
+      - `1.` restore or rebuild live `AL31` checkpoint lineage
+      - `2.` close `AIR56` canonical envelope on the current live branch
+      - `3.` rerun full `3-motor` Step27, Step28, verify/freeze/promote
+  - AL31 lineage was restored on `2026-03-18` via direct cold-start rebuild:
+    - run:
+      - `outputs/al31_rebuild_round1_20260318a/`
+    - external selection chose:
+      - `actor_ep005.pth`
+    - selected metrics:
+      - `envelope_all_rows_pass = true`
+      - `avg_power_saving_pct = +1.4993%`
+      - `avg_eta_gain_pct = -0.0029%`
+      - `err_failures = 0.0`
+      - `start_stop_power_saving_pct = +5.7969%`
+    - the restored AL31 checkpoint was promoted into:
+      - `outputs/ai_id_ref/checkpoints/env_research_al31_4_06kw/best_actor.pth`
+    - conclusion:
+      - AL31 is no longer missing and is row-level green; only a microscopic aggregate eta tail remains if strict aggregate `eta>=0` is enforced
+  - Full `3-motor` post-restore rebaseline after `AO2+AL31` restoration:
+    - run:
+      - `outputs/step27_postrestore_rebaseline_round6b_20260318a/`
+    - canonical row status:
+      - `AIR56`: red
+      - `AL31`: green
+      - `AO2`: green
+    - direct envelope check on the run:
+      - `all_motors_all_rows_pass = false`
+      - the only remaining red motor is `AIR56`
+  - AIR56 closure status after the integrated rebaseline:
+    - pipeline-internal AIR56 tuning was rerun on the same branch:
+      - `outputs/step27_postrestore_with_air56_tune_round6c_20260318a/`
+    - selected candidate remained:
+      - `manual_air56_step27_fix_01`
+    - this candidate fixes the energy/start-stop side but still fails canonical rows on tracking:
+      - `load_step`: `err_ok_all = false`
+      - `ramp`: `err_ok_all = false`
+      - `start_stop`: `err_ok_all = false`
+    - a follow-up envelope-aware aggressive/no-idle AIR56 candidate sweep was also run:
+      - `outputs/air56_tracking_search_p02_20260318a/`
+    - result:
+      - every tested AIR56 candidate still had `err_failures = 3.0`
+      - cheap supervisor/id_ref search is now exhausted for AIR56 as well
+  - AIR56 registry/provenance gap found on `2026-03-19`:
+    - the live registry checkpoint
+      - `outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth`
+      - does **not** match the externally selected AIR56 checkpoint from the rebuild run
+      - `outputs/air56_rebuild_basecurrent_20260318/results_run/20260318_102400_env_research_air56_025kw_ai_id_ref/best_actor_step27.pth`
+    - the AIR56 rebuild run had already found a materially better checkpoint under the canonical selector:
+      - `actor_ep004.pth` / `best_actor_step27.pth`
+      - `outputs/air56_rebuild_basecurrent_20260318/results_run/20260318_102400_env_research_air56_025kw_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+      - on `3` seeds with canonical envelope and `base_current`, it reduced AIR56 down to one remaining failing row:
+        - `envelope_fail_count = 1`
+        - only `speed_step` remained red
+    - root cause:
+      - `mic_ai/ai/train_ai_id_ref.py` promoted the externally selected checkpoint only into the per-run artifact `best_actor_step27.pth`
+      - the standard registry path `outputs/ai_id_ref/checkpoints/.../best_actor.pth` remained on the old trainer-best checkpoint
+    - fix:
+      - trainer now copies the externally selected Step27 checkpoint into the standard registry best path after selection
+      - regression:
+        - `tests/test_train_ai_id_ref_external_step27.py`
+    - implication:
+      - before any new AIR56 retrain, the next cheap step is to re-evaluate `best_actor_step27.pth` on the full `5`-seed envelope and, if needed, run only a narrow candidate bridge search around it
+    - updated W1 blocker order:
+      - `1.` checkpoint-level AIR56 retrain / policy update focused on tracking closure
+      - `2.` rerun full `3-motor` Step27/acceptance with the promoted AIR56 checkpoint
+      - `3.` rebuild Step28, verify/freeze/promote the new post-restore tag
 - Passport/package update (`2026-03-17`):
   - The post-restore passport gap was traced to the reproduce/package path, not to missing motor configs:
     - `tools/reproduce_ieee_step28.py` only built passport artifacts when `--build-passport` was requested
@@ -167,13 +437,24 @@ Work:
 - [x] Add a reusable external Step27 checkpoint-scan tool so actor snapshots can be selected by the real acceptance objective.
 - [x] Run AO2 low-budget checkpoint selection experiments (`new_best`, `new_last`, selected `actor_epXXX`, guardrail sweep, cheap current-penalty finetune).
 - [x] Fix the Step28 reproduce/package pipeline so passport artifacts are built and packaged by default.
-- [ ] Run explicit checkpoint-level finetuning/retraining for the failing post-restore motors (AO2 first, then AL31/AIR56 if still needed).
-- [ ] For AO2, couple the next finetune/retrain run with external snapshot selection on the real Step27 seed set before promoting any checkpoint.
+- [x] Run explicit checkpoint-level finetuning/retraining for AO2 with external canonical-envelope snapshot selection.
+- [x] For AO2, couple finetune/retrain with external snapshot selection on the real Step27 seed set before promoting any checkpoint.
+- [x] Restore the missing trainer/selector patches into the stable git root (`C:\mt`) so the recovered workspace matches the latest local research capabilities.
+- [x] Harden `tools/scan_step27_checkpoints.py` so external selection skips missing checkpoints instead of crashing mid-scan.
+- [x] Re-establish a live AO2 checkpoint lineage in the restored workspace, then rerun the next supervisor-aware/current-aware AO2 experiment from that reproducible starting point.
+- [x] Decide the cheapest scientifically valid AO2 rebuild path now that no live checkpoint exists in the restored repo:
+  - direct `train_ai_id_ref.py` cold-start rebuild was the only reproducible path in `C:\mt`
+  - `train_3motors_pipeline.py` was not used because no reusable manifest/checkpoint lineage survived
+- [x] Align `tools/scan_step27_checkpoints.py` / external training selection with canonical per-scenario envelope criteria instead of aggregate-only means.
+- [x] Run bounded AO2 supervisor-only searches against the envelope-aligned selector on the rebuilt live checkpoint:
+  - `outputs/ao2_envelope_targeted_tune_20260318a/`
+  - `outputs/ao2_envelope_targeted_tune_round2_20260318a/`
+- [x] Run the next AO2 checkpoint-level finetune/retrain against the envelope-aligned selector and promote only the externally selected canonical-envelope checkpoint.
 - [ ] Re-run baseline Step27 for the selected post-restore checkpoints.
 - [ ] Re-run acceptance envelopes and identify scenario-level failures by motor:
   - AIR56: `load_step`, `speed_step`
   - AL31: `load_step`, `speed_step`, `start_stop`
-  - AO2: `load_step`, `ramp`, `speed_step`, `start_stop`
+- [x] Re-run AO2 baseline Step27 plus canonical acceptance after the promoted warm-start checkpoint.
 - [ ] Rebuild Step28 from the corrected Step27 run.
 - [ ] Re-run verify/freeze/promote for a new post-restore frozen tag.
 
@@ -330,9 +611,9 @@ This is the strict order for finishing the project without thrashing.
 9. Update this file with final statuses.
 
 ## Immediate next actions
-- [ ] Start with post-restore envelope closure because it is the largest remaining red branch.
-- [ ] In parallel, prepare the onboarding identification-first reference run.
-- [ ] After both are green, refactor `tools/train_any_motor_pipeline.py` and `tools/step27_pipeline.py`.
+- [ ] Finish restoring the latest local W1 trainer/selector capabilities into the stable git root at `C:\mt`.
+- [ ] Fix the external Step27 selector crash-path on missing checkpoints and re-run the interrupted AO2 branch from a reproducible live checkpoint lineage.
+- [ ] After the AO2 branch is back to a stable reproducible state, resume post-restore envelope closure and only then return to onboarding/refactor work.
 
 ## Update rule
 - Only this file may serve as the active root master plan.

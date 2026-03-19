@@ -30,6 +30,7 @@ from mic_ai.ai.ai_voltage_config import (
 )
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
 from mic_ai.ai.foc_baseline import save_foc_baseline
+from mic_ai.ai.scenario_randomization import wrap_scenario_with_ranges
 from mic_ai.core.env import make_env_from_config
 from mic_ai.ident.apply import load_and_apply_ident
 from mic_ai.tools.ai_voltage_report import build_ai_voltage_report, print_summary
@@ -478,6 +479,7 @@ def train_ai_voltage(
         env.cfg.i_soft_limit = i_soft_start + (i_soft_final - i_soft_start) * eff_scale
         env.cfg.ai_voltage_speed_tol = speed_tol_start + (speed_tol_final - speed_tol_start) * eff_scale
 
+        scenario_name = ""
         if scenarios:
             if scenario_sample == "cycle":
                 scenario_name = scenarios[ep % len(scenarios)]
@@ -486,19 +488,30 @@ def train_ai_voltage(
             env.set_scenario(scenario_name)
             env.cfg.override_omega_ref = False
             env.cfg.override_load_torque = False
-        else:
-            if omega_ref_range is not None:
-                env.cfg.override_omega_ref = False
-                omega_ref_val = float(rng.uniform(omega_ref_range[0], omega_ref_range[1]))
-                env.cfg.omega_ref = omega_ref_val
-                env.cfg.omega_ref_max = max(env.cfg.omega_ref_max, abs(omega_ref_val), 1e-6)
-                env.base_env.omega_ref_func = lambda _t, ref=omega_ref_val: ref
-            if load_torque_range is not None:
-                env.cfg.override_load_torque = False
-                load_val = float(rng.uniform(load_torque_range[0], load_torque_range[1]))
-                env.base_env.load_torque_func = lambda _t, load=load_val: load
 
         obs = env.reset()
+        scenario_meta = {
+            "omega_base_peak": float(getattr(env.cfg, "omega_ref", 0.0)),
+            "load_base_peak": float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)),
+            "omega_scale": 1.0,
+            "load_scale": 1.0,
+            "omega_peak": float(getattr(env.cfg, "omega_ref", 0.0)),
+            "load_peak": float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)),
+        }
+        if scenarios or omega_ref_range is not None or load_torque_range is not None:
+            sim_cfg = getattr(getattr(env.base_env, "env", None), "sim", None)
+            t_end = float(getattr(sim_cfg, "t_end", 0.0) or 0.0)
+            wrapped_omega, wrapped_load, scenario_meta = wrap_scenario_with_ranges(
+                getattr(env.base_env, "omega_ref_func", lambda _t: float(getattr(env.cfg, "omega_ref", 0.0))),
+                getattr(env.base_env, "load_torque_func", lambda _t: 0.0),
+                t_end=t_end,
+                rng=rng,
+                omega_ref_range=omega_ref_range,
+                load_torque_range=load_torque_range,
+            )
+            env.base_env.omega_ref_func = wrapped_omega
+            env.base_env.load_torque_func = wrapped_load
+        scenario_meta["scenario"] = scenario_name
         done = False
         total_reward = 0.0
         step_counter = 0
@@ -561,6 +574,11 @@ def train_ai_voltage(
             "omega_ref_trace": omega_ref_series,
             "omega_ref": float(omega_ref_series[0]) if omega_ref_series else float(env.cfg.omega_ref),
             "load_torque": float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)),
+            "scenario": scenario_name,
+            "scenario_omega_scale": float(scenario_meta.get("omega_scale", 1.0)),
+            "scenario_load_scale": float(scenario_meta.get("load_scale", 1.0)),
+            "scenario_omega_peak": float(scenario_meta.get("omega_peak", env.cfg.omega_ref)),
+            "scenario_load_peak": float(scenario_meta.get("load_peak", float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)))),
             "exploration_sigma": sigma,
             "done_reason": str(last_info.get("done_reason", "")) if last_info else "",
         }

@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+DEFAULT_ACCEPTANCE_ENVELOPES = ROOT / "config" / "acceptance_envelopes_3motors.json"
+
 from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisorConfig  # noqa: E402
 from tools.step27_pipeline import (  # noqa: E402
     MOTOR_REGISTRY,
@@ -116,6 +118,7 @@ def _score(
     max_start_stop: float,
     max_peak_ratio: float,
     max_mean_ratio: float,
+    require_envelope_pass: bool = False,
 ) -> float:
     power = float(metrics.get("avg_power_saving_pct", 0.0))
     eta = float(metrics.get("avg_eta_gain_pct", 0.0))
@@ -123,6 +126,11 @@ def _score(
     start_stop = float(metrics.get("start_stop_power_saving_pct", 0.0))
     peak_ratio = float(metrics.get("worst_current_peak_ratio", 1.0))
     mean_ratio = float(metrics.get("worst_current_mean_ratio", 1.0))
+    envelope_fail_count = float(metrics.get("envelope_fail_count", 0.0))
+    envelope_scenario_fail_count = float(metrics.get("envelope_scenario_fail_count", 0.0))
+    envelope_gap_total = float(metrics.get("envelope_gap_total", 0.0))
+    envelope_err_fail_count = float(metrics.get("envelope_err_fail_count", 0.0))
+    envelope_all_rows_pass = bool(metrics.get("envelope_all_rows_pass", False))
 
     penalty = 0.0
     if power < min_power:
@@ -139,6 +147,11 @@ def _score(
         penalty += 4.0 * (start_stop - max_start_stop)
     penalty += 5.0 * max(0.0, peak_ratio - max_peak_ratio)
     penalty += 3.0 * max(0.0, mean_ratio - max_mean_ratio)
+    if require_envelope_pass and not envelope_all_rows_pass:
+        penalty += 100000.0 * max(1.0, envelope_fail_count)
+        penalty += 1000.0 * envelope_scenario_fail_count
+        penalty += 100.0 * envelope_gap_total
+        penalty += 100.0 * envelope_err_fail_count
     return float(penalty)
 
 
@@ -153,8 +166,9 @@ def _pass(
     max_start_stop: float,
     max_peak_ratio: float,
     max_mean_ratio: float,
+    require_envelope_pass: bool = False,
 ) -> bool:
-    return bool(
+    aggregate_pass = bool(
         float(metrics.get("avg_power_saving_pct", 0.0)) >= min_power
         and float(metrics.get("avg_eta_gain_pct", 0.0)) >= min_eta
         and float(metrics.get("avg_eta_gain_pct", 0.0)) <= max_eta
@@ -164,6 +178,173 @@ def _pass(
         and float(metrics.get("worst_current_peak_ratio", 0.0)) <= max_peak_ratio
         and float(metrics.get("worst_current_mean_ratio", 0.0)) <= max_mean_ratio
     )
+    if require_envelope_pass:
+        return bool(aggregate_pass and bool(metrics.get("envelope_all_rows_pass", False)))
+    return aggregate_pass
+
+
+def _envelope_rules_for_row(
+    payload: Dict[str, object],
+    *,
+    motor_key: str,
+    scenario: str,
+) -> Dict[str, object]:
+    common = dict(payload.get("common", {}))
+    motors = dict(payload.get("motors", {}))
+    motor_cfg = dict(motors.get(str(motor_key), {}))
+    rules = dict(common.get(str(scenario), {}))
+    rules.update(dict(motor_cfg.get(str(scenario), {})))
+    return rules
+
+
+def _envelope_gap_for_check(*, metric: str, value: float, limit: float, passed: bool) -> float:
+    if passed:
+        return 0.0
+    if metric in {"power_saving_pct", "eta_gain_pct"}:
+        return float(max(0.0, limit - value))
+    if metric in {"current_peak_ratio", "current_mean_ratio", "mic_mean_err"}:
+        return float(max(0.0, value - limit))
+    if metric == "err_ok":
+        return 1.0
+    return 0.0
+
+
+def _evaluate_envelope_rows(
+    *,
+    motor_key: str,
+    rows_by_seed: List[tuple[int, List[Dict[str, object]]]],
+    envelopes_path: Path = DEFAULT_ACCEPTANCE_ENVELOPES,
+) -> Dict[str, object]:
+    path = Path(envelopes_path).resolve()
+    if not path.exists():
+        return {
+            "envelope_all_rows_pass": False,
+            "envelope_fail_count": 0,
+            "envelope_scenario_fail_count": 0,
+            "envelope_gap_total": 0.0,
+            "envelope_power_gap": 0.0,
+            "envelope_eta_gap": 0.0,
+            "envelope_peak_gap": 0.0,
+            "envelope_mean_gap": 0.0,
+            "envelope_err_fail_count": 0,
+            "envelope_summary_rows": [],
+        }
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Unsupported envelopes payload in {path}")
+
+    power_gap = 0.0
+    eta_gap = 0.0
+    peak_gap = 0.0
+    mean_gap = 0.0
+    err_fail_count = 0
+    fail_count = 0
+    per_scenario: Dict[str, Dict[str, object]] = {}
+
+    for seed, rows in rows_by_seed:
+        for row in rows:
+            scenario = str(row.get("scenario", ""))
+            rules = _envelope_rules_for_row(payload, motor_key=str(motor_key), scenario=scenario)
+            row_pass = True
+            checks = []
+
+            def add_min(metric: str, limit_key: str) -> None:
+                nonlocal row_pass, power_gap, eta_gap
+                if limit_key not in rules:
+                    return
+                value = float(row.get(metric, 0.0))
+                limit = float(rules[limit_key])
+                passed = bool(value >= limit)
+                checks.append((metric, value, limit, passed))
+                row_pass = row_pass and passed
+                gap = _envelope_gap_for_check(metric=metric, value=value, limit=limit, passed=passed)
+                if metric == "power_saving_pct":
+                    power_gap += gap
+                elif metric == "eta_gain_pct":
+                    eta_gap += gap
+
+            def add_max(metric: str, limit_key: str) -> None:
+                nonlocal row_pass, peak_gap, mean_gap
+                if limit_key not in rules:
+                    return
+                value = float(row.get(metric, 0.0))
+                limit = float(rules[limit_key])
+                passed = bool(value <= limit)
+                checks.append((metric, value, limit, passed))
+                row_pass = row_pass and passed
+                gap = _envelope_gap_for_check(metric=metric, value=value, limit=limit, passed=passed)
+                if metric == "current_peak_ratio":
+                    peak_gap += gap
+                elif metric == "current_mean_ratio":
+                    mean_gap += gap
+
+            add_min("power_saving_pct", "power_saving_pct_min")
+            add_min("eta_gain_pct", "eta_gain_pct_min")
+            add_max("current_peak_ratio", "current_peak_ratio_max")
+            add_max("current_mean_ratio", "current_mean_ratio_max")
+            if "mic_mean_err_max" in rules:
+                add_max("mic_mean_err", "mic_mean_err_max")
+            if "err_ok_required" in rules:
+                err_ok = bool(row.get("err_ok", False))
+                required = bool(rules.get("err_ok_required", False))
+                passed = bool(err_ok or (not required))
+                checks.append(("err_ok", float(err_ok), float(required), passed))
+                row_pass = row_pass and passed
+                if not passed:
+                    err_fail_count += 1
+
+            if not row_pass:
+                fail_count += 1
+
+            item = per_scenario.setdefault(
+                scenario,
+                {
+                    "motor": str(motor_key),
+                    "scenario": scenario,
+                    "samples": 0,
+                    "pass_count": 0,
+                    "power_saving_pct_min": float("inf"),
+                    "eta_gain_pct_min": float("inf"),
+                    "current_peak_ratio_max": 0.0,
+                    "current_mean_ratio_max": 0.0,
+                },
+            )
+            item["samples"] = int(item["samples"]) + 1
+            item["pass_count"] = int(item["pass_count"]) + int(row_pass)
+            item["power_saving_pct_min"] = min(float(item["power_saving_pct_min"]), float(row.get("power_saving_pct", 0.0)))
+            item["eta_gain_pct_min"] = min(float(item["eta_gain_pct_min"]), float(row.get("eta_gain_pct", 0.0)))
+            item["current_peak_ratio_max"] = max(float(item["current_peak_ratio_max"]), float(row.get("current_peak_ratio", 0.0)))
+            item["current_mean_ratio_max"] = max(float(item["current_mean_ratio_max"]), float(row.get("current_mean_ratio", 0.0)))
+
+    summary_rows: List[Dict[str, object]] = []
+    scenario_fail_count = 0
+    for _, item in sorted(per_scenario.items(), key=lambda kv: str(kv[0])):
+        samples = int(item["samples"])
+        pass_count = int(item["pass_count"])
+        pass_rate = float(pass_count / max(samples, 1))
+        if pass_count < samples:
+            scenario_fail_count += 1
+        summary_rows.append(
+            {
+                **item,
+                "pass_rate": pass_rate,
+            }
+        )
+
+    gap_total = float(power_gap + eta_gap + peak_gap + mean_gap + float(err_fail_count))
+    return {
+        "envelope_all_rows_pass": bool(fail_count == 0 and scenario_fail_count == 0),
+        "envelope_fail_count": int(fail_count),
+        "envelope_scenario_fail_count": int(scenario_fail_count),
+        "envelope_gap_total": gap_total,
+        "envelope_power_gap": float(power_gap),
+        "envelope_eta_gap": float(eta_gap),
+        "envelope_peak_gap": float(peak_gap),
+        "envelope_mean_gap": float(mean_gap),
+        "envelope_err_fail_count": int(err_fail_count),
+        "envelope_summary_rows": summary_rows,
+    }
 
 
 def _eval_candidate(
@@ -181,6 +362,7 @@ def _eval_candidate(
     foc_feedback_mode: str,
     mic_feedback_mode: str,
     seed_perturbation: SeedPerturbationSettings,
+    acceptance_envelopes_path: Path = DEFAULT_ACCEPTANCE_ENVELOPES,
 ) -> Dict[str, float]:
     sup_cfg = _candidate_to_supervisor(candidate)
     id_ref = _id_ref_eval_params(env_cfg)
@@ -192,6 +374,7 @@ def _eval_candidate(
     sensorless = _sensorless_params(env_cfg)
 
     per_seed: List[Dict[str, float]] = []
+    rows_by_seed: List[tuple[int, List[Dict[str, object]]]] = []
     for seed in seeds:
         rows = _simulate_rows(
             env_cfg=env_cfg,
@@ -213,6 +396,7 @@ def _eval_candidate(
             mic_mode="ai",
             mic_rule_params=None,
         )
+        rows_by_seed.append((int(seed), rows))
         per_seed.append(_aggregate_rows(rows))
 
     out = {
@@ -227,6 +411,13 @@ def _eval_candidate(
         "err_failures_max_seed": max(float(x["err_failures"]) for x in per_seed),
         "start_stop_power_saving_pct_min_seed": min(float(x["start_stop_power_saving_pct"]) for x in per_seed),
     }
+    out.update(
+        _evaluate_envelope_rows(
+            motor_key=str(motor_key),
+            rows_by_seed=rows_by_seed,
+            envelopes_path=Path(acceptance_envelopes_path).resolve(),
+        )
+    )
     return out
 
 
@@ -264,6 +455,8 @@ def main() -> None:
     parser.add_argument("--max-start-stop-saving-pct", type=float, default=20.0)
     parser.add_argument("--max-worst-current-peak-ratio", type=float, default=1.30)
     parser.add_argument("--max-worst-current-mean-ratio", type=float, default=1.20)
+    parser.add_argument("--use-envelope-acceptance", action="store_true")
+    parser.add_argument("--acceptance-envelopes", default=str(DEFAULT_ACCEPTANCE_ENVELOPES))
     parser.set_defaults(use_total_power=True)
     parser.set_defaults(foc_disable_lut=True)
     args = parser.parse_args()
@@ -353,6 +546,7 @@ def main() -> None:
             foc_feedback_mode=str(args.foc_feedback_mode),
             mic_feedback_mode=str(args.mic_feedback_mode),
             seed_perturbation=seed_perturb,
+            acceptance_envelopes_path=Path(args.acceptance_envelopes),
         )
         row = {**cand, **metrics}
         row["score"] = _score(
@@ -365,6 +559,7 @@ def main() -> None:
             max_start_stop=float(args.max_start_stop_saving_pct),
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
+            require_envelope_pass=bool(args.use_envelope_acceptance),
         )
         row["acceptance_pass"] = _pass(
             metrics,
@@ -376,6 +571,7 @@ def main() -> None:
             max_start_stop=float(args.max_start_stop_saving_pct),
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
+            require_envelope_pass=bool(args.use_envelope_acceptance),
         )
         stage1_rows.append(row)
         print(
@@ -403,6 +599,7 @@ def main() -> None:
             foc_feedback_mode=str(args.foc_feedback_mode),
             mic_feedback_mode=str(args.mic_feedback_mode),
             seed_perturbation=seed_perturb,
+            acceptance_envelopes_path=Path(args.acceptance_envelopes),
         )
         row = {**cand, **metrics}
         row["score"] = _score(
@@ -415,6 +612,7 @@ def main() -> None:
             max_start_stop=float(args.max_start_stop_saving_pct),
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
+            require_envelope_pass=bool(args.use_envelope_acceptance),
         )
         row["acceptance_pass"] = _pass(
             metrics,
@@ -426,6 +624,7 @@ def main() -> None:
             max_start_stop=float(args.max_start_stop_saving_pct),
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
+            require_envelope_pass=bool(args.use_envelope_acceptance),
         )
         stage2_rows.append(row)
         print(
@@ -463,6 +662,8 @@ def main() -> None:
             "max_worst_current_peak_ratio": float(args.max_worst_current_peak_ratio),
             "max_worst_current_mean_ratio": float(args.max_worst_current_mean_ratio),
         },
+        "use_envelope_acceptance": bool(args.use_envelope_acceptance),
+        "acceptance_envelopes": str(Path(args.acceptance_envelopes).resolve()),
         "sample_profile": str(args.sample_profile),
         "best": best,
         "top_stage2": stage2_rows,

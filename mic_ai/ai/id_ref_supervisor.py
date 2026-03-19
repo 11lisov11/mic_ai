@@ -23,6 +23,7 @@ class AiIdRefSupervisorConfig:
     idle_enable: bool = False
     idle_omega_pu: float = 0.05
     idle_action: float = -1.0
+    idle_blend: float = 1.0
     idle_exit_boost_steps: int = 0
     idle_exit_action: float = 1.0
     idle_bias_decay: float = 0.95
@@ -81,7 +82,10 @@ class AiIdRefSupervisor:
             self.obj_plus = None
             self.obj_minus = None
             self.phase = 1.0
-            return self._clip_action(min(action, float(self.cfg.idle_action))), False
+            idle_target = min(action, float(self.cfg.idle_action))
+            idle_blend = float(np.clip(self.cfg.idle_blend, 0.0, 1.0))
+            idle_action = action + idle_blend * (idle_target - action)
+            return self._clip_action(idle_action), False
 
         if self._idle_prev:
             self._idle_prev = False

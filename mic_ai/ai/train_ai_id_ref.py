@@ -23,6 +23,8 @@ if str(ROOT) not in sys.path:
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
 from mic_ai.ai.ai_env import AiEnvConfig, MicAiAIEnv
 from mic_ai.ai.ai_voltage_config import get_curriculum_config, load_ai_voltage_config
+from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisor, AiIdRefSupervisorConfig
+from mic_ai.ai.scenario_randomization import wrap_scenario_with_ranges
 from mic_ai.core.env import make_env_from_config
 from simulation.gym_env import InductionMotorEnv
 
@@ -67,6 +69,10 @@ RESULTS_ROOT = Path(os.environ.get("MIC_AI_RESULTS_ROOT", "results_run"))
 def _parse_scenarios(text: str) -> List[str]:
     names = [item.strip() for item in str(text).split(",") if item.strip()]
     return names
+
+
+def _parse_int_csv(text: str) -> List[int]:
+    return [int(item.strip()) for item in str(text).split(",") if item.strip()]
 
 
 def _parse_range(text: str | None) -> tuple[float, float] | None:
@@ -177,6 +183,155 @@ def _run_eval(
     if id_ref_gate_speed_tol_rel is not None:
         cmd += ["--id-ref-gate-speed-tol-rel", str(id_ref_gate_speed_tol_rel)]
     subprocess.run(cmd, check=False)
+
+
+def _train_supervisor_from_env(env_cfg: object) -> AiIdRefSupervisorConfig | None:
+    if not bool(getattr(env_cfg, "ai_eval_supervisor_enabled", False)):
+        return None
+    cfg = AiIdRefSupervisorConfig(
+        enabled=True,
+        speed_tol_rel=float(getattr(env_cfg, "ai_eval_sup_speed_tol_rel", 0.05)),
+        speed_tol_abs=float(getattr(env_cfg, "ai_eval_sup_speed_tol_abs", 0.0)),
+        omega_min_pu=float(getattr(env_cfg, "ai_eval_sup_omega_min", 0.1)),
+        update_steps=int(getattr(env_cfg, "ai_eval_sup_update", 20)),
+        dither_amp=float(getattr(env_cfg, "ai_eval_sup_dither", 0.04)),
+        bias_step=float(getattr(env_cfg, "ai_eval_sup_step", 0.01)),
+        bias_max=float(getattr(env_cfg, "ai_eval_sup_bias_max", 0.25)),
+        objective=str(getattr(env_cfg, "ai_eval_sup_objective", "specific_power")),
+        shaft_eps=float(getattr(env_cfg, "ai_eval_sup_shaft_eps", 10.0)),
+        reset_decay=float(getattr(env_cfg, "ai_eval_sup_reset_decay", 0.98)),
+        objective_clip=getattr(env_cfg, "ai_eval_sup_objective_clip", 10.0),
+        idle_enable=bool(getattr(env_cfg, "ai_eval_sup_idle_enable", False)),
+        idle_omega_pu=float(getattr(env_cfg, "ai_eval_sup_idle_omega_min", 0.05)),
+        idle_action=float(getattr(env_cfg, "ai_eval_sup_idle_action", -1.0)),
+        idle_blend=float(getattr(env_cfg, "ai_eval_sup_idle_blend", 1.0)),
+        idle_exit_boost_steps=int(getattr(env_cfg, "ai_eval_sup_idle_exit_boost", 0)),
+        idle_exit_action=float(getattr(env_cfg, "ai_eval_sup_idle_exit_action", 1.0)),
+        idle_bias_decay=float(getattr(env_cfg, "ai_eval_sup_idle_bias_decay", 0.95)),
+    )
+    if cfg.objective_clip is not None:
+        cfg.objective_clip = float(cfg.objective_clip)
+    return cfg
+
+
+def _apply_train_supervisor_action(
+    action: object,
+    *,
+    obs: Dict[str, float],
+    supervisor: AiIdRefSupervisor | None,
+) -> tuple[object, bool]:
+    if supervisor is None:
+        return action, False
+    action_arr = np.asarray(action, dtype=np.float32).reshape(-1)
+    if action_arr.size == 0:
+        return action, False
+    action_adj = action_arr.copy()
+    action0, gate_open = supervisor.adjust_action(
+        float(action_adj[0]),
+        omega_ref=float(obs.get("omega_ref", 0.0)),
+        omega=float(obs.get("omega", 0.0)),
+    )
+    action_adj[0] = np.float32(action0)
+    return action_adj, bool(gate_open)
+
+
+def _run_external_step27_selection(
+    *,
+    run_dir: Path,
+    motor: str,
+    candidate_json: str,
+    candidate_index: int,
+    candidate_tag: str,
+    seeds: str,
+    scenarios: str,
+    seed_perturbation: bool,
+    seed_perturb_level: float,
+    use_envelope_acceptance: bool,
+    acceptance_envelopes: str | None,
+    top_k: int,
+) -> Dict[str, object]:
+    from tools.scan_step27_checkpoints import scan_checkpoints
+
+    scan_out_dir = (run_dir / "external_step27_scan").resolve()
+    acceptance_envelopes_path = None if acceptance_envelopes is None else Path(str(acceptance_envelopes)).expanduser().resolve()
+    summary = scan_checkpoints(
+        motor=str(motor),
+        checkpoint_glob=str((run_dir / "eval").resolve()),
+        candidate_json=str(candidate_json),
+        candidate_index=int(candidate_index),
+        candidate_tag=str(candidate_tag),
+        seeds=_parse_int_csv(seeds),
+        scenarios=_parse_scenarios(scenarios),
+        out_dir=scan_out_dir,
+        seed_perturbation=bool(seed_perturbation),
+        seed_perturb_level=float(seed_perturb_level),
+        use_envelope_acceptance=bool(use_envelope_acceptance),
+        acceptance_envelopes=acceptance_envelopes_path,
+        top_k=int(top_k),
+    )
+    best = dict(summary.get("best") or {})
+    selected_raw = str(best.get("checkpoint", "")).strip()
+    if not selected_raw:
+        raise ValueError(f"External Step27 scan produced no evaluated checkpoints for motor={motor}")
+    selected_path = Path(selected_raw).resolve()
+    if not selected_path.exists():
+        raise FileNotFoundError(f"External Step27 selected checkpoint not found: {selected_path}")
+
+    promoted_path = (run_dir / "best_actor_step27.pth").resolve()
+    shutil.copyfile(selected_path, promoted_path)
+    payload: Dict[str, object] = {
+        "enabled": True,
+        "motor": str(motor),
+        "scan_summary_json": str((scan_out_dir / f"{motor}_checkpoint_scan_summary.json").resolve()),
+        "scan_rows_json": str((scan_out_dir / f"{motor}_checkpoint_scan.json").resolve()),
+        "selected_checkpoint": str(selected_path),
+        "selected_checkpoint_name": str(best.get("checkpoint_name", selected_path.name)),
+        "selected_rank": int(best.get("rank", 0)),
+        "selected_score": float(best.get("score", float("inf"))),
+        "acceptance_pass": bool(best.get("acceptance_pass", False)),
+        "promoted_checkpoint": str(promoted_path),
+        "candidate_json": str(Path(candidate_json).resolve()),
+        "candidate_index": int(candidate_index),
+        "candidate_tag": str(candidate_tag),
+        "seeds": _parse_int_csv(seeds),
+        "scenarios": _parse_scenarios(scenarios),
+        "seed_perturbation": bool(seed_perturbation),
+        "seed_perturb_level": float(seed_perturb_level),
+        "use_envelope_acceptance": bool(use_envelope_acceptance),
+        "acceptance_envelopes": None if acceptance_envelopes_path is None else str(acceptance_envelopes_path),
+        "best_metrics": best,
+    }
+    (run_dir / "external_step27_selection.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return payload
+
+
+def _promote_external_step27_checkpoint(
+    *,
+    ckpt_dir: Path,
+    external_step27_selection: Dict[str, object] | None,
+) -> Dict[str, object] | None:
+    if external_step27_selection is None:
+        return None
+
+    promoted_path = Path(str(external_step27_selection["promoted_checkpoint"])).expanduser().resolve()
+    if not promoted_path.exists():
+        raise FileNotFoundError(f"Selected Step27 checkpoint does not exist: {promoted_path}")
+
+    ckpt_dir = ckpt_dir.expanduser().resolve()
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    registry_best = (ckpt_dir / "best_actor.pth").resolve()
+    train_best = (ckpt_dir / "best_actor_train_internal.pth").resolve()
+
+    if registry_best.exists() and registry_best != promoted_path:
+        shutil.copyfile(registry_best, train_best)
+
+    shutil.copyfile(promoted_path, registry_best)
+
+    payload = dict(external_step27_selection)
+    payload["registry_best_checkpoint"] = str(registry_best)
+    if train_best.exists():
+        payload["train_internal_best_checkpoint"] = str(train_best)
+    return payload
 
 
 def build_env(
@@ -309,7 +464,10 @@ def build_env(
     else:
         base_env.load_torque_func = lambda _t, load=load_torque: float(load)
 
-    return MicAiAIEnv(base_env, ai_cfg, curiosity=None, world_model=None, world_input_keys=feature_keys, world_target_keys=["omega_norm"])
+    env = MicAiAIEnv(base_env, ai_cfg, curiosity=None, world_model=None, world_input_keys=feature_keys, world_target_keys=["omega_norm"])
+    setattr(env, "_train_env_cfg", env_cfg)
+    setattr(env, "_train_env_config_path", str(env_config_path))
+    return env
 
 
 def train(
@@ -361,6 +519,18 @@ def train(
     eval_use_total_power: bool,
     include_energy_obs: bool,
     update_every_episodes: int,
+    external_step27_select: bool = False,
+    external_step27_motor: str | None = None,
+    external_step27_candidate_json: str | None = None,
+    external_step27_candidate_index: int = 0,
+    external_step27_candidate_tag: str = "",
+    external_step27_seeds: str = "101,202,303",
+    external_step27_scenarios: str = "speed_step,ramp,load_step,start_stop",
+    external_step27_seed_perturbation: bool = False,
+    external_step27_seed_perturb_level: float = 0.2,
+    external_step27_use_envelope_acceptance: bool = False,
+    external_step27_acceptance_envelopes: str | None = None,
+    external_step27_top_k: int = 10,
     init_checkpoint: str | None = None,
     output_dir: str | None = None,
     results_root: str | None = None,
@@ -399,6 +569,35 @@ def train(
         omega_ref_override=omega_ref_override,
         feature_keys=feature_keys,
     )
+    env_train_cfg = getattr(env, "_train_env_cfg", None)
+    train_supervisor_cfg = _train_supervisor_from_env(env_train_cfg)
+    train_supervisor: AiIdRefSupervisor | None = None
+    if train_supervisor_cfg is not None:
+        omega_nominal = float(
+            max(
+                abs(float(getattr(env, "_omega_nominal", 0.0))),
+                abs(float(getattr(env.cfg, "omega_ref_max", 0.0) or 0.0)),
+                abs(float(getattr(env.cfg, "omega_ref", 0.0) or 0.0)),
+                1e-6,
+            )
+        )
+        train_supervisor = AiIdRefSupervisor(train_supervisor_cfg, omega_nominal=omega_nominal)
+        print(
+            "[train_ai_id_ref] training with eval supervisor "
+            f"objective={train_supervisor_cfg.objective} "
+            f"update_steps={train_supervisor_cfg.update_steps} "
+            f"dither={train_supervisor_cfg.dither_amp}"
+        )
+
+    external_step27_motor_name = str(external_step27_motor or "").strip().lower()
+    external_step27_candidate_path = None if external_step27_candidate_json is None else Path(str(external_step27_candidate_json)).expanduser().resolve()
+    if external_step27_select:
+        if not external_step27_motor_name:
+            raise ValueError("--external-step27-motor is required when --external-step27-select is enabled")
+        if external_step27_candidate_path is None:
+            raise ValueError("--external-step27-candidate-json is required when --external-step27-select is enabled")
+        if not external_step27_candidate_path.exists():
+            raise FileNotFoundError(f"External Step27 candidate json not found: {external_step27_candidate_path}")
 
     scenarios = [s for s in (scenarios or []) if s]
     scenario_sample = str(scenario_sample or "random").lower()
@@ -478,18 +677,32 @@ def train(
             else:
                 scenario_name = str(rng.choice(scenarios))
             env.set_scenario(scenario_name)
-        else:
-            if omega_ref_range is not None:
-                env.cfg.override_omega_ref = False
-                omega_ref_val = float(rng.uniform(omega_ref_range[0], omega_ref_range[1]))
-                env.cfg.omega_ref = omega_ref_val
-                env.base_env.omega_ref_func = lambda _t, ref=omega_ref_val: ref
-            if load_torque_range is not None:
-                env.cfg.override_load_torque = False
-                load_val = float(rng.uniform(load_torque_range[0], load_torque_range[1]))
-                env.base_env.load_torque_func = lambda _t, load=load_val: load
 
         obs = env.reset()
+        if train_supervisor is not None:
+            train_supervisor.reset()
+        scenario_meta = {
+            "omega_base_peak": float(getattr(env.cfg, "omega_ref", 0.0)),
+            "load_base_peak": float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)),
+            "omega_scale": 1.0,
+            "load_scale": 1.0,
+            "omega_peak": float(getattr(env.cfg, "omega_ref", 0.0)),
+            "load_peak": float(getattr(env.base_env, "load_torque_func", lambda _t: 0.0)(0.0)),
+        }
+        if scenarios or omega_ref_range is not None or load_torque_range is not None:
+            sim_cfg = getattr(getattr(env.base_env, "env", None), "sim", None)
+            t_end = float(getattr(sim_cfg, "t_end", 0.0) or 0.0)
+            wrapped_omega, wrapped_load, scenario_meta = wrap_scenario_with_ranges(
+                getattr(env.base_env, "omega_ref_func", lambda _t: float(getattr(env.cfg, "omega_ref", 0.0))),
+                getattr(env.base_env, "load_torque_func", lambda _t: 0.0),
+                t_end=t_end,
+                rng=rng,
+                omega_ref_range=omega_ref_range,
+                load_torque_range=load_torque_range,
+            )
+            env.base_env.omega_ref_func = wrapped_omega
+            env.base_env.load_torque_func = wrapped_load
+        scenario_meta["scenario"] = scenario_name
         done = False
         total_reward = 0.0
         steps = 0
@@ -512,7 +725,15 @@ def train(
 
         while not done and steps < int(episode_steps):
             action, logp, value = agent.act(obs)
-            obs_next, reward, done, info = env.step(action)
+            env_action, gate_open = _apply_train_supervisor_action(action, obs=obs, supervisor=train_supervisor)
+            obs_next, reward, done, info = env.step(env_action)
+            info_dict = info if isinstance(info, dict) else {}
+            if train_supervisor is not None:
+                train_supervisor.update(
+                    float(info_dict.get("p_in_pos", 0.0)),
+                    float(info_dict.get("p_shaft_pos", 0.0)),
+                    bool(gate_open),
+                )
             agent.store(obs, action, logp, reward, done, value)
             total_reward += float(reward)
             obs = obs_next
@@ -544,6 +765,10 @@ def train(
             "scenario": scenario_name,
             "omega_ref": omega_ref_logged,
             "load_torque": load_logged,
+            "scenario_omega_scale": float(scenario_meta.get("omega_scale", 1.0)),
+            "scenario_load_scale": float(scenario_meta.get("load_scale", 1.0)),
+            "scenario_omega_peak": float(scenario_meta.get("omega_peak", omega_ref_logged)),
+            "scenario_load_peak": float(scenario_meta.get("load_peak", load_logged)),
             "w_power_eff": float(getattr(env.cfg, "w_ai_id_power", w_power)),
             "exploration_sigma": float(sigma),
         }
@@ -608,6 +833,27 @@ def train(
     with (run_dir / "training_metrics.json").open("w", encoding="utf-8") as f:
         json.dump(episodes_log, f, indent=2)
     torch.save(agent.net.state_dict(), run_dir / "actor_critic.pth")
+    external_step27_selection: Dict[str, object] | None = None
+    if external_step27_select:
+        external_step27_selection = _run_external_step27_selection(
+            run_dir=run_dir,
+            motor=external_step27_motor_name,
+            candidate_json=str(external_step27_candidate_path),
+            candidate_index=int(external_step27_candidate_index),
+            candidate_tag=str(external_step27_candidate_tag),
+            seeds=str(external_step27_seeds),
+            scenarios=str(external_step27_scenarios),
+            seed_perturbation=bool(external_step27_seed_perturbation),
+            seed_perturb_level=float(external_step27_seed_perturb_level),
+            use_envelope_acceptance=bool(external_step27_use_envelope_acceptance),
+            acceptance_envelopes=external_step27_acceptance_envelopes,
+            top_k=int(external_step27_top_k),
+        )
+        external_step27_selection = _promote_external_step27_checkpoint(
+            ckpt_dir=ckpt_dir,
+            external_step27_selection=external_step27_selection,
+        )
+        best_ckpt = ckpt_dir / "best_actor.pth"
     run_config = {
         "env_config": str(env_config),
         "control_mode": str(control_mode).lower(),
@@ -655,6 +901,11 @@ def train(
         "eval_use_total_power": bool(eval_use_total_power),
         "include_energy_obs": bool(include_energy_obs),
         "update_every_episodes": int(update_every),
+        "external_step27_selection": external_step27_selection,
+        "external_step27_use_envelope_acceptance": bool(external_step27_use_envelope_acceptance),
+        "external_step27_acceptance_envelopes": None
+        if external_step27_acceptance_envelopes is None
+        else str(Path(external_step27_acceptance_envelopes).expanduser().resolve()),
         "feature_keys": feature_keys,
         "init_checkpoint": None if init_checkpoint is None else str(Path(init_checkpoint).resolve()),
         "output_dir": str(output_root_path),
@@ -667,7 +918,16 @@ def train(
         shutil.copyfile(last_ckpt, best_ckpt)
 
     print(f"Saved checkpoints: {best_ckpt} | {last_ckpt}")
-    return {"episodes": str(episodes_path), "best": str(best_ckpt), "last": str(last_ckpt), "run_dir": str(run_dir)}
+    result = {
+        "episodes": str(episodes_path),
+        "best": str(best_ckpt),
+        "last": str(last_ckpt),
+        "run_dir": str(run_dir),
+    }
+    if external_step27_selection is not None:
+        result["best_step27"] = str(external_step27_selection["promoted_checkpoint"])
+        result["best_step27_selected"] = str(external_step27_selection["selected_checkpoint"])
+    return result
 
 
 def main() -> None:
@@ -727,6 +987,20 @@ def main() -> None:
     p.add_argument("--eval-error-tol-rel", type=float, default=0.05)
     p.add_argument("--eval-error-tol-abs", type=float, default=0.0)
     p.add_argument("--eval-use-total-power", action="store_true")
+    p.add_argument("--external-step27-select", action="store_true", help="Select the promoted checkpoint by external Step27 objective after training.")
+    p.add_argument("--external-step27-motor", type=str, default=None, help="Motor key for Step27 selection (e.g. ao2).")
+    p.add_argument("--external-step27-candidate-json", type=str, default=None, help="Candidate JSON used for external Step27 selection.")
+    p.add_argument("--external-step27-candidate-index", type=int, default=0, help="Candidate index in --external-step27-candidate-json.")
+    p.add_argument("--external-step27-candidate-tag", type=str, default="", help="Candidate tag in --external-step27-candidate-json.")
+    p.add_argument("--external-step27-seeds", type=str, default="101,202,303", help="Comma-separated seed list for external Step27 selection.")
+    p.add_argument("--external-step27-scenarios", type=str, default="speed_step,ramp,load_step,start_stop", help="Comma-separated scenario list for external Step27 selection.")
+    p.add_argument("--external-step27-seed-perturbation", action="store_true", help="Enable seed perturbation during external Step27 selection.")
+    p.add_argument("--external-step27-seed-perturb-level", type=float, default=0.2, help="Seed perturbation level for external Step27 selection.")
+    p.add_argument("--external-step27-use-envelope-acceptance", action="store_true", help="Require canonical acceptance envelopes during external Step27 selection.")
+    p.add_argument("--external-step27-acceptance-envelopes", type=str, default=None, help="Optional acceptance envelope JSON path for external Step27 selection.")
+    p.add_argument("--external-step27-top-k", type=int, default=10, help="How many ranked rows to keep in external Step27 summary.")
+    p.add_argument("--output-dir", type=str, default=None, help="Directory for shared checkpoints/episode logs.")
+    p.add_argument("--results-root", type=str, default=None, help="Directory for per-run artifacts and eval snapshots.")
     p.add_argument("--init-checkpoint", type=str, default=None, help="Optional actor checkpoint to warm-start training.")
     p.set_defaults(override_omega_ref=True)
     args = p.parse_args()
@@ -821,7 +1095,23 @@ def main() -> None:
         eval_use_total_power=bool(args.eval_use_total_power),
         include_energy_obs=bool(args.include_energy_obs),
         update_every_episodes=int(args.update_every_episodes),
+        external_step27_select=bool(args.external_step27_select),
+        external_step27_motor=args.external_step27_motor,
+        external_step27_candidate_json=args.external_step27_candidate_json,
+        external_step27_candidate_index=int(args.external_step27_candidate_index),
+        external_step27_candidate_tag=str(args.external_step27_candidate_tag),
+        external_step27_seeds=str(args.external_step27_seeds),
+        external_step27_scenarios=str(args.external_step27_scenarios),
+        external_step27_seed_perturbation=bool(args.external_step27_seed_perturbation),
+        external_step27_seed_perturb_level=float(args.external_step27_seed_perturb_level),
+        external_step27_use_envelope_acceptance=bool(args.external_step27_use_envelope_acceptance),
+        external_step27_acceptance_envelopes=None
+        if args.external_step27_acceptance_envelopes is None
+        else str(args.external_step27_acceptance_envelopes),
+        external_step27_top_k=int(args.external_step27_top_k),
         init_checkpoint=args.init_checkpoint,
+        output_dir=args.output_dir,
+        results_root=args.results_root,
     )
 
 

@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisor, AiIdRefSupervisorConfig
 
 
@@ -35,3 +42,18 @@ def test_supervisor_bias_moves_down_when_positive_gradient() -> None:
         sup.update(p_in_pos=3.0, p_shaft_pos=1.0, gate_open=gate)
 
     assert sup.bias < 0.0
+
+
+def test_supervisor_idle_blend_softens_idle_clamp() -> None:
+    cfg = AiIdRefSupervisorConfig(
+        enabled=True,
+        idle_enable=True,
+        idle_omega_pu=0.2,
+        idle_action=-0.8,
+        idle_blend=0.25,
+    )
+    sup = AiIdRefSupervisor(cfg, omega_nominal=100.0)
+
+    action, gate = sup.adjust_action(ai_action=0.2, omega_ref=5.0, omega=0.0)
+    assert gate is False
+    assert abs(action - (-0.05)) < 1e-9
