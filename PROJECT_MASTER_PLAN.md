@@ -1,6 +1,6 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-03-19`
+Date updated: `2026-03-22`
 Repository: `C:\mic_theory`
 
 ## Canonical source
@@ -19,6 +19,9 @@ Repository: `C:\mic_theory`
 - Focused restoration tests are green in the restored repo:
   - `pytest -q tests/test_tune_motor_step27_candidates.py tests/test_scan_step27_checkpoints.py tests/test_scenario_randomization.py tests/test_train_ai_id_ref_external_step27.py tests/test_train_ai_voltage.py`
   - `15 passed` on `2026-03-18`
+- Focused selector/regression tests remain green after strict external-selection expansion:
+  - `pytest -q tests/test_train_ai_id_ref_external_step27.py tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py`
+  - `14 passed` on `2026-03-22`
 - Stable release path is already closed for the frozen tag:
   - `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/VERIFY_SUBMISSION_CANDIDATE.json`
   - `checklist_ready_for_submission=true`
@@ -120,6 +123,86 @@ Goal: close the real technical branch that is still red after the workspace reco
 Current facts:
 - `paper/ieee_2026/data/step28/20260308_postrestore_ai/VERIFY_SUBMISSION_CANDIDATE.json` is red.
 - `outputs/step27_baseline_20260308_postrestore_s3_fixao2/acceptance_envelopes/acceptance_envelope_summary.json` is red.
+- Latest post-restore closure state (`2026-03-20`):
+  - `AIR56` mean Step27 gate is now closed in the canonical live run:
+    - `outputs/step27_postrestore_live_round9_ep008_eta60pin_20260320/step27_air56_acceptance.json`
+    - `mean_pass=true`
+    - live pair used there:
+      - checkpoint: `outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth` copied from `outputs/air56_round1_subset_ep006_012_20260320/actor_ep008.pth`
+      - config envelope: `ai_eval_*` in `config/env_research_air56_025kw.py` aligned to candidate `eta_mid_60_pin`
+  - A false-red Step28 reproduce run was identified and explained:
+    - `outputs/reproduce_ieee_step28_20260320a/...`
+    - root cause: `tools/reproduce_ieee_step28.py` defaulted to `--mic-mode rule` when the run was launched without explicit `--mic-mode ai`
+    - that candidate is not scientifically relevant for MIC-AI verification
+  - The correct AI reproduce candidate still remains red under strict verify:
+    - `paper/ieee_2026/data/step28/20260320_postrestore_ai_ep008_eta60pin/FINAL_CHECKLIST_AUTO.md`
+    - `paper/ieee_2026/data/step28/20260320_postrestore_ai_ep008_eta60pin/IEEE_SUBMISSION_DOSSIER.json`
+    - real remaining blockers are now narrow:
+      - `AIR56`: `mean_pass=true`, but `worst_case_pass=false`
+      - `AL31`: `avg_eta_gain_pct_mean=-0.00288`, so `mean_pass=false`
+      - `AO2`: `acceptance_pass=true`
+    - conclusion:
+      - the project is no longer blocked by global AI collapse or packaging errors
+      - the remaining work is a strict-verify guardrail closure on `AIR56 worst-case` and `AL31 eta`, not a broad algorithmic rebuild
+- Strict-selection alignment update (`2026-03-22`):
+  - `mic_ai/ai/train_ai_id_ref.py` now passes the full external Step27 threshold set into `scan_step27_checkpoints.py`, including:
+    - aggregate thresholds (`min_avg_power_saving_pct`, `min_avg_eta_gain_pct`, `max_err_failures`, `start_stop`, current ratios)
+    - worst-seed thresholds (`*_min_seed`, `err_failures_max_seed`)
+  - regression coverage was extended in:
+    - `tests/test_train_ai_id_ref_external_step27.py`
+  - implication:
+    - training-time checkpoint promotion is now aligned with the same strict objective used by the low-compute scan/tune tools
+- AIR56 strict-closure update (`2026-03-22`):
+  - the current live AIR56 checkpoint remains:
+    - `outputs/ai_id_ref/checkpoints/env_research_air56_025kw/best_actor.pth`
+  - cheap no-training recheck under the exact `Step28` strict metric with `seed_perturbation=0.2` found a much better live envelope than the old `p_in` baseline:
+    - `outputs/air56_live_ckpt_specific_power_p02_search_20260322/eta_mid_60_sp/air56_checkpoint_scan_summary.json`
+    - metrics:
+      - `avg_power_saving_pct = +0.5505%`
+      - `avg_eta_gain_pct = -0.00635%`
+      - `avg_power_saving_pct_min_seed = +0.49256%`
+      - `avg_eta_gain_pct_min_seed = -0.02904%`
+    - conclusion:
+      - cheap AIR56 closure is now a tiny `eta` tail problem under `p0.2`, not a large tracking/power failure
+  - a fresh full candidate was reproduced from the current config:
+    - `paper/ieee_2026/data/step28/20260322_postrestore_ai_air56sp/derived_ieee/motor_tuning_acceptance_summary.json`
+    - result:
+      - `AIR56` still red
+      - `AL31` still red
+      - `AO2` green
+  - AIR56 low-compute checkpoint work was pushed further before declaring the short path exhausted:
+    - short warm-start from the live checkpoint with strict external selection:
+      - `outputs/air56_warmstart_step28_bridge_20260322/.../external_step27_scan/air56_checkpoint_scan_summary.json`
+    - best post-train checkpoint/candidate pair found so far:
+      - checkpoint: `outputs/air56_warmstart_step28_bridge_20260322/results_run/20260322_065126_tmp_air56_train_step28_bridge_20260322_ai_id_ref/eval/actor_ep002.pth`
+      - candidate: `pin60_hard_b`
+      - artifact:
+        - `outputs/air56_postft_recheck_20260322/actor_ep002/pin60_hard_b/air56_checkpoint_scan_summary.json`
+      - metrics:
+        - `avg_power_saving_pct = +0.5964%`
+        - `avg_eta_gain_pct = -0.00332%`
+        - `avg_power_saving_pct_min_seed = +0.4893%`
+        - `avg_eta_gain_pct_min_seed = -0.0212%`
+    - a second targeted refinement from that lineage improved the best selector score again but still did not cross zero on `eta`:
+      - `outputs/air56_refine_ep002_pin60hb_20260322/.../external_step27_scan/air56_checkpoint_scan_summary.json`
+      - best checkpoint there: `actor_ep010.pth`
+      - best metrics under the selected candidate:
+        - `avg_power_saving_pct = +0.6968%`
+        - `avg_eta_gain_pct = -0.00880%`
+        - `avg_power_saving_pct_min_seed = +0.6327%`
+        - `avg_eta_gain_pct_min_seed = -0.0275%`
+    - additional post-train rechecks across nearby `pin/sp` envelopes and one eta-biased micro-refinement did not produce a strict pass
+    - conclusion:
+      - the AIR56 cheap/short path is now materially exhausted
+      - the next justified AIR56 step is a longer eta-aware checkpoint finetune, not more supervisor-only candidate sweeps
+- AL31 next-step preparation (`2026-03-22`):
+  - no new AL31 checkpoint was promoted yet
+  - best cheap candidate remains:
+    - `outputs/al31_eta_closure_round2_20260322/al31_tuning_summary.json`
+    - tag: `eta_clip_03a`
+  - next low-compute checkpoint-level recipe was prepared from:
+    - `outputs/al31_rebuild_round1_20260318a/results_run/20260318_111437_env_research_al31_4_06kw_ai_id_ref/eval/actor_ep005.pth`
+  - that recipe should be executed only after AIR56 is closed or if AIR56 compute is paused
 - Low-compute update (`2026-03-16`):
   - AIR56 best no-training candidate under perturbation stayed below acceptance because `eta` remained slightly negative:
     - `outputs/tune_air56_20260316_p02_g12/air56_tuning_summary.json`

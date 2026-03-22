@@ -146,6 +146,10 @@ def scan_checkpoints(
     max_start_stop_saving_pct: float = 20.0,
     max_worst_current_peak_ratio: float = 1.30,
     max_worst_current_mean_ratio: float = 1.20,
+    min_avg_power_saving_pct_min_seed: float | None = None,
+    min_avg_eta_gain_pct_min_seed: float | None = None,
+    max_err_failures_max_seed: float | None = None,
+    min_start_stop_saving_pct_min_seed: float | None = None,
     use_envelope_acceptance: bool = False,
     acceptance_envelopes: Path | str | None = DEFAULT_ACCEPTANCE_ENVELOPES,
     top_k: int = 10,
@@ -231,6 +235,10 @@ def scan_checkpoints(
             max_peak_ratio=float(max_worst_current_peak_ratio),
             max_mean_ratio=float(max_worst_current_mean_ratio),
             require_envelope_pass=False,
+            min_power_min_seed=min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=max_err_failures_max_seed,
+            min_start_stop_min_seed=min_start_stop_saving_pct_min_seed,
         )
         selector_score = _score(
             metrics,
@@ -243,6 +251,10 @@ def scan_checkpoints(
             max_peak_ratio=float(max_worst_current_peak_ratio),
             max_mean_ratio=float(max_worst_current_mean_ratio),
             require_envelope_pass=bool(use_envelope_acceptance),
+            min_power_min_seed=min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=max_err_failures_max_seed,
+            min_start_stop_min_seed=min_start_stop_saving_pct_min_seed,
         )
         aggregate_pass = _pass(
             metrics,
@@ -255,6 +267,10 @@ def scan_checkpoints(
             max_peak_ratio=float(max_worst_current_peak_ratio),
             max_mean_ratio=float(max_worst_current_mean_ratio),
             require_envelope_pass=False,
+            min_power_min_seed=min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=max_err_failures_max_seed,
+            min_start_stop_min_seed=min_start_stop_saving_pct_min_seed,
         )
         acceptance_pass = _pass(
             metrics,
@@ -267,6 +283,10 @@ def scan_checkpoints(
             max_peak_ratio=float(max_worst_current_peak_ratio),
             max_mean_ratio=float(max_worst_current_mean_ratio),
             require_envelope_pass=bool(use_envelope_acceptance),
+            min_power_min_seed=min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=max_err_failures_max_seed,
+            min_start_stop_min_seed=min_start_stop_saving_pct_min_seed,
         )
         row["score"] = float(aggregate_score)
         row["aggregate_score"] = float(aggregate_score)
@@ -329,6 +349,10 @@ def scan_checkpoints(
             "max_start_stop_saving_pct": float(max_start_stop_saving_pct),
             "max_worst_current_peak_ratio": float(max_worst_current_peak_ratio),
             "max_worst_current_mean_ratio": float(max_worst_current_mean_ratio),
+            "min_avg_power_saving_pct_min_seed": min_avg_power_saving_pct_min_seed,
+            "min_avg_eta_gain_pct_min_seed": min_avg_eta_gain_pct_min_seed,
+            "max_err_failures_max_seed": max_err_failures_max_seed,
+            "min_start_stop_saving_pct_min_seed": min_start_stop_saving_pct_min_seed,
         },
         "use_envelope_acceptance": bool(use_envelope_acceptance),
         "acceptance_envelopes": str(acceptance_envelopes_path),
@@ -376,6 +400,10 @@ def main() -> None:
     parser.add_argument("--max-start-stop-saving-pct", type=float, default=20.0)
     parser.add_argument("--max-worst-current-peak-ratio", type=float, default=1.30)
     parser.add_argument("--max-worst-current-mean-ratio", type=float, default=1.20)
+    parser.add_argument("--min-avg-power-saving-pct-min-seed", type=float, default=None)
+    parser.add_argument("--min-avg-eta-gain-pct-min-seed", type=float, default=None)
+    parser.add_argument("--max-err-failures-max-seed", type=float, default=None)
+    parser.add_argument("--min-start-stop-saving-pct-min-seed", type=float, default=None)
     parser.add_argument("--use-envelope-acceptance", action="store_true")
     parser.add_argument("--acceptance-envelopes", default=str(DEFAULT_ACCEPTANCE_ENVELOPES))
     parser.add_argument("--top-k", type=int, default=10)
@@ -409,6 +437,10 @@ def main() -> None:
         max_start_stop_saving_pct=float(args.max_start_stop_saving_pct),
         max_worst_current_peak_ratio=float(args.max_worst_current_peak_ratio),
         max_worst_current_mean_ratio=float(args.max_worst_current_mean_ratio),
+        min_avg_power_saving_pct_min_seed=args.min_avg_power_saving_pct_min_seed,
+        min_avg_eta_gain_pct_min_seed=args.min_avg_eta_gain_pct_min_seed,
+        max_err_failures_max_seed=args.max_err_failures_max_seed,
+        min_start_stop_saving_pct_min_seed=args.min_start_stop_saving_pct_min_seed,
         use_envelope_acceptance=bool(args.use_envelope_acceptance),
         acceptance_envelopes=Path(args.acceptance_envelopes),
         top_k=int(args.top_k),

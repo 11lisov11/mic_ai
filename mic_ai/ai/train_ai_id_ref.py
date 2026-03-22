@@ -246,8 +246,20 @@ def _run_external_step27_selection(
     scenarios: str,
     seed_perturbation: bool,
     seed_perturb_level: float,
+    min_avg_power_saving_pct: float,
+    min_avg_eta_gain_pct: float,
+    max_avg_eta_gain_pct: float,
+    max_err_failures: float,
+    min_start_stop_saving_pct: float,
+    max_start_stop_saving_pct: float,
+    max_worst_current_peak_ratio: float,
+    max_worst_current_mean_ratio: float,
     use_envelope_acceptance: bool,
     acceptance_envelopes: str | None,
+    min_avg_power_saving_pct_min_seed: float | None,
+    min_avg_eta_gain_pct_min_seed: float | None,
+    max_err_failures_max_seed: float | None,
+    min_start_stop_saving_pct_min_seed: float | None,
     top_k: int,
 ) -> Dict[str, object]:
     from tools.scan_step27_checkpoints import scan_checkpoints
@@ -265,8 +277,20 @@ def _run_external_step27_selection(
         out_dir=scan_out_dir,
         seed_perturbation=bool(seed_perturbation),
         seed_perturb_level=float(seed_perturb_level),
+        min_avg_power_saving_pct=float(min_avg_power_saving_pct),
+        min_avg_eta_gain_pct=float(min_avg_eta_gain_pct),
+        max_avg_eta_gain_pct=float(max_avg_eta_gain_pct),
+        max_err_failures=float(max_err_failures),
+        min_start_stop_saving_pct=float(min_start_stop_saving_pct),
+        max_start_stop_saving_pct=float(max_start_stop_saving_pct),
+        max_worst_current_peak_ratio=float(max_worst_current_peak_ratio),
+        max_worst_current_mean_ratio=float(max_worst_current_mean_ratio),
         use_envelope_acceptance=bool(use_envelope_acceptance),
         acceptance_envelopes=acceptance_envelopes_path,
+        min_avg_power_saving_pct_min_seed=min_avg_power_saving_pct_min_seed,
+        min_avg_eta_gain_pct_min_seed=min_avg_eta_gain_pct_min_seed,
+        max_err_failures_max_seed=max_err_failures_max_seed,
+        min_start_stop_saving_pct_min_seed=min_start_stop_saving_pct_min_seed,
         top_k=int(top_k),
     )
     best = dict(summary.get("best") or {})
@@ -297,8 +321,28 @@ def _run_external_step27_selection(
         "scenarios": _parse_scenarios(scenarios),
         "seed_perturbation": bool(seed_perturbation),
         "seed_perturb_level": float(seed_perturb_level),
+        "min_avg_power_saving_pct": float(min_avg_power_saving_pct),
+        "min_avg_eta_gain_pct": float(min_avg_eta_gain_pct),
+        "max_avg_eta_gain_pct": float(max_avg_eta_gain_pct),
+        "max_err_failures": float(max_err_failures),
+        "min_start_stop_saving_pct": float(min_start_stop_saving_pct),
+        "max_start_stop_saving_pct": float(max_start_stop_saving_pct),
+        "max_worst_current_peak_ratio": float(max_worst_current_peak_ratio),
+        "max_worst_current_mean_ratio": float(max_worst_current_mean_ratio),
         "use_envelope_acceptance": bool(use_envelope_acceptance),
         "acceptance_envelopes": None if acceptance_envelopes_path is None else str(acceptance_envelopes_path),
+        "min_avg_power_saving_pct_min_seed": None
+        if min_avg_power_saving_pct_min_seed is None
+        else float(min_avg_power_saving_pct_min_seed),
+        "min_avg_eta_gain_pct_min_seed": None
+        if min_avg_eta_gain_pct_min_seed is None
+        else float(min_avg_eta_gain_pct_min_seed),
+        "max_err_failures_max_seed": None
+        if max_err_failures_max_seed is None
+        else float(max_err_failures_max_seed),
+        "min_start_stop_saving_pct_min_seed": None
+        if min_start_stop_saving_pct_min_seed is None
+        else float(min_start_stop_saving_pct_min_seed),
         "best_metrics": best,
     }
     (run_dir / "external_step27_selection.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -528,8 +572,20 @@ def train(
     external_step27_scenarios: str = "speed_step,ramp,load_step,start_stop",
     external_step27_seed_perturbation: bool = False,
     external_step27_seed_perturb_level: float = 0.2,
+    external_step27_min_avg_power_saving_pct: float = 0.0,
+    external_step27_min_avg_eta_gain_pct: float = 0.0,
+    external_step27_max_avg_eta_gain_pct: float = 25.0,
+    external_step27_max_err_failures: float = 2.0,
+    external_step27_min_start_stop_saving_pct: float = -0.5,
+    external_step27_max_start_stop_saving_pct: float = 20.0,
+    external_step27_max_worst_current_peak_ratio: float = 1.30,
+    external_step27_max_worst_current_mean_ratio: float = 1.20,
     external_step27_use_envelope_acceptance: bool = False,
     external_step27_acceptance_envelopes: str | None = None,
+    external_step27_min_avg_power_saving_pct_min_seed: float | None = None,
+    external_step27_min_avg_eta_gain_pct_min_seed: float | None = None,
+    external_step27_max_err_failures_max_seed: float | None = None,
+    external_step27_min_start_stop_saving_pct_min_seed: float | None = None,
     external_step27_top_k: int = 10,
     init_checkpoint: str | None = None,
     output_dir: str | None = None,
@@ -845,8 +901,20 @@ def train(
             scenarios=str(external_step27_scenarios),
             seed_perturbation=bool(external_step27_seed_perturbation),
             seed_perturb_level=float(external_step27_seed_perturb_level),
+            min_avg_power_saving_pct=float(external_step27_min_avg_power_saving_pct),
+            min_avg_eta_gain_pct=float(external_step27_min_avg_eta_gain_pct),
+            max_avg_eta_gain_pct=float(external_step27_max_avg_eta_gain_pct),
+            max_err_failures=float(external_step27_max_err_failures),
+            min_start_stop_saving_pct=float(external_step27_min_start_stop_saving_pct),
+            max_start_stop_saving_pct=float(external_step27_max_start_stop_saving_pct),
+            max_worst_current_peak_ratio=float(external_step27_max_worst_current_peak_ratio),
+            max_worst_current_mean_ratio=float(external_step27_max_worst_current_mean_ratio),
             use_envelope_acceptance=bool(external_step27_use_envelope_acceptance),
             acceptance_envelopes=external_step27_acceptance_envelopes,
+            min_avg_power_saving_pct_min_seed=external_step27_min_avg_power_saving_pct_min_seed,
+            min_avg_eta_gain_pct_min_seed=external_step27_min_avg_eta_gain_pct_min_seed,
+            max_err_failures_max_seed=external_step27_max_err_failures_max_seed,
+            min_start_stop_saving_pct_min_seed=external_step27_min_start_stop_saving_pct_min_seed,
             top_k=int(external_step27_top_k),
         )
         external_step27_selection = _promote_external_step27_checkpoint(
@@ -902,10 +970,30 @@ def train(
         "include_energy_obs": bool(include_energy_obs),
         "update_every_episodes": int(update_every),
         "external_step27_selection": external_step27_selection,
+        "external_step27_min_avg_power_saving_pct": float(external_step27_min_avg_power_saving_pct),
+        "external_step27_min_avg_eta_gain_pct": float(external_step27_min_avg_eta_gain_pct),
+        "external_step27_max_avg_eta_gain_pct": float(external_step27_max_avg_eta_gain_pct),
+        "external_step27_max_err_failures": float(external_step27_max_err_failures),
+        "external_step27_min_start_stop_saving_pct": float(external_step27_min_start_stop_saving_pct),
+        "external_step27_max_start_stop_saving_pct": float(external_step27_max_start_stop_saving_pct),
+        "external_step27_max_worst_current_peak_ratio": float(external_step27_max_worst_current_peak_ratio),
+        "external_step27_max_worst_current_mean_ratio": float(external_step27_max_worst_current_mean_ratio),
         "external_step27_use_envelope_acceptance": bool(external_step27_use_envelope_acceptance),
         "external_step27_acceptance_envelopes": None
         if external_step27_acceptance_envelopes is None
         else str(Path(external_step27_acceptance_envelopes).expanduser().resolve()),
+        "external_step27_min_avg_power_saving_pct_min_seed": None
+        if external_step27_min_avg_power_saving_pct_min_seed is None
+        else float(external_step27_min_avg_power_saving_pct_min_seed),
+        "external_step27_min_avg_eta_gain_pct_min_seed": None
+        if external_step27_min_avg_eta_gain_pct_min_seed is None
+        else float(external_step27_min_avg_eta_gain_pct_min_seed),
+        "external_step27_max_err_failures_max_seed": None
+        if external_step27_max_err_failures_max_seed is None
+        else float(external_step27_max_err_failures_max_seed),
+        "external_step27_min_start_stop_saving_pct_min_seed": None
+        if external_step27_min_start_stop_saving_pct_min_seed is None
+        else float(external_step27_min_start_stop_saving_pct_min_seed),
         "feature_keys": feature_keys,
         "init_checkpoint": None if init_checkpoint is None else str(Path(init_checkpoint).resolve()),
         "output_dir": str(output_root_path),
@@ -996,8 +1084,20 @@ def main() -> None:
     p.add_argument("--external-step27-scenarios", type=str, default="speed_step,ramp,load_step,start_stop", help="Comma-separated scenario list for external Step27 selection.")
     p.add_argument("--external-step27-seed-perturbation", action="store_true", help="Enable seed perturbation during external Step27 selection.")
     p.add_argument("--external-step27-seed-perturb-level", type=float, default=0.2, help="Seed perturbation level for external Step27 selection.")
+    p.add_argument("--external-step27-min-avg-power-saving-pct", type=float, default=0.0, help="Minimum avg_power_saving_pct for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-min-avg-eta-gain-pct", type=float, default=0.0, help="Minimum avg_eta_gain_pct for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-max-avg-eta-gain-pct", type=float, default=25.0, help="Maximum avg_eta_gain_pct for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-max-err-failures", type=float, default=2.0, help="Maximum err_failures for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-min-start-stop-saving-pct", type=float, default=-0.5, help="Minimum start_stop_power_saving_pct for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-max-start-stop-saving-pct", type=float, default=20.0, help="Maximum start_stop_power_saving_pct for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-max-worst-current-peak-ratio", type=float, default=1.30, help="Maximum worst_current_peak_ratio for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-max-worst-current-mean-ratio", type=float, default=1.20, help="Maximum worst_current_mean_ratio for external Step27 checkpoint selection.")
     p.add_argument("--external-step27-use-envelope-acceptance", action="store_true", help="Require canonical acceptance envelopes during external Step27 selection.")
     p.add_argument("--external-step27-acceptance-envelopes", type=str, default=None, help="Optional acceptance envelope JSON path for external Step27 selection.")
+    p.add_argument("--external-step27-min-avg-power-saving-pct-min-seed", type=float, default=None, help="Optional minimum avg_power_saving_pct_min_seed for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-min-avg-eta-gain-pct-min-seed", type=float, default=None, help="Optional minimum avg_eta_gain_pct_min_seed for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-max-err-failures-max-seed", type=float, default=None, help="Optional maximum err_failures_max_seed for external Step27 checkpoint selection.")
+    p.add_argument("--external-step27-min-start-stop-saving-pct-min-seed", type=float, default=None, help="Optional minimum start_stop_power_saving_pct_min_seed for external Step27 checkpoint selection.")
     p.add_argument("--external-step27-top-k", type=int, default=10, help="How many ranked rows to keep in external Step27 summary.")
     p.add_argument("--output-dir", type=str, default=None, help="Directory for shared checkpoints/episode logs.")
     p.add_argument("--results-root", type=str, default=None, help="Directory for per-run artifacts and eval snapshots.")
@@ -1104,10 +1204,30 @@ def main() -> None:
         external_step27_scenarios=str(args.external_step27_scenarios),
         external_step27_seed_perturbation=bool(args.external_step27_seed_perturbation),
         external_step27_seed_perturb_level=float(args.external_step27_seed_perturb_level),
+        external_step27_min_avg_power_saving_pct=float(args.external_step27_min_avg_power_saving_pct),
+        external_step27_min_avg_eta_gain_pct=float(args.external_step27_min_avg_eta_gain_pct),
+        external_step27_max_avg_eta_gain_pct=float(args.external_step27_max_avg_eta_gain_pct),
+        external_step27_max_err_failures=float(args.external_step27_max_err_failures),
+        external_step27_min_start_stop_saving_pct=float(args.external_step27_min_start_stop_saving_pct),
+        external_step27_max_start_stop_saving_pct=float(args.external_step27_max_start_stop_saving_pct),
+        external_step27_max_worst_current_peak_ratio=float(args.external_step27_max_worst_current_peak_ratio),
+        external_step27_max_worst_current_mean_ratio=float(args.external_step27_max_worst_current_mean_ratio),
         external_step27_use_envelope_acceptance=bool(args.external_step27_use_envelope_acceptance),
         external_step27_acceptance_envelopes=None
         if args.external_step27_acceptance_envelopes is None
         else str(args.external_step27_acceptance_envelopes),
+        external_step27_min_avg_power_saving_pct_min_seed=None
+        if args.external_step27_min_avg_power_saving_pct_min_seed is None
+        else float(args.external_step27_min_avg_power_saving_pct_min_seed),
+        external_step27_min_avg_eta_gain_pct_min_seed=None
+        if args.external_step27_min_avg_eta_gain_pct_min_seed is None
+        else float(args.external_step27_min_avg_eta_gain_pct_min_seed),
+        external_step27_max_err_failures_max_seed=None
+        if args.external_step27_max_err_failures_max_seed is None
+        else float(args.external_step27_max_err_failures_max_seed),
+        external_step27_min_start_stop_saving_pct_min_seed=None
+        if args.external_step27_min_start_stop_saving_pct_min_seed is None
+        else float(args.external_step27_min_start_stop_saving_pct_min_seed),
         external_step27_top_k=int(args.external_step27_top_k),
         init_checkpoint=args.init_checkpoint,
         output_dir=args.output_dir,

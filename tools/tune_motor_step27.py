@@ -119,6 +119,10 @@ def _score(
     max_peak_ratio: float,
     max_mean_ratio: float,
     require_envelope_pass: bool = False,
+    min_power_min_seed: float | None = None,
+    min_eta_min_seed: float | None = None,
+    max_err_max_seed: float | None = None,
+    min_start_stop_min_seed: float | None = None,
 ) -> float:
     power = float(metrics.get("avg_power_saving_pct", 0.0))
     eta = float(metrics.get("avg_eta_gain_pct", 0.0))
@@ -126,6 +130,10 @@ def _score(
     start_stop = float(metrics.get("start_stop_power_saving_pct", 0.0))
     peak_ratio = float(metrics.get("worst_current_peak_ratio", 1.0))
     mean_ratio = float(metrics.get("worst_current_mean_ratio", 1.0))
+    power_min_seed = float(metrics.get("avg_power_saving_pct_min_seed", power))
+    eta_min_seed = float(metrics.get("avg_eta_gain_pct_min_seed", eta))
+    err_max_seed = float(metrics.get("err_failures_max_seed", err))
+    start_stop_min_seed = float(metrics.get("start_stop_power_saving_pct_min_seed", start_stop))
     envelope_fail_count = float(metrics.get("envelope_fail_count", 0.0))
     envelope_scenario_fail_count = float(metrics.get("envelope_scenario_fail_count", 0.0))
     envelope_gap_total = float(metrics.get("envelope_gap_total", 0.0))
@@ -147,6 +155,14 @@ def _score(
         penalty += 4.0 * (start_stop - max_start_stop)
     penalty += 5.0 * max(0.0, peak_ratio - max_peak_ratio)
     penalty += 3.0 * max(0.0, mean_ratio - max_mean_ratio)
+    if min_power_min_seed is not None and power_min_seed < float(min_power_min_seed):
+        penalty += 30.0 * (float(min_power_min_seed) - power_min_seed)
+    if min_eta_min_seed is not None and eta_min_seed < float(min_eta_min_seed):
+        penalty += 20.0 * (float(min_eta_min_seed) - eta_min_seed)
+    if max_err_max_seed is not None and err_max_seed > float(max_err_max_seed):
+        penalty += 8.0 * (err_max_seed - float(max_err_max_seed))
+    if min_start_stop_min_seed is not None and start_stop_min_seed < float(min_start_stop_min_seed):
+        penalty += 12.0 * (float(min_start_stop_min_seed) - start_stop_min_seed)
     if require_envelope_pass and not envelope_all_rows_pass:
         penalty += 100000.0 * max(1.0, envelope_fail_count)
         penalty += 1000.0 * envelope_scenario_fail_count
@@ -167,6 +183,10 @@ def _pass(
     max_peak_ratio: float,
     max_mean_ratio: float,
     require_envelope_pass: bool = False,
+    min_power_min_seed: float | None = None,
+    min_eta_min_seed: float | None = None,
+    max_err_max_seed: float | None = None,
+    min_start_stop_min_seed: float | None = None,
 ) -> bool:
     aggregate_pass = bool(
         float(metrics.get("avg_power_saving_pct", 0.0)) >= min_power
@@ -178,6 +198,13 @@ def _pass(
         and float(metrics.get("worst_current_peak_ratio", 0.0)) <= max_peak_ratio
         and float(metrics.get("worst_current_mean_ratio", 0.0)) <= max_mean_ratio
     )
+    worst_seed_pass = bool(
+        (min_power_min_seed is None or float(metrics.get("avg_power_saving_pct_min_seed", metrics.get("avg_power_saving_pct", 0.0))) >= float(min_power_min_seed))
+        and (min_eta_min_seed is None or float(metrics.get("avg_eta_gain_pct_min_seed", metrics.get("avg_eta_gain_pct", 0.0))) >= float(min_eta_min_seed))
+        and (max_err_max_seed is None or float(metrics.get("err_failures_max_seed", metrics.get("err_failures", 0.0))) <= float(max_err_max_seed))
+        and (min_start_stop_min_seed is None or float(metrics.get("start_stop_power_saving_pct_min_seed", metrics.get("start_stop_power_saving_pct", 0.0))) >= float(min_start_stop_min_seed))
+    )
+    aggregate_pass = bool(aggregate_pass and worst_seed_pass)
     if require_envelope_pass:
         return bool(aggregate_pass and bool(metrics.get("envelope_all_rows_pass", False)))
     return aggregate_pass
@@ -455,6 +482,10 @@ def main() -> None:
     parser.add_argument("--max-start-stop-saving-pct", type=float, default=20.0)
     parser.add_argument("--max-worst-current-peak-ratio", type=float, default=1.30)
     parser.add_argument("--max-worst-current-mean-ratio", type=float, default=1.20)
+    parser.add_argument("--min-avg-power-saving-pct-min-seed", type=float, default=None)
+    parser.add_argument("--min-avg-eta-gain-pct-min-seed", type=float, default=None)
+    parser.add_argument("--max-err-failures-max-seed", type=float, default=None)
+    parser.add_argument("--min-start-stop-saving-pct-min-seed", type=float, default=None)
     parser.add_argument("--use-envelope-acceptance", action="store_true")
     parser.add_argument("--acceptance-envelopes", default=str(DEFAULT_ACCEPTANCE_ENVELOPES))
     parser.set_defaults(use_total_power=True)
@@ -560,6 +591,10 @@ def main() -> None:
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
             require_envelope_pass=bool(args.use_envelope_acceptance),
+            min_power_min_seed=args.min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=args.min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=args.max_err_failures_max_seed,
+            min_start_stop_min_seed=args.min_start_stop_saving_pct_min_seed,
         )
         row["acceptance_pass"] = _pass(
             metrics,
@@ -572,6 +607,10 @@ def main() -> None:
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
             require_envelope_pass=bool(args.use_envelope_acceptance),
+            min_power_min_seed=args.min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=args.min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=args.max_err_failures_max_seed,
+            min_start_stop_min_seed=args.min_start_stop_saving_pct_min_seed,
         )
         stage1_rows.append(row)
         print(
@@ -613,6 +652,10 @@ def main() -> None:
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
             require_envelope_pass=bool(args.use_envelope_acceptance),
+            min_power_min_seed=args.min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=args.min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=args.max_err_failures_max_seed,
+            min_start_stop_min_seed=args.min_start_stop_saving_pct_min_seed,
         )
         row["acceptance_pass"] = _pass(
             metrics,
@@ -625,6 +668,10 @@ def main() -> None:
             max_peak_ratio=float(args.max_worst_current_peak_ratio),
             max_mean_ratio=float(args.max_worst_current_mean_ratio),
             require_envelope_pass=bool(args.use_envelope_acceptance),
+            min_power_min_seed=args.min_avg_power_saving_pct_min_seed,
+            min_eta_min_seed=args.min_avg_eta_gain_pct_min_seed,
+            max_err_max_seed=args.max_err_failures_max_seed,
+            min_start_stop_min_seed=args.min_start_stop_saving_pct_min_seed,
         )
         stage2_rows.append(row)
         print(
@@ -661,6 +708,10 @@ def main() -> None:
             "max_start_stop_saving_pct": float(args.max_start_stop_saving_pct),
             "max_worst_current_peak_ratio": float(args.max_worst_current_peak_ratio),
             "max_worst_current_mean_ratio": float(args.max_worst_current_mean_ratio),
+            "min_avg_power_saving_pct_min_seed": args.min_avg_power_saving_pct_min_seed,
+            "min_avg_eta_gain_pct_min_seed": args.min_avg_eta_gain_pct_min_seed,
+            "max_err_failures_max_seed": args.max_err_failures_max_seed,
+            "min_start_stop_saving_pct_min_seed": args.min_start_stop_saving_pct_min_seed,
         },
         "use_envelope_acceptance": bool(args.use_envelope_acceptance),
         "acceptance_envelopes": str(Path(args.acceptance_envelopes).resolve()),

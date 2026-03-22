@@ -29,8 +29,20 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     def _fake_scan_checkpoints(**kwargs):
         out_dir = Path(kwargs["out_dir"])
         out_dir.mkdir(parents=True, exist_ok=True)
+        assert kwargs["min_avg_power_saving_pct"] == pytest.approx(0.5)
+        assert kwargs["min_avg_eta_gain_pct"] == pytest.approx(0.0)
+        assert kwargs["max_avg_eta_gain_pct"] == pytest.approx(25.0)
+        assert kwargs["max_err_failures"] == pytest.approx(2.0)
+        assert kwargs["min_start_stop_saving_pct"] == pytest.approx(-0.5)
+        assert kwargs["max_start_stop_saving_pct"] == pytest.approx(20.0)
+        assert kwargs["max_worst_current_peak_ratio"] == pytest.approx(1.3)
+        assert kwargs["max_worst_current_mean_ratio"] == pytest.approx(1.2)
         assert kwargs["use_envelope_acceptance"] is True
         assert str(kwargs["acceptance_envelopes"]).endswith("acceptance_envelopes_3motors.json")
+        assert kwargs["min_avg_power_saving_pct_min_seed"] == pytest.approx(0.5)
+        assert kwargs["min_avg_eta_gain_pct_min_seed"] == pytest.approx(0.0)
+        assert kwargs["max_err_failures_max_seed"] == pytest.approx(2.0)
+        assert kwargs["min_start_stop_saving_pct_min_seed"] == pytest.approx(-0.5)
         summary = {
             "best": {
                 "checkpoint": str(selected_ckpt.resolve()),
@@ -56,8 +68,20 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
         scenarios="speed_step,ramp,load_step,start_stop",
         seed_perturbation=True,
         seed_perturb_level=0.2,
+        min_avg_power_saving_pct=0.5,
+        min_avg_eta_gain_pct=0.0,
+        max_avg_eta_gain_pct=25.0,
+        max_err_failures=2.0,
+        min_start_stop_saving_pct=-0.5,
+        max_start_stop_saving_pct=20.0,
+        max_worst_current_peak_ratio=1.3,
+        max_worst_current_mean_ratio=1.2,
         use_envelope_acceptance=True,
         acceptance_envelopes="config/acceptance_envelopes_3motors.json",
+        min_avg_power_saving_pct_min_seed=0.5,
+        min_avg_eta_gain_pct_min_seed=0.0,
+        max_err_failures_max_seed=2.0,
+        min_start_stop_saving_pct_min_seed=-0.5,
         top_k=5,
     )
 
@@ -68,8 +92,20 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     assert payload["promoted_checkpoint"] == str(promoted.resolve())
     assert payload["seeds"] == [101, 202, 303]
     assert payload["scenarios"] == ["speed_step", "ramp", "load_step", "start_stop"]
+    assert payload["min_avg_power_saving_pct"] == pytest.approx(0.5)
+    assert payload["min_avg_eta_gain_pct"] == pytest.approx(0.0)
+    assert payload["max_avg_eta_gain_pct"] == pytest.approx(25.0)
+    assert payload["max_err_failures"] == pytest.approx(2.0)
+    assert payload["min_start_stop_saving_pct"] == pytest.approx(-0.5)
+    assert payload["max_start_stop_saving_pct"] == pytest.approx(20.0)
+    assert payload["max_worst_current_peak_ratio"] == pytest.approx(1.3)
+    assert payload["max_worst_current_mean_ratio"] == pytest.approx(1.2)
     assert payload["use_envelope_acceptance"] is True
     assert payload["acceptance_envelopes"].endswith("acceptance_envelopes_3motors.json")
+    assert payload["min_avg_power_saving_pct_min_seed"] == pytest.approx(0.5)
+    assert payload["min_avg_eta_gain_pct_min_seed"] == pytest.approx(0.0)
+    assert payload["max_err_failures_max_seed"] == pytest.approx(2.0)
+    assert payload["min_start_stop_saving_pct_min_seed"] == pytest.approx(-0.5)
 
 
 def test_promote_external_step27_checkpoint_updates_registry_best(tmp_path: Path) -> None:

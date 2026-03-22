@@ -191,3 +191,99 @@ def test_pass_requires_envelope_green_when_enabled() -> None:
         )
         is False
     )
+
+
+def test_score_and_pass_can_require_min_seed_thresholds() -> None:
+    weak_worst_seed = {
+        "avg_power_saving_pct": 1.0,
+        "avg_eta_gain_pct": 1.0,
+        "err_failures": 0.0,
+        "start_stop_power_saving_pct": 1.0,
+        "worst_current_peak_ratio": 1.0,
+        "worst_current_mean_ratio": 1.0,
+        "avg_power_saving_pct_min_seed": -0.01,
+        "avg_eta_gain_pct_min_seed": -0.02,
+        "err_failures_max_seed": 1.0,
+        "start_stop_power_saving_pct_min_seed": -0.25,
+        "envelope_all_rows_pass": True,
+    }
+    strict_green = {
+        **weak_worst_seed,
+        "avg_power_saving_pct_min_seed": 0.10,
+        "avg_eta_gain_pct_min_seed": 0.05,
+        "err_failures_max_seed": 0.0,
+        "start_stop_power_saving_pct_min_seed": 0.1,
+    }
+
+    score_red = _score(
+        weak_worst_seed,
+        min_power=0.0,
+        min_eta=0.0,
+        max_eta=25.0,
+        max_err=2.0,
+        min_start_stop=-0.5,
+        max_start_stop=20.0,
+        max_peak_ratio=1.3,
+        max_mean_ratio=1.2,
+        require_envelope_pass=False,
+        min_power_min_seed=0.0,
+        min_eta_min_seed=0.0,
+        max_err_max_seed=0.5,
+        min_start_stop_min_seed=-0.1,
+    )
+    score_green = _score(
+        strict_green,
+        min_power=0.0,
+        min_eta=0.0,
+        max_eta=25.0,
+        max_err=2.0,
+        min_start_stop=-0.5,
+        max_start_stop=20.0,
+        max_peak_ratio=1.3,
+        max_mean_ratio=1.2,
+        require_envelope_pass=False,
+        min_power_min_seed=0.0,
+        min_eta_min_seed=0.0,
+        max_err_max_seed=0.5,
+        min_start_stop_min_seed=-0.1,
+    )
+
+    assert score_green < score_red
+    assert (
+        _pass(
+            weak_worst_seed,
+            min_power=0.0,
+            min_eta=0.0,
+            max_eta=25.0,
+            max_err=2.0,
+            min_start_stop=-0.5,
+            max_start_stop=20.0,
+            max_peak_ratio=1.3,
+            max_mean_ratio=1.2,
+            require_envelope_pass=False,
+            min_power_min_seed=0.0,
+            min_eta_min_seed=0.0,
+            max_err_max_seed=0.5,
+            min_start_stop_min_seed=-0.1,
+        )
+        is False
+    )
+    assert (
+        _pass(
+            strict_green,
+            min_power=0.0,
+            min_eta=0.0,
+            max_eta=25.0,
+            max_err=2.0,
+            min_start_stop=-0.5,
+            max_start_stop=20.0,
+            max_peak_ratio=1.3,
+            max_mean_ratio=1.2,
+            require_envelope_pass=False,
+            min_power_min_seed=0.0,
+            min_eta_min_seed=0.0,
+            max_err_max_seed=0.5,
+            min_start_stop_min_seed=-0.1,
+        )
+        is True
+    )
