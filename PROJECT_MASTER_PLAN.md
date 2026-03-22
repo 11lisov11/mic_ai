@@ -257,6 +257,93 @@ Current facts:
     - this first AL31 warm-start recipe is rejected as a closure path
     - current live `actor_ep005` remains a better base than the new run for practical strict closure
     - the next AL31 step, if reopened, must preserve `start_stop` worst-seed robustness rather than using the same random warm-start recipe
+- Research infrastructure update (`2026-03-22`, late cycle):
+  - `tools/tune_motor_step27.py` now supports explicit offline checkpoint evaluation via:
+    - `--checkpoint-path`
+  - focused regression coverage was extended in:
+    - `tests/test_tune_motor_step27_candidates.py`
+  - `mic_ai/ai/train_ai_id_ref.py` now exposes micro-finetune PPO knobs:
+    - `--lr`
+    - `--entropy-coef`
+  - implication:
+    - post-train candidate rechecks no longer require registry mutation
+    - near-boundary checkpoint nudges can now be attempted without the old fixed optimizer aggressiveness
+- AIR56 late-cycle closure state (`2026-03-22`, latest):
+  - explicit-checkpoint strict local search was executed on the best envelope-green checkpoint:
+    - checkpoint:
+      - `outputs/air56_ep022_mix04_train_20260322/results_run/20260322_102032_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep002.pth`
+    - candidate sweep:
+      - `outputs/air56_ep002_strict_local_20260322/air56_tuning_summary.json`
+    - result:
+      - best candidate remained `pin60_mix_04`
+      - `envelope_all_rows_pass=true`
+      - remaining gap stayed in strict worst-seed aggregate:
+        - `avg_power_saving_pct_min_seed = +0.4764%`
+        - `avg_eta_gain_pct_min_seed = -0.0229%`
+  - a low-lr / low-entropy micro-finetune from that checkpoint was executed:
+    - `outputs/air56_ep002_mix04_micro_lr_20260322/results_run/20260322_115034_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - best checkpoint there became `actor_ep001.pth`
+    - result:
+      - `envelope_all_rows_pass=true`
+      - `avg_eta_gain_pct_mean = +0.00143%`
+      - but `avg_power_saving_pct_min_seed` collapsed to `+0.3564%`
+  - explicit-checkpoint strict local search was then executed on that conservative checkpoint:
+    - `outputs/air56_ep001_micro_strict_local_20260322/air56_tuning_summary.json`
+    - result:
+      - no candidate beat `pin60_mix_04`
+      - candidate-only closure remained impossible from that basin
+  - a power-biased micro-finetune from `actor_ep001` was also executed:
+    - `outputs/air56_ep001_powerbump_micro_20260322/results_run/20260322_121739_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - result:
+      - no checkpoint closed the branch
+      - the best selected checkpoint lost envelope and still missed worst-seed power/eta
+  - a higher-power but envelope-red checkpoint from the low-lr run was also rechecked:
+    - checkpoint:
+      - `outputs/air56_ep002_mix04_etafinetune_20260322/results_run/20260322_110416_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep003.pth`
+    - candidate sweep:
+      - `outputs/air56_ep003_strict_local_20260322/air56_tuning_summary.json`
+    - result:
+      - no candidate restored full envelope while preserving the improved power headroom
+  - conclusion:
+    - AIR56 is now scientifically narrowed to a policy-level tradeoff, not a deploy-parameter problem
+    - current best envelope-green checkpoint remains the older `actor_ep002 + pin60_mix_04`
+    - current best eta-positive envelope-green checkpoint (`actor_ep001`) still misses strict worst-case power
+    - next justified AIR56 step is no longer another candidate sweep:
+      - it must be a truly selective low-lr policy refinement path, ideally with the init checkpoint included in the external snapshot ranking so micro-runs cannot regress by construction
+- AL31 late-cycle closure state (`2026-03-22`, latest):
+  - explicit-checkpoint bridge search was executed on the best surviving checkpoint:
+    - checkpoint:
+      - `outputs/al31_rebuild_round1_20260318a/results_run/20260318_111437_env_research_al31_4_06kw_ai_id_ref/eval/actor_ep005.pth`
+    - bridge sweep:
+      - `outputs/al31_ep005_bridge_search_20260322/al31_tuning_summary.json`
+    - result:
+      - `al31_bridge_05` moved `avg_eta_gain_pct_mean` above zero, but reopened worst-case / envelope tails too aggressively
+  - a tighter midpoint search was then executed:
+    - `outputs/al31_ep005_bridge_mid_20260322/al31_tuning_summary.json`
+    - best candidate:
+      - `al31_mid_04`
+    - metrics:
+      - `envelope_all_rows_pass=true`
+      - `avg_eta_gain_pct_mean = +0.000554%`
+      - `avg_eta_gain_pct_min = -0.004466%`
+      - `start_stop_power_saving_pct_min = +0.8148%`
+    - implication:
+      - the original AL31 mean-pass blocker is closed on this candidate
+      - the remaining AL31 blocker is now only the worst-case eta tail
+  - a low-lr micro-finetune around `al31_mid_04` was executed:
+    - `outputs/al31_mid04_micro_lr_20260322/results_run/20260322_122222_tmp_al31_mid04_train_20260322_ai_id_ref/external_step27_scan/al31_checkpoint_scan_summary.json`
+    - result:
+      - no checkpoint closed the remaining `avg_eta_gain_pct_min >= 0` guardrail
+      - best envelope-green snapshot (`actor_ep004.pth`) improved power headroom but worsened eta to `avg_eta_gain_pct_mean = -0.00343%`
+  - conclusion:
+    - AL31 is now much closer than before:
+      - mean eta is already positive on `al31_mid_04`
+      - start/stop robustness remains green
+    - the remaining AL31 gap is tiny and localized:
+      - `avg_eta_gain_pct_min = -0.004466%`
+    - next justified AL31 step is not another broad warm-start:
+      - either a tiny deploy-side eta micro-search around `al31_mid_04`
+      - or a final canonical Step28 reproduce check once AIR56 is also ready, to confirm that no additional pipeline-level averaging already resolves this tail
 - Low-compute update (`2026-03-16`):
   - AIR56 best no-training candidate under perturbation stayed below acceptance because `eta` remained slightly negative:
     - `outputs/tune_air56_20260316_p02_g12/air56_tuning_summary.json`

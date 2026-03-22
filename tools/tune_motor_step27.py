@@ -22,6 +22,7 @@ from tools.step27_pipeline import (  # noqa: E402
     _build_handcrafted_candidates,
     _candidate_to_supervisor,
     _id_ref_eval_params,
+    _load_agent,
     _load_env_and_agent,
     _sample_supervisor_candidate,
     _sensorless_params,
@@ -465,6 +466,7 @@ def main() -> None:
     parser.add_argument("--foc-feedback-mode", default="encoder", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-feedback-mode", default="sensorless", choices=["encoder", "sensorless"])
     parser.add_argument("--checkpoint-registry", default="config/checkpoint_registry.json")
+    parser.add_argument("--checkpoint-path", default="", help="Optional explicit actor checkpoint path. Overrides checkpoint registry.")
     parser.add_argument("--candidate-json", default="")
     parser.add_argument("--candidate-json-mode", default="append", choices=["append", "replace"])
     parser.add_argument("--seed-perturbation", action="store_true")
@@ -508,10 +510,16 @@ def main() -> None:
     env_cfg, agent, ckpt = _load_env_and_agent(
         MOTOR_REGISTRY[motor].config_path,
         foc_disable_lut=bool(args.foc_disable_lut),
-        require_agent=True,
+        require_agent=not bool(str(args.checkpoint_path).strip()),
         motor_key=str(motor),
         checkpoint_registry_path=str(args.checkpoint_registry),
     )
+    checkpoint_path_raw = str(args.checkpoint_path).strip()
+    if checkpoint_path_raw:
+        ckpt = Path(checkpoint_path_raw).expanduser().resolve()
+        if not ckpt.exists():
+            raise FileNotFoundError(f"Checkpoint path not found: {ckpt}")
+        agent = _load_agent(ckpt)
     if agent is None:
         raise RuntimeError("AI agent was not loaded.")
 
@@ -688,6 +696,7 @@ def main() -> None:
     summary = {
         "motor": motor,
         "checkpoint": "" if ckpt is None else str(ckpt),
+        "checkpoint_source": "explicit" if checkpoint_path_raw else "registry",
         "config_path": MOTOR_REGISTRY[motor].config_path,
         "seeds": seeds,
         "scenarios": scenarios,

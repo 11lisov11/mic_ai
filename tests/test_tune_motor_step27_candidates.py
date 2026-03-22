@@ -4,10 +4,13 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools import tune_motor_step27 as tune_mod
 from tools.tune_motor_step27 import _load_custom_candidates, _pass, _score
 
 
@@ -287,3 +290,90 @@ def test_score_and_pass_can_require_min_seed_thresholds() -> None:
         )
         is True
     )
+
+
+def test_main_accepts_explicit_checkpoint_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    ckpt = tmp_path / "actor_ep002.pth"
+    ckpt.write_bytes(b"test")
+    candidate_json = tmp_path / "candidate.json"
+    candidate_json.write_text(json.dumps([{"tag": "only"}], indent=2), encoding="utf-8")
+    out_dir = tmp_path / "out"
+
+    calls: dict[str, object] = {"load_env_require_agent": None, "load_agent_path": None}
+
+    def _fake_load_env_and_agent(config_path: str, *, foc_disable_lut: bool, require_agent: bool, motor_key: str | None = None, checkpoint_registry_path: str | None = None):
+        calls["load_env_require_agent"] = require_agent
+        env_cfg = object()
+        return env_cfg, None, None
+
+    def _fake_load_agent(path: Path):
+        calls["load_agent_path"] = Path(path)
+        return object()
+
+    def _fake_supervisor_from_env(env_cfg: object):
+        return None
+
+    def _fake_id_ref_eval_params(env_cfg: object):
+        return {
+            "id_ref_alpha": 0.2,
+            "delta_id_max": 0.08,
+            "id_ref_gate_speed_tol_rel": 0.1,
+            "id_ref_gate_min_scale": 0.1,
+            "id_ref_gate_exponent": 1.0,
+        }
+
+    def _fake_eval_candidate(**kwargs):
+        return {
+            "avg_power_saving_pct": 1.0,
+            "avg_eta_gain_pct": 0.5,
+            "err_failures": 0.0,
+            "start_stop_power_saving_pct": 1.0,
+            "worst_current_peak_ratio": 1.0,
+            "worst_current_mean_ratio": 1.0,
+            "avg_power_saving_pct_min_seed": 0.5,
+            "avg_eta_gain_pct_min_seed": 0.1,
+            "err_failures_max_seed": 0.0,
+            "start_stop_power_saving_pct_min_seed": 1.0,
+            "envelope_all_rows_pass": True,
+            "envelope_fail_count": 0,
+            "envelope_scenario_fail_count": 0,
+            "envelope_gap_total": 0.0,
+            "envelope_power_gap": 0.0,
+            "envelope_eta_gap": 0.0,
+            "envelope_peak_gap": 0.0,
+            "envelope_mean_gap": 0.0,
+            "envelope_err_fail_count": 0,
+            "envelope_summary_rows": [],
+        }
+
+    monkeypatch.setattr(tune_mod, "_load_env_and_agent", _fake_load_env_and_agent)
+    monkeypatch.setattr(tune_mod, "_load_agent", _fake_load_agent)
+    monkeypatch.setattr(tune_mod, "_supervisor_from_env", _fake_supervisor_from_env)
+    monkeypatch.setattr(tune_mod, "_id_ref_eval_params", _fake_id_ref_eval_params)
+    monkeypatch.setattr(tune_mod, "_eval_candidate", _fake_eval_candidate)
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "tune_motor_step27.py",
+            "--motor",
+            "air56",
+            "--checkpoint-path",
+            str(ckpt),
+            "--candidate-json",
+            str(candidate_json),
+            "--candidate-json-mode",
+            "replace",
+            "--out-dir",
+            str(out_dir),
+        ],
+    )
+
+    tune_mod.main()
+
+    assert calls["load_env_require_agent"] is False
+    assert calls["load_agent_path"] == ckpt.resolve()
+    summary = json.loads((out_dir / "air56_tuning_summary.json").read_text(encoding="utf-8"))
+    assert summary["checkpoint"] == str(ckpt.resolve())
+    assert summary["checkpoint_source"] == "explicit"

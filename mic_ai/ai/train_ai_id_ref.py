@@ -563,6 +563,8 @@ def train(
     eval_use_total_power: bool,
     include_energy_obs: bool,
     update_every_episodes: int,
+    lr: float = 5e-4,
+    entropy_coef: float = 0.005,
     external_step27_select: bool = False,
     external_step27_motor: str | None = None,
     external_step27_candidate_json: str | None = None,
@@ -668,11 +670,11 @@ def train(
         action_dim=action_dim,
         device="cpu",
         hidden_sizes=hidden_sizes,
-        lr=5e-4,
+        lr=float(lr),
         gamma=0.99,
         gae_lambda=0.95,
         clip_eps=0.2,
-        entropy_coef=0.005,
+        entropy_coef=float(entropy_coef),
         value_coef=0.3,
         max_grad_norm=0.5,
         train_epochs=train_epochs,
@@ -969,6 +971,10 @@ def train(
         "eval_use_total_power": bool(eval_use_total_power),
         "include_energy_obs": bool(include_energy_obs),
         "update_every_episodes": int(update_every),
+        "optimizer": {
+            "lr": float(lr),
+            "entropy_coef": float(entropy_coef),
+        },
         "external_step27_selection": external_step27_selection,
         "external_step27_min_avg_power_saving_pct": float(external_step27_min_avg_power_saving_pct),
         "external_step27_min_avg_eta_gain_pct": float(external_step27_min_avg_eta_gain_pct),
@@ -1067,6 +1073,8 @@ def main() -> None:
         help="Add p_in_norm, p_el_filt, p_shaft_norm and eta_norm to observations.",
     )
     p.add_argument("--update-every-episodes", type=int, default=1, help="PPO update frequency in episodes.")
+    p.add_argument("--lr", type=float, default=5e-4, help="PPO optimizer learning rate.")
+    p.add_argument("--entropy-coef", type=float, default=0.005, help="PPO entropy coefficient.")
     p.add_argument("--eval-interval", type=int, default=0, help="Run scenario_compare every N episodes (0 disables).")
     p.add_argument("--eval-scenarios", type=str, default="speed_step,ramp,load_step", help="Scenarios for eval.")
     p.add_argument("--eval-dt", type=float, default=None, help="Override dt for eval.")
@@ -1195,6 +1203,8 @@ def main() -> None:
         eval_use_total_power=bool(args.eval_use_total_power),
         include_energy_obs=bool(args.include_energy_obs),
         update_every_episodes=int(args.update_every_episodes),
+        lr=float(args.lr),
+        entropy_coef=float(args.entropy_coef),
         external_step27_select=bool(args.external_step27_select),
         external_step27_motor=args.external_step27_motor,
         external_step27_candidate_json=args.external_step27_candidate_json,
