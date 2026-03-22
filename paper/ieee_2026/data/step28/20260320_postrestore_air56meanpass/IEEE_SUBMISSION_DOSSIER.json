@@ -1,0 +1,83 @@
+{
+  "generated_utc": "2026-03-19T22:29:44.598667+00:00",
+  "tag": "20260320_postrestore_air56meanpass",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "status": {
+    "checklist_ready_for_submission": false,
+    "lock_ok": true,
+    "candidate_ready_for_submission": false,
+    "release_commit_manifest_ok": true,
+    "verify_ok": false,
+    "manuscript_template_ok": false,
+    "bundle_present": false,
+    "bundle_ok": false,
+    "passport_failures": 0,
+    "passport_warnings": 2,
+    "dossier_ok": false
+  },
+  "hashes": {
+    "submission_lock_aggregate_sha256": "48dc2618069f5e1418872ede1827b979706d21ac78dba0530711ce58278a86ed",
+    "release_manifest_aggregate_sha256": "7acc39d4e30f3c36d213347b47904130d9d0701971eeb09590da90d502205b3a"
+  },
+  "git": {
+    "commit": "b4370abb91887fe5321e2e5655dc4f37d1be027f",
+    "branch": "main",
+    "dirty": true
+  },
+  "motor_summary_rows": [
+    {
+      "motor": "air56",
+      "avg_power_saving_pct_mean": -28.03674559463861,
+      "avg_power_saving_pct_min": -39.60729368402948,
+      "avg_eta_gain_pct_mean": -10.05727895276238,
+      "avg_eta_gain_pct_min": -14.94891636894904,
+      "err_failures_mean": 3.0,
+      "err_failures_max": 3.0,
+      "start_stop_power_saving_pct_mean": -15.76885710622256,
+      "start_stop_power_saving_pct_min": -16.449765518061366,
+      "mean_pass": false,
+      "worst_case_pass": false,
+      "acceptance_pass": false
+    },
+    {
+      "motor": "al31",
+      "avg_power_saving_pct_mean": -13.890524660794114,
+      "avg_power_saving_pct_min": -15.648160330568754,
+      "avg_eta_gain_pct_mean": 0.0500906729393535,
+      "avg_eta_gain_pct_min": 0.0411900649210761,
+      "err_failures_mean": 4.0,
+      "err_failures_max": 4.0,
+      "start_stop_power_saving_pct_mean": -55.81762851141982,
+      "start_stop_power_saving_pct_min": -63.02588433168055,
+      "mean_pass": false,
+      "worst_case_pass": false,
+      "acceptance_pass": false
+    },
+    {
+      "motor": "ao2",
+      "avg_power_saving_pct_mean": -329.5705074071316,
+      "avg_power_saving_pct_min": -442.5968482034255,
+      "avg_eta_gain_pct_mean": -62.00316530500709,
+      "avg_eta_gain_pct_min": -78.99910029762407,
+      "err_failures_mean": 3.8,
+      "err_failures_max": 4.0,
+      "start_stop_power_saving_pct_mean": -129.2426320340416,
+      "start_stop_power_saving_pct_min": -377.1430898001777,
+      "mean_pass": false,
+      "worst_case_pass": false,
+      "acceptance_pass": false
+    }
+  ],
+  "artifacts": {
+    "checklist_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\FINAL_CHECKLIST_AUTO.md",
+    "lock_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\submission_candidate_lock.json",
+    "candidate_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\SUBMISSION_CANDIDATE.json",
+    "release_manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\RELEASE_COMMIT_MANIFEST.json",
+    "verify_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\VERIFY_SUBMISSION_CANDIDATE.json",
+    "template_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\MANUSCRIPT_TEMPLATE_REPORT.json",
+    "bundle_manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\submission_bundle\\20260320_postrestore_air56meanpass\\submission_bundle_manifest.json",
+    "motor_summary_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\derived_ieee\\motor_tuning_acceptance_summary.json",
+    "passport_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass\\passport\\passport_compare_3motors.json"
+  }
+}

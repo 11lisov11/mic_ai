@@ -1,0 +1,103 @@
+{
+  "generated_utc": "2026-03-19T22:29:44.775731+00:00",
+  "manuscript": "C:\\mic_theory\\paper\\ieee_2026\\manuscript.md",
+  "paths_total": 18,
+  "paths_existing": 18,
+  "paths_missing": 0,
+  "has_figure_mentions": true,
+  "has_table_mentions": true,
+  "ok": true,
+  "existing_paths": [
+    {
+      "token": "tools/reproduce_ieee_step28.py",
+      "resolved_path": "C:\\mic_theory\\tools\\reproduce_ieee_step28.py",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/step28_ieee_summary.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\step28_ieee_summary.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\ieee_pi_foc_mic_stats.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/derived_ieee/motor_tuning_acceptance_summary.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\derived_ieee\\motor_tuning_acceptance_summary.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/release_snapshot.json",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\release_snapshot.json",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/promotion_manifest.json",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\promotion_manifest.json",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/fig/fig1_mic_methodology.png",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig1_mic_methodology.png",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/fig/fig2_pi_foc_mic_power.pdf",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig2_pi_foc_mic_power.pdf",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/fig/fig3_air56_working_characteristics.pdf",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig3_air56_working_characteristics.pdf",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/fig/fig4_cross_motor_robustness.pdf",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig4_cross_motor_robustness.pdf",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/fig/fig5_training_to_foc.pdf",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\fig\\fig5_training_to_foc.pdf",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/tables/step28_ieee_summary.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\step28_ieee_summary.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/tables/ieee_pi_foc_mic_stats.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\ieee_pi_foc_mic_stats.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/tables/motor_tuning_acceptance_summary.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\motor_tuning_acceptance_summary.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/release/20260303_ai_config_locked_nodrift/tables/passport_compare_3motors.csv",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\release\\20260303_ai_config_locked_nodrift\\tables\\passport_compare_3motors.csv",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/FINAL_CHECKLIST.md",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\FINAL_CHECKLIST.md",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/FINAL_CHECKLIST_AUTO.md",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\FINAL_CHECKLIST_AUTO.md",
+      "exists": true
+    },
+    {
+      "token": "paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/package_manifest.json",
+      "resolved_path": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260303_ai_config_locked_nodrift\\package_manifest.json",
+      "exists": true
+    }
+  ],
+  "missing_paths": []
+}

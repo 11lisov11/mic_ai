@@ -1,0 +1,130 @@
+{
+  "generated_utc": "2026-03-19T22:29:44.436916+00:00",
+  "tag": "20260320_postrestore_air56meanpass",
+  "repo_root": "C:\\mic_theory",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260320_postrestore_air56meanpass",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "git": {
+    "commit": "b4370abb91887fe5321e2e5655dc4f37d1be027f",
+    "branch": "main",
+    "dirty": true,
+    "dirty_lines_count": 4
+  },
+  "allow_dirty": true,
+  "required_ok": true,
+  "manifest_ok": true,
+  "required_missing": [],
+  "optional_missing": [
+    "paper/ieee_2026/data/release/20260320_postrestore_air56meanpass/promotion_manifest.json",
+    "paper/ieee_2026/data/release/20260320_postrestore_air56meanpass/release_snapshot.json"
+  ],
+  "files_count": 15,
+  "aggregate_sha256": "7acc39d4e30f3c36d213347b47904130d9d0701971eeb09590da90d502205b3a",
+  "files": [
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 2897,
+      "sha256": "ffae6d163300bb4363f1ed231121a0325fce489e5e920c611f129e50b26c5def"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 609,
+      "sha256": "e8a41ec4d15eb865fcd67d902ed570152e7a1da10704165a1cdddce1f68645e6"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 819,
+      "sha256": "6fc3da0674815acb806c0749e731fcfef589ec6818de6f81c4eab57da67bb78f"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 3086,
+      "sha256": "8cdade88897f5a371e5eeb112781ccf136fadc27028e444cf3d2f74198696235"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 625,
+      "sha256": "53a10140297ff00b35945f55dbf28c1acd925fbee97cf6f05f4681f983579be8"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 852,
+      "sha256": "1e192540ccadd737ab2fbab98f44692fee561e707152ef46d9d138fbd82847bf"
+    },
+    {
+      "group": "step28_derived",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 2875,
+      "sha256": "fe8ca11218eab13206e57d680e96b33dcb07f6fb06df9b9e63833d5d5bc24429"
+    },
+    {
+      "group": "step28_derived",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/derived_ieee/motor_tuning_acceptance_summary.json",
+      "size_bytes": 1629,
+      "sha256": "5cf40f6dd9eb52374432cb0441dc0a46481b71ba2121bd6c49bb3cb4f7fe7fbf"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/package_manifest.json",
+      "size_bytes": 3206,
+      "sha256": "28b25cd55640e1cba4737db50ee45714cb915e8cb42372d18ca11afaab39c34b"
+    },
+    {
+      "group": "step28_passport",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/passport/passport_compare_3motors.json",
+      "size_bytes": 5616,
+      "sha256": "8aa0dd5e14b59420575b2112843ce8999b54356f3b242ac80553be4adea9c701"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/step28_ieee_summary.csv",
+      "size_bytes": 1526,
+      "sha256": "c7a760f04bf27b7f3597f252e59e7371a7465ef8ad926ce44d8d0e43668427cf"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/step28_ieee_summary.md",
+      "size_bytes": 1325,
+      "sha256": "07339a151f58ec381f79581428c779392c6a0c081f9e8b1b30736756e4cd261c"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260320_postrestore_air56meanpass/submission_candidate_lock.json",
+      "size_bytes": 10642,
+      "sha256": "8a96332c82933b5793aed9967bf4de4a03c0c07248a17d0f0d8b6b63a3583d70"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/guardrails_policy.json",
+      "size_bytes": 261,
+      "sha256": "d56e5dc4b387d392019fd53cd0018047449f3081a38cc5e6b660121d113d4e17"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/manuscript.md",
+      "size_bytes": 5106,
+      "sha256": "9a73ff950013d28d9f47b81267663a64fbee90768ba672e2ae9cf5123342e6b9"
+    }
+  ]
+}
