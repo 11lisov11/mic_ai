@@ -203,6 +203,60 @@ Current facts:
   - next low-compute checkpoint-level recipe was prepared from:
     - `outputs/al31_rebuild_round1_20260318a/results_run/20260318_111437_env_research_al31_4_06kw_ai_id_ref/eval/actor_ep005.pth`
   - that recipe should be executed only after AIR56 is closed or if AIR56 compute is paused
+- AIR56 continuation (`2026-03-22`, later cycle):
+  - a longer envelope-aware AIR56 warm-start was executed from the best known `actor_ep002 + pin60_hard_b` lineage:
+    - `outputs/air56_envelope_long_20260322/results_run/20260322_075249_tmp_air56_refine_ep002_pin60hb_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - external selection was switched to:
+      - `use_envelope_acceptance=true`
+      - full strict `p0.2` aggregate + min-seed thresholds
+  - result:
+    - best checkpoint became `actor_ep009.pth`
+    - this is the first AIR56 checkpoint in this branch that reduced the canonical failure count to one remaining row-level failure:
+      - `envelope_fail_count = 1`
+      - remaining failure is in `speed_step` (`pass_count = 4/5`)
+    - but strict aggregate closure is still red:
+      - `avg_power_saving_pct = +0.4542%`
+      - `avg_eta_gain_pct = -0.00546%`
+      - `avg_power_saving_pct_min_seed = +0.3105%`
+      - `avg_eta_gain_pct_min_seed = -0.02616%`
+  - implication:
+    - the longer AIR56 run improved canonical envelope behaviour materially
+    - but it did not close the aggregate `power/eta` gate, so the selector now exposes a cleaner tradeoff rather than a solved branch
+  - post-train candidate recheck on `actor_ep009`:
+    - `outputs/air56_ep009_candidate_recheck_20260322/air56_tuning_summary.json`
+    - no candidate achieved `acceptance_pass=true`
+    - `sp60_base` / `pin60_base` moved `eta` positive, but both dropped `avg_power_saving_pct` below `0.5`
+    - best canonical-envelope candidate remained `pin60_hard_b`
+  - post-train candidate recheck on the higher-power checkpoint `actor_ep019`:
+    - `outputs/air56_ep019_candidate_recheck_20260322/air56_tuning_summary.json`
+    - no candidate achieved `acceptance_pass=true`
+    - `sp60_soft_b` fixed `speed_step` locally and reduced the remaining issue to `load_step`, but aggregate metrics still fell below the strict `power/eta` min-seed gate
+    - the original `pin60_hard_b` candidate preserved higher `power`, but still failed on `speed_step`
+  - conclusion:
+    - the cheap AIR56 closure path is now exhausted for the current lineage:
+      - longer warm-start with canonical-envelope checkpoint selection did not pass
+      - post-train candidate rechecks on the two most promising checkpoints did not pass
+    - the next justified AIR56 step is no longer another `pin/sp` local sweep:
+      - it must be a materially different training recipe aimed at the last `speed_step` error tail while keeping `power/eta` above the strict min-seed gate
+- AL31 execution result (`2026-03-22`, later cycle):
+  - the prepared low-compute warm-start recipe was executed:
+    - `outputs/al31_warmstart_eta03a_step28_20260322/results_run/20260322_084136_env_research_al31_4_06kw_ai_id_ref/external_step27_scan/al31_checkpoint_scan_summary.json`
+  - outcome:
+    - the run did not close AL31
+    - the selector promoted `actor_ep000.pth` only because it was the sole checkpoint with `envelope_all_rows_pass=true`
+    - but that selected checkpoint still failed strict aggregate acceptance:
+      - `avg_eta_gain_pct = -0.00469%`
+      - `avg_power_saving_pct_min_seed = -0.2000%`
+      - `start_stop_power_saving_pct_min_seed = -0.6455%`
+  - more aggressive later checkpoints in the same run improved mean `power/eta`:
+    - e.g. `actor_ep019.pth` reached:
+      - `avg_power_saving_pct = +1.4026%`
+      - `avg_eta_gain_pct = +0.00285%`
+    - but it broke canonical `start_stop` robustness (`pass_count = 4/5`) and therefore still failed strict selection
+  - conclusion:
+    - this first AL31 warm-start recipe is rejected as a closure path
+    - current live `actor_ep005` remains a better base than the new run for practical strict closure
+    - the next AL31 step, if reopened, must preserve `start_stop` worst-seed robustness rather than using the same random warm-start recipe
 - Low-compute update (`2026-03-16`):
   - AIR56 best no-training candidate under perturbation stayed below acceptance because `eta` remained slightly negative:
     - `outputs/tune_air56_20260316_p02_g12/air56_tuning_summary.json`
