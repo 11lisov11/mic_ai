@@ -328,13 +328,28 @@ def _resolve_checkpoint(
     )
 
 
-def _load_agent(ckpt: Path) -> PPOVoltageAgent:
+def _load_agent(ckpt: Path, feature_keys: List[str] | None = None) -> PPOVoltageAgent:
     state = torch.load(ckpt, map_location="cpu")
     hidden = _infer_hidden_sizes(state) or (128, 128)
     action_dim = _infer_action_dim(state)
-    feature_keys = _resolve_feature_keys(None, state)
-    agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
-    agent.net.load_state_dict(state)
+    resolved_feature_keys = list(feature_keys) if feature_keys else _resolve_feature_keys(None, state)
+    agent = PPOVoltageAgent(feature_keys=resolved_feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
+    model_state = agent.net.state_dict()
+    adapted_state = {}
+    for key, value in state.items():
+        target = model_state.get(key)
+        if target is None or not isinstance(value, torch.Tensor) or tuple(value.shape) == tuple(target.shape):
+            adapted_state[key] = value
+            continue
+        if value.ndim == 2 and target.ndim == 2 and value.shape[0] == target.shape[0]:
+            padded = target.detach().clone()
+            padded.zero_()
+            cols = min(int(value.shape[1]), int(target.shape[1]))
+            padded[:, :cols] = value[:, :cols].to(dtype=target.dtype)
+            adapted_state[key] = padded
+            continue
+        adapted_state[key] = value
+    agent.net.load_state_dict(adapted_state, strict=False)
     agent.set_action_std(1e-6)
     return agent
 

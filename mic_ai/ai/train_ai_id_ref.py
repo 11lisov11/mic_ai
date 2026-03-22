@@ -40,10 +40,12 @@ BASE_FEATURE_KEYS = [
 ]
 
 
-def build_feature_keys(include_energy_obs: bool) -> List[str]:
+def build_feature_keys(include_energy_obs: bool, include_episode_eta_obs: bool = False) -> List[str]:
     keys = list(BASE_FEATURE_KEYS)
     if include_energy_obs:
         keys += ["p_in_norm", "p_el_filt", "p_shaft_norm", "eta_norm"]
+    if include_episode_eta_obs:
+        keys += ["eta_episode_norm"]
     # de-dup preserving order
     seen = set()
     out: List[str] = []
@@ -58,7 +60,7 @@ def build_feature_keys(include_energy_obs: bool) -> List[str]:
 # Default feature set for id_ref policies.
 # NOTE: Paper checkpoints were trained with energy-related observations enabled.
 # Keep this in sync so evaluation tools (e.g. scenario_compare) load those checkpoints by default.
-FEATURE_KEYS = build_feature_keys(include_energy_obs=True)
+FEATURE_KEYS = build_feature_keys(include_energy_obs=True, include_episode_eta_obs=False)
 
 OUTPUT_DIR = Path(os.environ.get("MIC_AI_ID_REF_OUTPUT_DIR", "outputs/ai_id_ref"))
 EPISODE_LOG_DIR = OUTPUT_DIR / "episode_logs"
@@ -261,6 +263,7 @@ def _run_external_step27_selection(
     max_err_failures_max_seed: float | None,
     min_start_stop_saving_pct_min_seed: float | None,
     top_k: int,
+    feature_keys: List[str] | None = None,
     init_checkpoint: str | None = None,
     include_init_checkpoint: bool = False,
 ) -> Dict[str, object]:
@@ -304,6 +307,7 @@ def _run_external_step27_selection(
         max_err_failures_max_seed=max_err_failures_max_seed,
         min_start_stop_saving_pct_min_seed=min_start_stop_saving_pct_min_seed,
         top_k=int(top_k),
+        feature_keys=None if feature_keys is None else list(feature_keys),
     )
     best = dict(summary.get("best") or {})
     selected_raw = str(best.get("checkpoint", "")).strip()
@@ -392,6 +396,32 @@ def _promote_external_step27_checkpoint(
     return payload
 
 
+def _adapt_checkpoint_state_dict_for_model(
+    state_dict: Dict[str, torch.Tensor],
+    model_state_dict: Dict[str, torch.Tensor],
+) -> tuple[Dict[str, torch.Tensor], List[str]]:
+    adapted: Dict[str, torch.Tensor] = {}
+    adjusted: List[str] = []
+    for key, value in state_dict.items():
+        target = model_state_dict.get(key)
+        if target is None or not isinstance(value, torch.Tensor):
+            adapted[key] = value
+            continue
+        if tuple(value.shape) == tuple(target.shape):
+            adapted[key] = value
+            continue
+        if value.ndim == 2 and target.ndim == 2 and value.shape[0] == target.shape[0]:
+            padded = target.detach().clone()
+            padded.zero_()
+            cols = min(int(value.shape[1]), int(target.shape[1]))
+            padded[:, :cols] = value[:, :cols].to(dtype=target.dtype)
+            adapted[key] = padded
+            adjusted.append(key)
+            continue
+        adapted[key] = value
+    return adapted, adjusted
+
+
 def build_env(
     env_config_path: str,
     episode_steps: int,
@@ -403,6 +433,7 @@ def build_env(
     w_mag: float,
     w_shaft: float,
     w_eta: float,
+    w_eta_episode: float,
     eta_clip: float,
     override_load_torque: bool,
     override_omega_ref: bool,
@@ -480,7 +511,14 @@ def build_env(
         w_ai_id_mag=float(w_mag),
         w_ai_id_shaft=float(w_shaft),
         w_ai_id_eta=float(w_eta),
+        w_ai_id_eta_episode=float(w_eta_episode),
         ai_id_eta_clip=float(eta_clip),
+        ai_id_energy_gate_mode=str(getattr(env_cfg, "ai_id_energy_gate_mode", "hard")),
+        ai_id_energy_gate_min_scale=float(getattr(env_cfg, "ai_id_energy_gate_min_scale", 0.0)),
+        ai_id_energy_gate_exponent=float(getattr(env_cfg, "ai_id_energy_gate_exponent", 1.0)),
+        ai_id_terminal_energy_bonus=float(getattr(env_cfg, "ai_id_terminal_energy_bonus", 0.0)),
+        ai_id_terminal_eta_target=float(getattr(env_cfg, "ai_id_terminal_eta_target", 0.0)),
+        ai_id_terminal_shaft_ratio_min=float(getattr(env_cfg, "ai_id_terminal_shaft_ratio_min", 0.0)),
         sigma_omega=float(getattr(env_cfg, "ai_sigma_omega", 0.05)),
         sigma_id=float(getattr(env_cfg, "ai_sigma_id", 0.03)),
         sigma_iq=float(getattr(env_cfg, "ai_sigma_iq", 0.03)),
@@ -509,6 +547,8 @@ def build_env(
         # Keep some safety margin: phase current can exceed iq_limit because id_ref and iq add
         # in the current vector. Too-tight limit would truncate episodes near the end of start/stop.
         i_hard_limit=float(i_limit * 4.0),
+        i_soft_limit=float(getattr(env_cfg, "i_soft_limit", 1.2)),
+        i_soft_penalty=float(getattr(env_cfg, "i_soft_penalty", 0.5)),
         load_torque_override=None if load_torque is None else float(load_torque),
         override_load_torque=bool(override_load_torque),
         override_omega_ref=bool(override_omega_ref),
@@ -540,6 +580,7 @@ def train(
     w_mag: float,
     w_shaft: float,
     w_eta: float,
+    w_eta_episode: float,
     eta_clip: float,
     id_ref_alpha: float,
     id_ref_rate_limit: float | None,
@@ -576,6 +617,7 @@ def train(
     eval_error_tol_abs: float,
     eval_use_total_power: bool,
     include_energy_obs: bool,
+    include_episode_eta_obs: bool,
     update_every_episodes: int,
     lr: float = 5e-4,
     entropy_coef: float = 0.005,
@@ -608,7 +650,7 @@ def train(
     output_dir: str | None = None,
     results_root: str | None = None,
 ) -> Dict[str, str]:
-    feature_keys = build_feature_keys(include_energy_obs)
+    feature_keys = build_feature_keys(include_energy_obs, include_episode_eta_obs)
     if seed is not None:
         random.seed(int(seed))
         np.random.seed(int(seed))
@@ -625,6 +667,7 @@ def train(
         w_mag=w_mag,
         w_shaft=w_shaft,
         w_eta=w_eta,
+        w_eta_episode=w_eta_episode,
         eta_clip=eta_clip,
         override_load_torque=override_load_torque,
         override_omega_ref=override_omega_ref,
@@ -704,12 +747,14 @@ def train(
             state = state["state_dict"]
         if not isinstance(state, dict):
             raise ValueError(f"Unsupported checkpoint format: {init_path}")
+        state, adjusted_keys = _adapt_checkpoint_state_dict_for_model(state, agent.net.state_dict())
         missing_keys, unexpected_keys = agent.net.load_state_dict(state, strict=False)
         print(
-            "[train_ai_id_ref] warm-start checkpoint={} missing_keys={} unexpected_keys={}".format(
+            "[train_ai_id_ref] warm-start checkpoint={} missing_keys={} unexpected_keys={} adjusted_keys={}".format(
                 init_path,
                 len(missing_keys),
                 len(unexpected_keys),
+                len(adjusted_keys),
             )
         )
 
@@ -933,6 +978,7 @@ def train(
             max_err_failures_max_seed=external_step27_max_err_failures_max_seed,
             min_start_stop_saving_pct_min_seed=external_step27_min_start_stop_saving_pct_min_seed,
             top_k=int(external_step27_top_k),
+            feature_keys=feature_keys,
             init_checkpoint=init_checkpoint,
             include_init_checkpoint=bool(external_step27_include_init_checkpoint),
         )
@@ -954,6 +1000,7 @@ def train(
             "w_mag": float(w_mag),
             "w_shaft": float(w_shaft),
             "w_eta": float(w_eta),
+            "w_eta_episode": float(w_eta_episode),
             "eta_clip": float(eta_clip),
         },
         "id_ref_alpha": float(id_ref_alpha),
@@ -1055,6 +1102,7 @@ def main() -> None:
     p.add_argument("--w-mag", type=float, default=0.0)
     p.add_argument("--w-shaft", type=float, default=2.0, help="Penalty for shaft-power deficit vs omega_ref*load.")
     p.add_argument("--w-eta", type=float, default=1.0, help="Penalty for low instantaneous efficiency.")
+    p.add_argument("--w-eta-episode", type=float, default=0.0, help="Penalty for low running episode efficiency.")
     p.add_argument("--eta-clip", type=float, default=1.2, help="Upper clip for eta term in reward.")
     p.add_argument("--ai-id-speed-tol", type=float, default=0.5)
     p.add_argument("--ai-id-speed-tol-rel", type=float, default=None, help="Relative speed tol (e.g., 0.05).")
@@ -1089,6 +1137,11 @@ def main() -> None:
         "--include-energy-obs",
         action="store_true",
         help="Add p_in_norm, p_el_filt, p_shaft_norm and eta_norm to observations.",
+    )
+    p.add_argument(
+        "--include-episode-eta-obs",
+        action="store_true",
+        help="Add running episode eta_energy to observations.",
     )
     p.add_argument("--update-every-episodes", type=int, default=1, help="PPO update frequency in episodes.")
     p.add_argument("--lr", type=float, default=5e-4, help="PPO optimizer learning rate.")
@@ -1185,6 +1238,7 @@ def main() -> None:
         w_mag=args.w_mag,
         w_shaft=args.w_shaft,
         w_eta=args.w_eta,
+        w_eta_episode=args.w_eta_episode,
         eta_clip=args.eta_clip,
         id_ref_alpha=float(args.id_ref_alpha),
         id_ref_rate_limit=None if args.id_ref_rate_limit is None else float(args.id_ref_rate_limit),
@@ -1221,6 +1275,7 @@ def main() -> None:
         eval_error_tol_abs=float(args.eval_error_tol_abs),
         eval_use_total_power=bool(args.eval_use_total_power),
         include_energy_obs=bool(args.include_energy_obs),
+        include_episode_eta_obs=bool(args.include_episode_eta_obs),
         update_every_episodes=int(args.update_every_episodes),
         lr=float(args.lr),
         entropy_coef=float(args.entropy_coef),

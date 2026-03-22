@@ -60,10 +60,14 @@ class AiEnvConfig:
     w_ai_id_mag: float = 0.0
     w_ai_id_shaft: float = 0.0
     w_ai_id_eta: float = 0.0
+    w_ai_id_eta_episode: float = 0.0
     ai_id_eta_clip: float = 1.2
     ai_id_energy_gate_mode: str = "hard"
     ai_id_energy_gate_min_scale: float = 0.0
     ai_id_energy_gate_exponent: float = 1.0
+    ai_id_terminal_energy_bonus: float = 0.0
+    ai_id_terminal_eta_target: float = 0.0
+    ai_id_terminal_shaft_ratio_min: float = 0.0
     id_ref_alpha: float = 1.0
     id_ref_rate_limit: float | None = None
     id_ref_gate_speed_tol: float | None = None
@@ -122,6 +126,65 @@ def compute_energy_reward_gate(
     return float(max(min_scale, min(1.0, gate)))
 
 
+def compute_running_eta_penalty(
+    *,
+    cum_p_shaft_pos: float,
+    cum_p_in_pos: float,
+    eta_clip: float,
+    weight: float,
+) -> tuple[float, float]:
+    cum_p_shaft_pos = float(max(cum_p_shaft_pos, 0.0))
+    cum_p_in_pos = float(max(cum_p_in_pos, 0.0))
+    weight = float(max(weight, 0.0))
+    if weight <= 0.0 or cum_p_in_pos <= 1e-9:
+        return 0.0, 0.0
+    eta_clip = float(max(eta_clip, 1e-9))
+    eta_running = cum_p_shaft_pos / cum_p_in_pos
+    penalty = weight * max(0.0, 1.0 - eta_running / eta_clip)
+    return float(eta_running), float(penalty)
+
+
+def compute_terminal_energy_bonus(
+    *,
+    eta_energy: float,
+    mean_speed_error: float,
+    speed_tol: float,
+    p_shaft_pos_total: float,
+    p_shaft_target_total: float,
+    reward_scale: float = 0.0,
+    eta_target: float = 0.0,
+    shaft_ratio_min: float = 0.0,
+    gate_mode: str = "hard",
+    gate_min_scale: float = 0.0,
+    gate_exponent: float = 1.0,
+) -> float:
+    reward_scale = float(max(reward_scale, 0.0))
+    if reward_scale <= 0.0:
+        return 0.0
+    eta_energy = float(max(eta_energy, 0.0))
+    eta_target = float(max(eta_target, 0.0))
+    eta_gain = max(0.0, eta_energy - eta_target)
+    if eta_gain <= 0.0:
+        return 0.0
+    target_total = float(max(p_shaft_target_total, 0.0))
+    shaft_total = float(max(p_shaft_pos_total, 0.0))
+    if target_total <= 1e-9:
+        shaft_ratio = 1.0 if shaft_total <= 1e-9 else 0.0
+    else:
+        shaft_ratio = float(min(1.0, shaft_total / target_total))
+    shaft_ratio_min = float(max(shaft_ratio_min, 0.0))
+    if shaft_ratio < shaft_ratio_min:
+        return 0.0
+    tracking_gate = compute_energy_reward_gate(
+        speed_err_abs=float(max(mean_speed_error, 0.0)),
+        speed_tol=float(max(speed_tol, 1e-9)),
+        mode=gate_mode,
+        min_scale=gate_min_scale,
+        exponent=gate_exponent,
+    )
+    return float(reward_scale * eta_gain * shaft_ratio * tracking_gate)
+
+
 class MicAiAIEnv:
     """
     Thin wrapper over an existing motor environment to expose a Gym-like API for AI agents.
@@ -174,11 +237,13 @@ class MicAiAIEnv:
         self._cum_p_shaft_pos = 0.0
         self._cum_p_shaft_target_pos = 0.0
         self._cum_eta_inst = 0.0
+        self._cum_terminal_energy_bonus = 0.0
         self._cum_i_rms_abc = 0.0
         self._p_el_filt = 0.0
         self._p_in_norm = 0.0
         self._p_shaft_norm = 0.0
         self._eta_inst = 0.0
+        self._eta_episode = 0.0
         # Use a single source of truth for episode length; allow optional alias episode_max_steps on config.
         self.episode_max_steps = int(max(getattr(ai_config, "episode_max_steps", ai_config.episode_steps), 1))
         self.cfg.episode_steps = self.episode_max_steps
@@ -366,6 +431,7 @@ class MicAiAIEnv:
             "p_el_filt": float(self._p_el_filt),
             "p_shaft_norm": float(self._p_shaft_norm),
             "eta_norm": float(self._eta_inst),
+            "eta_episode_norm": float(self._eta_episode),
             "sin_theta_e": _clip(math.sin(theta_e), low=-1e3, high=1e3),
             "cos_theta_e": _clip(math.cos(theta_e), low=-1e3, high=1e3),
             "last_action_vd": float(self._prev_vd_norm),
@@ -472,11 +538,13 @@ class MicAiAIEnv:
         self._cum_p_shaft_pos = 0.0
         self._cum_p_shaft_target_pos = 0.0
         self._cum_eta_inst = 0.0
+        self._cum_terminal_energy_bonus = 0.0
         self._cum_i_rms_abc = 0.0
         self._p_el_filt = 0.0
         self._p_in_norm = 0.0
         self._p_shaft_norm = 0.0
         self._eta_inst = 0.0
+        self._eta_episode = 0.0
         self._hard_terminated = False
         self._overcurrent_steps = 0
         stages = tuple(getattr(self.cfg, "curriculum_omega_pu", (0.3, 0.5, 0.7)))
@@ -1076,6 +1144,21 @@ class MicAiAIEnv:
         p_in = float(np.clip(p_in, -1e9, 1e9))
         return p_in, max(0.0, p_in)
 
+    def _compute_ai_id_terminal_energy_bonus(self, *, speed_tol: float) -> float:
+        return compute_terminal_energy_bonus(
+            eta_energy=self._cum_p_shaft_pos / max(self._cum_p_in_pos, 1e-9),
+            mean_speed_error=self._cum_speed_err / max(self.step_count, 1),
+            speed_tol=float(max(speed_tol, 1e-9)),
+            p_shaft_pos_total=self._cum_p_shaft_pos,
+            p_shaft_target_total=self._cum_p_shaft_target_pos,
+            reward_scale=float(getattr(self.cfg, "ai_id_terminal_energy_bonus", 0.0)),
+            eta_target=float(getattr(self.cfg, "ai_id_terminal_eta_target", 0.0)),
+            shaft_ratio_min=float(getattr(self.cfg, "ai_id_terminal_shaft_ratio_min", 0.0)),
+            gate_mode=str(getattr(self.cfg, "ai_id_energy_gate_mode", "hard")),
+            gate_min_scale=float(getattr(self.cfg, "ai_id_energy_gate_min_scale", 0.0)),
+            gate_exponent=float(getattr(self.cfg, "ai_id_energy_gate_exponent", 1.0)),
+        )
+
     def _compute_ext_reward(self, omega: float, omega_ref: float, i_rms: float) -> tuple[float, dict]:
         speed_err = abs(omega_ref - omega)
         r_ext = -self.cfg.w_speed_error * speed_err - self.cfg.w_current_rms * i_rms
@@ -1351,6 +1434,10 @@ class MicAiAIEnv:
             eta_clip_info = float(max(getattr(self.cfg, "ai_id_eta_clip", 1.2), 1e-3))
             eta_inst = float(np.clip(eta_inst, 0.0, eta_clip_info))
             self._eta_inst = eta_inst
+            eta_episode = 0.0
+            if (self._cum_p_in_pos + p_in_pos) > 1e-9:
+                eta_episode = (self._cum_p_shaft_pos + p_shaft_pos) / max(self._cum_p_in_pos + p_in_pos, 1e-9)
+            self._eta_episode = float(np.clip(eta_episode, 0.0, eta_clip_info))
 
             obs_next = self._build_agent_obs(
                 omega=omega_meas,
@@ -1372,6 +1459,7 @@ class MicAiAIEnv:
             w_mag = float(getattr(self.cfg, "w_ai_id_mag", 0.0))
             w_shaft = float(getattr(self.cfg, "w_ai_id_shaft", 0.0))
             w_eta = float(getattr(self.cfg, "w_ai_id_eta", 0.0))
+            w_eta_episode = float(getattr(self.cfg, "w_ai_id_eta_episode", 0.0))
             eta_clip = float(max(getattr(self.cfg, "ai_id_eta_clip", 1.2), 1e-3))
             energy_gate_mode = str(getattr(self.cfg, "ai_id_energy_gate_mode", "hard"))
             energy_gate_min_scale = float(getattr(self.cfg, "ai_id_energy_gate_min_scale", 0.0))
@@ -1383,13 +1471,23 @@ class MicAiAIEnv:
             id_dev = abs(float(id_ref_cmd) - float(self._id_ref_base))
             id_dev_norm = id_dev / max(current_limit, 1e-6)
             shaft_deficit_norm = max(0.0, p_shaft_target_pos - p_shaft_pos) / p_base
+            cum_p_in_pos_next = self._cum_p_in_pos + p_in_pos
+            cum_p_shaft_pos_next = self._cum_p_shaft_pos + p_shaft_pos
 
             power_term = w_power * p_in_norm
             current_term = w_current * (i_rms / current_limit)
             shaft_term = w_shaft * shaft_deficit_norm
             eta_term = 0.0
+            eta_episode = 0.0
+            eta_episode_term = 0.0
             if p_shaft_target_pos > 0.05 * p_base:
                 eta_term = w_eta * max(0.0, 1.0 - eta_inst / eta_clip)
+                eta_episode, eta_episode_term = compute_running_eta_penalty(
+                    cum_p_shaft_pos=cum_p_shaft_pos_next,
+                    cum_p_in_pos=cum_p_in_pos_next,
+                    eta_clip=eta_clip,
+                    weight=w_eta_episode,
+                )
             energy_gate = compute_energy_reward_gate(
                 speed_err_abs=speed_err_abs,
                 speed_tol=speed_tol,
@@ -1401,6 +1499,7 @@ class MicAiAIEnv:
             current_term *= energy_gate
             shaft_term *= energy_gate
             eta_term *= energy_gate
+            eta_episode_term *= energy_gate
             i_excess = max(0.0, i_rms - max(i_soft_limit, 0.0))
             i_excess_norm = i_excess / current_limit
             current_term += i_soft_penalty * i_excess_norm
@@ -1410,6 +1509,7 @@ class MicAiAIEnv:
                 + current_term
                 + shaft_term
                 + eta_term
+                + eta_episode_term
                 + w_smooth * (d_id_norm**2)
                 + w_mag * id_dev_norm
             )
@@ -1442,6 +1542,12 @@ class MicAiAIEnv:
             self.step_count += 1
 
             done = self.step_count >= self.episode_max_steps or hard_over_i or invalid_state
+            terminal_energy_bonus = 0.0
+            if done:
+                terminal_energy_bonus = self._compute_ai_id_terminal_energy_bonus(speed_tol=speed_tol)
+                reward += terminal_energy_bonus
+                self._cum_r_ext += terminal_energy_bonus
+                self._cum_terminal_energy_bonus += terminal_energy_bonus
             info.update(
                 {
                     "speed_err": speed_err_abs,
@@ -1455,10 +1561,13 @@ class MicAiAIEnv:
                     "p_shaft_pos": p_shaft_pos,
                     "p_shaft_target_pos": p_shaft_target_pos,
                     "eta_inst": eta_inst,
+                    "eta_episode": eta_episode,
                     "id_ref_cmd": float(id_ref_cmd),
                     "d_id_norm": d_id_norm,
                     "shaft_deficit_norm": shaft_deficit_norm,
                     "energy_gate": energy_gate,
+                    "eta_episode_term": eta_episode_term,
+                    "terminal_energy_bonus": terminal_energy_bonus,
                     "reward": reward,
                     "r_raw": r_raw,
                     "hard_over_i": hard_over_i,
@@ -1477,8 +1586,11 @@ class MicAiAIEnv:
                     "p_shaft_pos": p_shaft_pos,
                     "p_shaft_target_pos": p_shaft_target_pos,
                     "eta_inst": eta_inst,
+                    "eta_episode": eta_episode,
                     "omega_ref": omega_ref,
                     "energy_gate": energy_gate,
+                    "eta_episode_term": eta_episode_term,
+                    "terminal_energy_bonus": terminal_energy_bonus,
                     "reward": reward,
                     "r_raw": r_raw,
                     "action": (id_ref_norm,),
@@ -1546,6 +1658,10 @@ class MicAiAIEnv:
             eta_clip = float(max(getattr(self.cfg, "ai_id_eta_clip", 1.2), 1e-3))
             eta_inst = float(np.clip(eta_inst, 0.0, eta_clip))
             self._eta_inst = eta_inst
+            eta_episode = 0.0
+            if (self._cum_p_in_pos + p_in_pos) > 1e-9:
+                eta_episode = (self._cum_p_shaft_pos + p_shaft_pos) / max(self._cum_p_in_pos + p_in_pos, 1e-9)
+            self._eta_episode = float(np.clip(eta_episode, 0.0, eta_clip))
 
             speed_tol = float(getattr(self.cfg, "ai_id_speed_tol", getattr(self.cfg, "ai_voltage_speed_tol", 0.5)))
             speed_tol_rel = getattr(self.cfg, "ai_id_speed_tol_rel", None)
@@ -1558,6 +1674,7 @@ class MicAiAIEnv:
             w_mag = float(getattr(self.cfg, "w_ai_id_mag", 0.0))
             w_shaft = float(getattr(self.cfg, "w_ai_id_shaft", 0.0))
             w_eta = float(getattr(self.cfg, "w_ai_id_eta", 0.0))
+            w_eta_episode = float(getattr(self.cfg, "w_ai_id_eta_episode", 0.0))
             energy_gate_mode = str(getattr(self.cfg, "ai_id_energy_gate_mode", "hard"))
             energy_gate_min_scale = float(getattr(self.cfg, "ai_id_energy_gate_min_scale", 0.0))
             energy_gate_exponent = float(getattr(self.cfg, "ai_id_energy_gate_exponent", 1.0))
@@ -1569,12 +1686,22 @@ class MicAiAIEnv:
             action_smooth = d_iq**2 + d_id**2
             action_mag = abs(float(act_id_norm))
             shaft_deficit_norm = max(0.0, p_shaft_target_pos - p_shaft_pos) / p_base
+            cum_p_in_pos_next = self._cum_p_in_pos + p_in_pos
+            cum_p_shaft_pos_next = self._cum_p_shaft_pos + p_shaft_pos
             power_term = w_power * p_in_norm
             current_term = w_current * (current_rms / current_limit)
             shaft_term = w_shaft * shaft_deficit_norm
             eta_term = 0.0
+            eta_episode = 0.0
+            eta_episode_term = 0.0
             if p_shaft_target_pos > 0.05 * p_base:
                 eta_term = w_eta * max(0.0, 1.0 - eta_inst / eta_clip)
+                eta_episode, eta_episode_term = compute_running_eta_penalty(
+                    cum_p_shaft_pos=cum_p_shaft_pos_next,
+                    cum_p_in_pos=cum_p_in_pos_next,
+                    eta_clip=eta_clip,
+                    weight=w_eta_episode,
+                )
             energy_gate = compute_energy_reward_gate(
                 speed_err_abs=speed_err_abs,
                 speed_tol=speed_tol,
@@ -1586,6 +1713,7 @@ class MicAiAIEnv:
             current_term *= energy_gate
             shaft_term *= energy_gate
             eta_term *= energy_gate
+            eta_episode_term *= energy_gate
             i_excess = max(0.0, current_rms - max(i_soft_limit, 0.0))
             current_term += i_soft_penalty * (i_excess / current_limit)
             cost = (
@@ -1594,6 +1722,7 @@ class MicAiAIEnv:
                 + current_term
                 + shaft_term
                 + eta_term
+                + eta_episode_term
                 + w_smooth * action_smooth
                 + w_mag * action_mag
             )
@@ -1626,6 +1755,12 @@ class MicAiAIEnv:
             self._prev_action_id_rel = float(act_id_norm)
             self.step_count += 1
             done = self.step_count >= self.episode_max_steps or hard_over_i or invalid_state
+            terminal_energy_bonus = 0.0
+            if done:
+                terminal_energy_bonus = self._compute_ai_id_terminal_energy_bonus(speed_tol=speed_tol)
+                reward += terminal_energy_bonus
+                self._cum_r_ext += terminal_energy_bonus
+                self._cum_terminal_energy_bonus += terminal_energy_bonus
 
             info.update(
                 {
@@ -1640,9 +1775,12 @@ class MicAiAIEnv:
                     "p_shaft_pos": p_shaft_pos,
                     "p_shaft_target_pos": p_shaft_target_pos,
                     "eta_inst": eta_inst,
+                    "eta_episode": eta_episode,
                     "action_iq_norm": float(act_iq_norm),
                     "action_id_norm": float(act_id_norm),
                     "energy_gate": energy_gate,
+                    "eta_episode_term": eta_episode_term,
+                    "terminal_energy_bonus": terminal_energy_bonus,
                     "reward": reward,
                     "r_raw": r_raw,
                     "hard_over_i": hard_over_i,
@@ -1664,7 +1802,10 @@ class MicAiAIEnv:
                     "p_shaft_pos": p_shaft_pos,
                     "p_shaft_target_pos": p_shaft_target_pos,
                     "eta_inst": eta_inst,
+                    "eta_episode": eta_episode,
                     "energy_gate": energy_gate,
+                    "eta_episode_term": eta_episode_term,
+                    "terminal_energy_bonus": terminal_energy_bonus,
                     "reward": reward,
                     "r_raw": r_raw,
                     "r_ext": reward,
@@ -2048,6 +2189,7 @@ class MicAiAIEnv:
             "mean_p_shaft_target_pos": self._cum_p_shaft_target_pos / steps,
             "mean_eta_inst": self._cum_eta_inst / steps,
             "eta_energy": self._cum_p_shaft_pos / max(self._cum_p_in_pos, 1e-9),
+            "terminal_energy_bonus": self._cum_terminal_energy_bonus,
             "total_reward": total_reward,
             "total_reward_raw": total_reward_raw,
             "mean_reward": total_reward / steps,

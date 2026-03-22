@@ -136,9 +136,12 @@ Goal: close the real red branch that still blocks submission.
   - wider bridge-search around `actor_ep005`
   - micro-finetune with old hard reward gate
   - high-speed eta-biased micro-finetune with old hard reward gate
-- next justified step:
-  - validate the new soft energy reward gate on `AL31` first
-  - reason: `AL31` is the smallest remaining gap and cheapest validation target
+  - true soft-gate rerun after config-propagation fix
+  - running-eta reward micro-run
+  - terminal-energy-bonus micro-run
+- current conclusion:
+  - `AL31` is no longer missing a cheap reward-knob closure
+  - even after the propagation fix, the current PPO local basin still prefers `actor_ep005 + al31_mid_04`
 
 `AIR56`
 - current best deploy pair:
@@ -164,52 +167,67 @@ Goal: close the real red branch that still blocks submission.
   - high-speed/high-load warm-start with old hard reward gate
   - longer eta-biased warm-start with old hard reward gate
   - high-speed scratch rebuild with old hard reward gate
+  - running-eta reward micro-run
+  - terminal-energy-bonus micro-run
+  - running-eta reward with explicit `eta_episode_norm` observation
 - current scientific conclusion:
   - `AIR56` is no longer a deploy-parameter problem
   - `AIR56` is now a reward/objective alignment problem
+  - the current PPO micro-finetune regime still re-selects the old baseline checkpoint even after reward and feature extensions
 
 #### W1.2 New code status
 - reward alignment change added in `mic_ai/ai/ai_env.py`:
   - new helper: `compute_energy_reward_gate(...)`
+  - new helper: `compute_running_eta_penalty(...)`
   - new config knobs:
     - `ai_id_energy_gate_mode`
     - `ai_id_energy_gate_min_scale`
     - `ai_id_energy_gate_exponent`
+    - `w_ai_id_eta_episode`
+    - `ai_id_terminal_energy_bonus`
+    - `ai_id_terminal_eta_target`
+    - `ai_id_terminal_shaft_ratio_min`
+  - new observation key available for experiments:
+    - `eta_episode_norm`
   - default mode remains `hard`, so old behavior is preserved unless explicitly enabled
 - regression added:
   - `tests/test_ai_env_reward_gate.py`
+  - `tests/test_ai_env.py`
+  - `tests/test_train_ai_id_ref_external_step27.py`
 - factual status:
   - code is implemented locally and tested
   - unit/regression tests are green
-  - soft-gate runtime validation is now complete on both remaining motors
-  - result:
-    - `AL31` soft-gate run kept `actor_ep_init` as the best strict checkpoint:
-      - `outputs/al31_mid04_hispeed_eta_softgate_20260322/results_run/20260322_143822_tmp_al31_mid04_train_softgate_20260322_ai_id_ref/external_step27_scan/al31_checkpoint_scan_summary.json`
-    - `AIR56` soft-gate run also kept `actor_ep_init` as the best strict checkpoint:
-      - `outputs/air56_ep005_hispeed_softgate_micro_20260322/results_run/20260322_144815_tmp_air56_ep022_mix04_train_softgate_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+  - important trainer/eval bugs were fixed:
+    - `train_ai_id_ref.build_env()` now really propagates reward-gate / terminal-bonus knobs from env-config into `AiEnvConfig`
+    - warm-start loading now supports appended observation features by zero-padding new input columns
+    - external Step27 scan now accepts explicit `feature_keys` and can evaluate mixed feature-dimension checkpoint lineages
+  - real validation after those fixes:
+    - `AL31` true soft-gate rerun still kept `actor_ep_init` as best:
+      - `outputs/al31_mid04_softgate_fixed_20260322/results_run/20260322_223527_tmp_al31_mid04_train_softgate_20260322_ai_id_ref/external_step27_scan/al31_checkpoint_scan_summary.json`
+    - `AL31` terminal-bonus rerun still kept `actor_ep_init` as best:
+      - `outputs/al31_mid04_terminal_fixed_20260322/results_run/20260322_224103_tmp_al31_mid04_train_terminal_20260322_ai_id_ref/external_step27_scan/al31_checkpoint_scan_summary.json`
+    - `AIR56` terminal-bonus rerun still kept `actor_ep_init` as best:
+      - `outputs/air56_ep005_terminal_fixed_20260322/results_run/20260322_224909_tmp_air56_ep022_mix04_train_terminal_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - `AIR56` running-eta reward plus explicit `eta_episode_norm` observation still kept `actor_ep_init` as best:
+      - `outputs/air56_ep005_runningeta_obs_micro1_fix_20260322/results_run/20260322_230543_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
   - meaning:
-    - the soft-gate reward patch is a valid infrastructure improvement
-    - but it did not close W1 on the first scientific validation cycle
-    - therefore the remaining blocker is not a missing local gradient alone; it is the broader training objective / basin itself
+    - reward and feature extensions are now scientifically validated, not just implemented
+    - they still do not beat the current strict baselines under low-compute micro-finetune conditions
+    - therefore the remaining blocker is no longer “missing config plumbing” or “missing local gradient”
+    - the blocker is the current PPO local basin / compute budget itself
 
 #### W1.3 Immediate execution order
-1. Stop reopening the current `AL31` local basin.
-   - current best remains:
-     - checkpoint `actor_ep005`
-     - candidate `al31_mid_04`
-   - soft-gate did not beat it, so another near-identical AL31 micro-run is not justified
-2. Stop reopening the current `AIR56 actor_ep005 + mix04_base` local basin with more minor variants.
-   - hard-gate warm-starts failed
-   - high-speed warm-starts failed
-   - high-speed scratch rebuild failed
-   - soft-gate warm-start failed
-3. Next justified W1 step is now materially different from all exhausted runs:
+1. Stop reopening the current `AL31` and `AIR56` local basins with more micro-runs that only tweak reward scalars or one extra observation.
+2. Keep the current factual baselines:
+   - `AL31`: `actor_ep005 + al31_mid_04`
+   - `AIR56`: `actor_ep005 + mix04_base`
+3. Next justified W1 step is now materially different from all exhausted low-compute runs:
    - keep strict external Step27 selector
-   - change the training objective/basin, not just small scalar weights
+   - change the training basin, not just small scalar weights
    - acceptable next classes:
-     - episode-level energy objective or terminal energy bonus aligned with `eta_min_seed`
-     - new architecture / features / policy family for the MIC id_ref policy
-     - longer scratch training with that new objective, not another replay of the current PPO reward
+     - longer scratch training with the expanded energy objective / observation set already implemented
+     - different hidden-size / policy-capacity regime for the MIC `id_ref` policy
+     - if needed, a different optimizer / algorithmic family, not another micro-PPO replay of the same basin
 4. Only after a materially different recipe closes both remaining tails, rerun full 3-motor live Step27 and then rebuild Step28 candidate.
 
 #### W1.4 Acceptance for W1 closure

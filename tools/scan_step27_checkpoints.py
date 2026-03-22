@@ -153,6 +153,7 @@ def scan_checkpoints(
     use_envelope_acceptance: bool = False,
     acceptance_envelopes: Path | str | None = DEFAULT_ACCEPTANCE_ENVELOPES,
     top_k: int = 10,
+    feature_keys: List[str] | None = None,
 ) -> Dict[str, object]:
     seeds_list = [int(s) for s in (seeds or [101])]
     scenarios_list = [str(s) for s in (scenarios or ["speed_step", "ramp", "load_step", "start_stop"])]
@@ -199,7 +200,10 @@ def scan_checkpoints(
             skipped_rows.append(_skip_row(ckpt, "missing_file"))
             print(f"[scan:{motor}] {idx}/{len(checkpoints)} {ckpt.name} skipped=missing_file")
             continue
-        agent = _load_agent(ckpt.resolve())
+        if feature_keys is None:
+            agent = _load_agent(ckpt.resolve())
+        else:
+            agent = _load_agent(ckpt.resolve(), feature_keys=feature_keys)
         metrics = _eval_candidate(
             env_cfg=env_cfg,
             motor_key=str(motor),

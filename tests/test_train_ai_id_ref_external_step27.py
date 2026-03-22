@@ -10,7 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from mic_ai.ai.train_ai_id_ref import _promote_external_step27_checkpoint, _run_external_step27_selection
+import torch
+
+from mic_ai.ai.train_ai_id_ref import (
+    _adapt_checkpoint_state_dict_for_model,
+    _promote_external_step27_checkpoint,
+    _run_external_step27_selection,
+    build_env,
+    build_feature_keys,
+)
 
 
 def test_run_external_step27_selection_promotes_selected_checkpoint(
@@ -33,6 +41,7 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
         out_dir.mkdir(parents=True, exist_ok=True)
         assert (eval_dir / "actor_ep_init.pth").exists()
         assert (eval_dir / "actor_ep_init.pth").read_bytes() == b"init"
+        assert kwargs["feature_keys"] == ["omega_norm", "eta_episode_norm"]
         assert kwargs["min_avg_power_saving_pct"] == pytest.approx(0.5)
         assert kwargs["min_avg_eta_gain_pct"] == pytest.approx(0.0)
         assert kwargs["max_avg_eta_gain_pct"] == pytest.approx(25.0)
@@ -87,6 +96,7 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
         max_err_failures_max_seed=2.0,
         min_start_stop_saving_pct_min_seed=-0.5,
         top_k=5,
+        feature_keys=["omega_norm", "eta_episode_norm"],
         init_checkpoint=str(init_ckpt),
         include_init_checkpoint=True,
     )
@@ -136,3 +146,88 @@ def test_promote_external_step27_checkpoint_updates_registry_best(tmp_path: Path
     assert registry_best.read_bytes() == b"step27-best"
     assert (ckpt_dir / "best_actor_train_internal.pth").read_bytes() == b"train-best"
     assert payload["registry_best_checkpoint"] == str(registry_best.resolve())
+
+
+def test_build_env_propagates_reward_gate_and_terminal_config(tmp_path: Path) -> None:
+    cfg_path = tmp_path / "env_cfg.py"
+    cfg_path.write_text(
+        "\n".join(
+            [
+                "from config.env_demo_true_motor1 import *  # noqa: F401,F403",
+                "ai_id_energy_gate_mode = 'soft'",
+                "ai_id_energy_gate_min_scale = 0.15",
+                "ai_id_energy_gate_exponent = 1.7",
+                "ai_id_terminal_energy_bonus = 0.6",
+                "ai_id_terminal_eta_target = 0.4",
+                "ai_id_terminal_shaft_ratio_min = 0.8",
+                "i_soft_limit = 0.9",
+                "i_soft_penalty = 0.7",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    env = build_env(
+        str(cfg_path),
+        episode_steps=5,
+        control_mode="ai_id_ref",
+        w_speed=1.0,
+        w_power=2.0,
+        w_current=None,
+        w_smooth=0.05,
+        w_mag=0.0,
+        w_shaft=0.0,
+        w_eta=0.0,
+        w_eta_episode=0.0,
+        eta_clip=1.2,
+        override_load_torque=True,
+        override_omega_ref=True,
+        ai_id_ref_relative=True,
+        delta_id_max=0.1,
+        id_ref_alpha=1.0,
+        id_ref_rate_limit=None,
+        ai_id_speed_tol=0.5,
+        ai_id_speed_tol_rel=None,
+        id_ref_gate_speed_tol=None,
+        id_ref_gate_speed_tol_rel=None,
+        id_ref_gate_min_scale=0.0,
+        id_ref_gate_exponent=1.0,
+        load_torque=None,
+        omega_ref_override=None,
+        feature_keys=["omega_norm"],
+    )
+
+    assert env.cfg.ai_id_energy_gate_mode == "soft"
+    assert env.cfg.ai_id_energy_gate_min_scale == pytest.approx(0.15)
+    assert env.cfg.ai_id_energy_gate_exponent == pytest.approx(1.7)
+    assert env.cfg.ai_id_terminal_energy_bonus == pytest.approx(0.6)
+    assert env.cfg.ai_id_terminal_eta_target == pytest.approx(0.4)
+    assert env.cfg.ai_id_terminal_shaft_ratio_min == pytest.approx(0.8)
+    assert env.cfg.i_soft_limit == pytest.approx(0.9)
+    assert env.cfg.i_soft_penalty == pytest.approx(0.7)
+
+
+def test_build_feature_keys_includes_episode_eta_only_when_requested() -> None:
+    keys_default = build_feature_keys(include_energy_obs=True, include_episode_eta_obs=False)
+    keys_episode = build_feature_keys(include_energy_obs=True, include_episode_eta_obs=True)
+    assert "eta_episode_norm" not in keys_default
+    assert "eta_episode_norm" in keys_episode
+
+
+def test_adapt_checkpoint_state_dict_for_model_zero_pads_new_input_columns() -> None:
+    state = {
+        "actor_body.0.weight": torch.arange(6, dtype=torch.float32).reshape(2, 3),
+        "critic_body.0.weight": torch.arange(6, dtype=torch.float32).reshape(2, 3),
+    }
+    model_state = {
+        "actor_body.0.weight": torch.zeros(2, 5, dtype=torch.float32),
+        "critic_body.0.weight": torch.zeros(2, 5, dtype=torch.float32),
+    }
+
+    adapted, adjusted = _adapt_checkpoint_state_dict_for_model(state, model_state)
+
+    assert set(adjusted) == {"actor_body.0.weight", "critic_body.0.weight"}
+    assert adapted["actor_body.0.weight"].shape == (2, 5)
+    assert torch.equal(adapted["actor_body.0.weight"][:, :3], state["actor_body.0.weight"])
+    assert torch.equal(adapted["actor_body.0.weight"][:, 3:], torch.zeros(2, 2))

@@ -22,6 +22,7 @@ def test_ai_env_id_ref_step() -> None:
     assert math.isfinite(float(reward))
     assert "id_ref_cmd" in info
     assert "p_in" in info
+    assert "eta_episode_norm" in obs_next
 
 
 def test_ai_env_voltage_uses_total_power() -> None:
