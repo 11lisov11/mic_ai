@@ -265,9 +265,14 @@ Current facts:
   - `mic_ai/ai/train_ai_id_ref.py` now exposes micro-finetune PPO knobs:
     - `--lr`
     - `--entropy-coef`
+  - `mic_ai/ai/train_ai_id_ref.py` external Step27 promotion can now optionally rank the warm-start baseline together with new snapshots:
+    - `--external-step27-include-init-checkpoint`
+  - focused regression coverage was extended in:
+    - `tests/test_train_ai_id_ref_external_step27.py`
   - implication:
     - post-train candidate rechecks no longer require registry mutation
     - near-boundary checkpoint nudges can now be attempted without the old fixed optimizer aggressiveness
+    - micro-finetune runs no longer have to choose between only the new snapshots if the init checkpoint is still objectively best
 - AIR56 late-cycle closure state (`2026-03-22`, latest):
   - explicit-checkpoint strict local search was executed on the best envelope-green checkpoint:
     - checkpoint:
@@ -297,6 +302,32 @@ Current facts:
     - result:
       - no checkpoint closed the branch
       - the best selected checkpoint lost envelope and still missed worst-seed power/eta
+  - after adding `--external-step27-include-init-checkpoint`, a new AIR56 micro-run was executed with the warm-start baseline included in snapshot ranking:
+    - `outputs/air56_ep002_includeinit_micro_20260322/results_run/20260322_122733_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - important outcome:
+      - the selector still chose a new checkpoint over the init baseline, so the improvement is real and not an artifact of missing baseline comparison
+      - new best checkpoint:
+        - `actor_ep003.pth`
+      - metrics:
+        - `avg_power_saving_pct = +0.6340%`
+        - `avg_eta_gain_pct = +0.00136%`
+        - `avg_power_saving_pct_min_seed = +0.5196%`
+        - `avg_eta_gain_pct_min_seed = -0.0195%`
+        - `envelope_all_rows_pass = true`
+        - `err_failures = 0.0`
+    - implication:
+      - AIR56 now has a checkpoint that simultaneously keeps canonical envelope green, mean eta positive, and worst-case power above threshold
+      - the only remaining AIR56 blocker on this branch is the worst-case eta tail
+  - a strict post-train candidate recheck on that new checkpoint was executed:
+    - `outputs/air56_ep003_includeinit_strict_local_20260322/air56_tuning_summary.json`
+    - result:
+      - no candidate beat `pin60_mix_04`
+      - the deploy-side search could not remove the remaining worst-case eta tail
+  - a final eta-biased micro-finetune was executed from that new best checkpoint with the init checkpoint again included in ranking:
+    - `outputs/air56_ep003_etaedge_micro_20260322/results_run/20260322_125714_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - result:
+      - the selector kept `actor_ep_init.pth` (the previous best `actor_ep003`) as the best checkpoint
+      - no further policy improvement was found on this cheap eta-edge path
   - a higher-power but envelope-red checkpoint from the low-lr run was also rechecked:
     - checkpoint:
       - `outputs/air56_ep002_mix04_etafinetune_20260322/results_run/20260322_110416_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep003.pth`
@@ -306,8 +337,11 @@ Current facts:
       - no candidate restored full envelope while preserving the improved power headroom
   - conclusion:
     - AIR56 is now scientifically narrowed to a policy-level tradeoff, not a deploy-parameter problem
-    - current best envelope-green checkpoint remains the older `actor_ep002 + pin60_mix_04`
-    - current best eta-positive envelope-green checkpoint (`actor_ep001`) still misses strict worst-case power
+    - current best known AIR56 pair is now:
+      - checkpoint: `outputs/air56_ep002_includeinit_micro_20260322/results_run/20260322_122733_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep003.pth`
+      - candidate: `pin60_mix_04`
+    - remaining AIR56 gap is now strictly:
+      - `avg_eta_gain_pct_min_seed = -0.0195%`
     - next justified AIR56 step is no longer another candidate sweep:
       - it must be a truly selective low-lr policy refinement path, ideally with the init checkpoint included in the external snapshot ranking so micro-runs cannot regress by construction
 - AL31 late-cycle closure state (`2026-03-22`, latest):

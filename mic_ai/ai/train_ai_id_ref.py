@@ -261,11 +261,23 @@ def _run_external_step27_selection(
     max_err_failures_max_seed: float | None,
     min_start_stop_saving_pct_min_seed: float | None,
     top_k: int,
+    init_checkpoint: str | None = None,
+    include_init_checkpoint: bool = False,
 ) -> Dict[str, object]:
     from tools.scan_step27_checkpoints import scan_checkpoints
 
     scan_out_dir = (run_dir / "external_step27_scan").resolve()
     acceptance_envelopes_path = None if acceptance_envelopes is None else Path(str(acceptance_envelopes)).expanduser().resolve()
+    included_init_path: Path | None = None
+    if bool(include_init_checkpoint) and init_checkpoint is not None:
+        init_path = Path(str(init_checkpoint)).expanduser().resolve()
+        if not init_path.exists():
+            raise FileNotFoundError(f"External Step27 init checkpoint not found: {init_path}")
+        eval_dir = (run_dir / "eval").resolve()
+        eval_dir.mkdir(parents=True, exist_ok=True)
+        included_init_path = (eval_dir / "actor_ep_init.pth").resolve()
+        if init_path != included_init_path:
+            shutil.copyfile(init_path, included_init_path)
     summary = scan_checkpoints(
         motor=str(motor),
         checkpoint_glob=str((run_dir / "eval").resolve()),
@@ -343,6 +355,8 @@ def _run_external_step27_selection(
         "min_start_stop_saving_pct_min_seed": None
         if min_start_stop_saving_pct_min_seed is None
         else float(min_start_stop_saving_pct_min_seed),
+        "include_init_checkpoint": bool(include_init_checkpoint),
+        "included_init_checkpoint": None if included_init_path is None else str(included_init_path),
         "best_metrics": best,
     }
     (run_dir / "external_step27_selection.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -589,6 +603,7 @@ def train(
     external_step27_max_err_failures_max_seed: float | None = None,
     external_step27_min_start_stop_saving_pct_min_seed: float | None = None,
     external_step27_top_k: int = 10,
+    external_step27_include_init_checkpoint: bool = False,
     init_checkpoint: str | None = None,
     output_dir: str | None = None,
     results_root: str | None = None,
@@ -918,6 +933,8 @@ def train(
             max_err_failures_max_seed=external_step27_max_err_failures_max_seed,
             min_start_stop_saving_pct_min_seed=external_step27_min_start_stop_saving_pct_min_seed,
             top_k=int(external_step27_top_k),
+            init_checkpoint=init_checkpoint,
+            include_init_checkpoint=bool(external_step27_include_init_checkpoint),
         )
         external_step27_selection = _promote_external_step27_checkpoint(
             ckpt_dir=ckpt_dir,
@@ -1000,6 +1017,7 @@ def train(
         "external_step27_min_start_stop_saving_pct_min_seed": None
         if external_step27_min_start_stop_saving_pct_min_seed is None
         else float(external_step27_min_start_stop_saving_pct_min_seed),
+        "external_step27_include_init_checkpoint": bool(external_step27_include_init_checkpoint),
         "feature_keys": feature_keys,
         "init_checkpoint": None if init_checkpoint is None else str(Path(init_checkpoint).resolve()),
         "output_dir": str(output_root_path),
@@ -1107,6 +1125,7 @@ def main() -> None:
     p.add_argument("--external-step27-max-err-failures-max-seed", type=float, default=None, help="Optional maximum err_failures_max_seed for external Step27 checkpoint selection.")
     p.add_argument("--external-step27-min-start-stop-saving-pct-min-seed", type=float, default=None, help="Optional minimum start_stop_power_saving_pct_min_seed for external Step27 checkpoint selection.")
     p.add_argument("--external-step27-top-k", type=int, default=10, help="How many ranked rows to keep in external Step27 summary.")
+    p.add_argument("--external-step27-include-init-checkpoint", action="store_true", help="Also rank the warm-start init checkpoint during external Step27 selection.")
     p.add_argument("--output-dir", type=str, default=None, help="Directory for shared checkpoints/episode logs.")
     p.add_argument("--results-root", type=str, default=None, help="Directory for per-run artifacts and eval snapshots.")
     p.add_argument("--init-checkpoint", type=str, default=None, help="Optional actor checkpoint to warm-start training.")
@@ -1239,6 +1258,7 @@ def main() -> None:
         if args.external_step27_min_start_stop_saving_pct_min_seed is None
         else float(args.external_step27_min_start_stop_saving_pct_min_seed),
         external_step27_top_k=int(args.external_step27_top_k),
+        external_step27_include_init_checkpoint=bool(args.external_step27_include_init_checkpoint),
         init_checkpoint=args.init_checkpoint,
         output_dir=args.output_dir,
         results_root=args.results_root,

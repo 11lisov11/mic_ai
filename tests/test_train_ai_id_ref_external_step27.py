@@ -22,6 +22,8 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     eval_dir.mkdir(parents=True, exist_ok=True)
     selected_ckpt = eval_dir / "actor_ep003.pth"
     selected_ckpt.write_bytes(b"selected")
+    init_ckpt = tmp_path / "init_actor.pth"
+    init_ckpt.write_bytes(b"init")
 
     candidate_json = tmp_path / "candidate.json"
     candidate_json.write_text(json.dumps([{"tag": "base_current"}], indent=2), encoding="utf-8")
@@ -29,6 +31,8 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     def _fake_scan_checkpoints(**kwargs):
         out_dir = Path(kwargs["out_dir"])
         out_dir.mkdir(parents=True, exist_ok=True)
+        assert (eval_dir / "actor_ep_init.pth").exists()
+        assert (eval_dir / "actor_ep_init.pth").read_bytes() == b"init"
         assert kwargs["min_avg_power_saving_pct"] == pytest.approx(0.5)
         assert kwargs["min_avg_eta_gain_pct"] == pytest.approx(0.0)
         assert kwargs["max_avg_eta_gain_pct"] == pytest.approx(25.0)
@@ -83,6 +87,8 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
         max_err_failures_max_seed=2.0,
         min_start_stop_saving_pct_min_seed=-0.5,
         top_k=5,
+        init_checkpoint=str(init_ckpt),
+        include_init_checkpoint=True,
     )
 
     promoted = run_dir / "best_actor_step27.pth"
@@ -106,6 +112,8 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     assert payload["min_avg_eta_gain_pct_min_seed"] == pytest.approx(0.0)
     assert payload["max_err_failures_max_seed"] == pytest.approx(2.0)
     assert payload["min_start_stop_saving_pct_min_seed"] == pytest.approx(-0.5)
+    assert payload["include_init_checkpoint"] is True
+    assert payload["included_init_checkpoint"] == str((eval_dir / "actor_ep_init.pth").resolve())
 
 
 def test_promote_external_step27_checkpoint_updates_registry_best(tmp_path: Path) -> None:
