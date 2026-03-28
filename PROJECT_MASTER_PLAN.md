@@ -1,8 +1,8 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-03-28`
+Date updated: `2026-03-29`
 Repository: `C:\mic_theory`
-Last pushed commit: `1427a7a`
+Last pushed commit: `48b0cb9`
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -263,8 +263,27 @@ Goal: close the real red branch that still blocks submission.
   - the remaining cheap blocker is still checkpoint-level, but the candidate layer around the new eta frontier is now effectively exhausted
   - shortlist-per-checkpoint ranking proved useful and is now the preferred cheap selector:
     - it surfaced `actor_ep_init + etaep_bias_dn_2` as the strongest current near-pass pair
-  - after that shortlist replay and the follow-up local search, the next justified `AIR56` step is training-level again:
-    - short/medium load-step-focused continuation from the eta frontier with built-in shortlist external selection
+  - short/medium load-step-focused continuation from the eta frontier with built-in shortlist external selection is now also exhausted:
+    - run root:
+      - `outputs/air56_etaep_loadtrain_short_20260328s`
+    - newly trained checkpoints actually evaluated:
+      - `actor_ep000`
+      - `actor_ep001`
+      - `actor_ep002`
+      - `actor_ep003`
+    - best newly trained snapshot:
+      - `actor_ep003 + mix04_base`
+      - raw metrics from the persisted progress/state files:
+        - `avg_power_saving_pct = 0.5105837976366528`
+        - `avg_eta_gain_pct = 0.01064860988664873`
+        - `avg_power_saving_pct_min_seed = 0.24052185845599705`
+        - `avg_eta_gain_pct_min_seed = -0.01202997034184805`
+        - `err_failures = 0.2`
+        - `envelope_all_rows_pass = false`
+    - conclusion:
+      - none of the new snapshots beat the already known eta frontier `actor_ep_init + etaep_bias_dn_2`
+      - the only remaining unevaluated row in the interrupted resume was `actor_ep_init`, i.e. the already known frontier checkpoint rather than a new policy
+      - finishing that duplicate init replay was not worth the extra compute on the weak machine
   - merged strict candidate replay around the envelope-clean incumbent also did not beat `mix04_base`:
     - `outputs/air56_ep005_merged_strict_20260326/air56_tuning_summary.json`
   - medium-budget incumbent continuation with mild energy pressure and actor anchor also did not beat the incumbent:
@@ -541,7 +560,8 @@ Goal: close the real red branch that still blocks submission.
       - `ai_voltage`: dead
       - `ai_speed`: dead even after semantic warm-start fix
       - `foc_assist`: improved after semantic fix, but still far red
-    - therefore the next justified AIR56 step is no longer another reserve control family
+    - the eta-frontier short continuation is also now checked and dead as a source of new winners
+    - therefore the next justified AIR56 step is no longer another reserve control family and no longer another cheap frontier continuation
     - it must be a deeper basin/objective shift in the `ai_id_ref` line itself, or a genuinely different optimizer/policy regime
 5. Only after a materially different recipe closes both remaining tails, rerun full 3-motor live Step27 and then rebuild Step28 candidate.
 
@@ -643,8 +663,9 @@ Acceptance:
 This is the strict next execution sequence from the current state.
 
 1. Freeze the current best local pairs as the factual baselines:
-   - `AL31`: `actor_ep008 + al31_mid_04`
-   - `AIR56`: `actor_ep005 + mix04_base`
+   - `AL31`: `actor_ep_init + mid04_speed_dn_04`
+   - `AIR56` strict incumbent: `actor_ep005 + mix04_base`
+   - `AIR56` near-pass frontier: `actor_ep_init + etaep_bias_dn_2`
 2. Do not spend more compute on exhausted candidate-only retunes for those baselines.
 3. Keep `AL31` parked as a tiny-tail blocker; do not spend more compute on near-identical `ai_id_ref` continuations until `AIR56` changes the global context.
 4. For `AIR56`, do not reopen exhausted reserve/control-family probes:
@@ -653,6 +674,15 @@ This is the strict next execution sequence from the current state.
    - `ai_speed`
    - `foc_assist`
 5. Next `AIR56` attempt must change the algorithmic basin or optimization regime itself while preserving the known reltrack/incumbent lessons.
+   - first preferred branch:
+     - medium-budget `ai_id_ref` basin/objective shift from the strict incumbent lineage
+     - external selection only against the strict incumbent deployment candidate `mix04_base`
+     - strict W1 thresholds:
+       - `avg_power_saving_pct >= 0.5`
+       - `avg_eta_gain_pct >= 0.0`
+       - `avg_power_saving_pct_min_seed >= 0.5`
+       - `avg_eta_gain_pct_min_seed >= 0.0`
+       - `envelope_all_rows_pass = true`
 6. Only after both motors are green, rerun full Step27 and Step28.
 7. After W1 closes, move to onboarding-energy closure, then refactor/docs/tests.
 
