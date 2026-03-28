@@ -1,0 +1,130 @@
+{
+  "generated_utc": "2026-03-28T10:40:50.856456+00:00",
+  "tag": "20260328_postrestore_ai_promoted_live",
+  "repo_root": "C:\\mic_theory",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260328_postrestore_ai_promoted_live",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "git": {
+    "commit": "1427a7ac5467696143116a576d946d9a5c6e88f8",
+    "branch": "main",
+    "dirty": true,
+    "dirty_lines_count": 26
+  },
+  "allow_dirty": true,
+  "required_ok": true,
+  "manifest_ok": true,
+  "required_missing": [],
+  "optional_missing": [
+    "paper/ieee_2026/data/release/20260328_postrestore_ai_promoted_live/promotion_manifest.json",
+    "paper/ieee_2026/data/release/20260328_postrestore_ai_promoted_live/release_snapshot.json"
+  ],
+  "files_count": 15,
+  "aggregate_sha256": "a2427511b9dc4f03f8d6ce4f23580a5d3136ee51955b3f55fd8b7df4fe966877",
+  "files": [
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 2897,
+      "sha256": "ffae6d163300bb4363f1ed231121a0325fce489e5e920c611f129e50b26c5def"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 609,
+      "sha256": "e8a41ec4d15eb865fcd67d902ed570152e7a1da10704165a1cdddce1f68645e6"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 819,
+      "sha256": "6fc3da0674815acb806c0749e731fcfef589ec6818de6f81c4eab57da67bb78f"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/FINAL_CHECKLIST_AUTO.md",
+      "size_bytes": 3078,
+      "sha256": "de27aae2931dbee61b7769efb451d336a5eeeb8491816f218442988bdf42b577"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/SUBMISSION_CANDIDATE.json",
+      "size_bytes": 634,
+      "sha256": "1c00c9527ba50d38adcf0b10cb92ef269a0935f8a271a69d1e75ff6468291c00"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/SUBMISSION_CANDIDATE.md",
+      "size_bytes": 845,
+      "sha256": "88e31421e0c46bb0c1879d26dd693f589f7e61450dd1ac07d2c7e5a6a0e9ec1a"
+    },
+    {
+      "group": "step28_derived",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "size_bytes": 2909,
+      "sha256": "28321d9ed1e80c3df225bb246f7e1c0ce68811b8715a63d0a9a3d29d9d7305d4"
+    },
+    {
+      "group": "step28_derived",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/derived_ieee/motor_tuning_acceptance_summary.json",
+      "size_bytes": 1624,
+      "sha256": "3e77d8e3369f4f9ee502b36986b0a6c46fdb995c1fa546c5526c5571d5a360c8"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/package_manifest.json",
+      "size_bytes": 3277,
+      "sha256": "ececd7da73f325386e5283f6347a630b49e591e87f10eb7921761bc06d38bd83"
+    },
+    {
+      "group": "step28_passport",
+      "required": false,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/passport/passport_compare_3motors.json",
+      "size_bytes": 5902,
+      "sha256": "0c86370f798aa5e1f588f210cd64490ae55ba251d1e0f7ce0711d717fcffa5a0"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/step28_ieee_summary.csv",
+      "size_bytes": 1564,
+      "sha256": "9946ee6ff8fd6a537d5c71318516310bded778bbaa6c1f6314476d1a8a872e51"
+    },
+    {
+      "group": "step28_root",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/step28_ieee_summary.md",
+      "size_bytes": 1315,
+      "sha256": "4c42e1aed4a52a234ee523dd4611c0fcac04ac304ee873ad5c5449c383fd6e78"
+    },
+    {
+      "group": "step28_quality",
+      "required": true,
+      "path": "paper/ieee_2026/data/step28/20260328_postrestore_ai_promoted_live/submission_candidate_lock.json",
+      "size_bytes": 10734,
+      "sha256": "2e02ac2ca0bf6866ba9f6336bbcd59fdf9db59660fbb9bd7c8f4c10807a37361"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/guardrails_policy.json",
+      "size_bytes": 261,
+      "sha256": "d56e5dc4b387d392019fd53cd0018047449f3081a38cc5e6b660121d113d4e17"
+    },
+    {
+      "group": "ieee_root",
+      "required": false,
+      "path": "paper/ieee_2026/manuscript.md",
+      "size_bytes": 5106,
+      "sha256": "9a73ff950013d28d9f47b81267663a64fbee90768ba672e2ae9cf5123342e6b9"
+    }
+  ]
+}

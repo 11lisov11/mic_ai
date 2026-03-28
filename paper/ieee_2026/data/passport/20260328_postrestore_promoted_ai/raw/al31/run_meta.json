@@ -1,0 +1,53 @@
+{
+  "env_config": "config\\env_research_al31_4_06kw.py",
+  "ai_checkpoint": "C:\\mic_theory\\outputs\\al31_anchor_ep008_medium4_20260328a\\results_run\\20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref\\eval\\actor_ep019.pth",
+  "mic_policy": "ai",
+  "mic_id_ref": null,
+  "mic_id_ref_low": null,
+  "mic_id_ref_high": null,
+  "mic_id_ref_speed_tol_rel": 0.05,
+  "mic_id_ref_omega_min": 0.1,
+  "omega_ref_pu": 1.0,
+  "ai_mode": "ai_id_ref",
+  "omega_nom_source": "nameplate",
+  "omega_nominal": 145.56045961632708,
+  "m_nom": 4.121998526121031,
+  "loads": [
+    0.8243997052242062,
+    1.6487994104484125,
+    2.4731991156726183,
+    3.297598820896825,
+    4.121998526121031
+  ],
+  "load_values": [
+    0.8243997052242062,
+    1.6487994104484125,
+    2.4731991156726183,
+    3.297598820896825,
+    4.121998526121031
+  ],
+  "speed_pu": [
+    0.3,
+    0.5,
+    0.7,
+    0.9
+  ],
+  "dt": 0.001,
+  "t_end": 1.5,
+  "window_frac": 0.25,
+  "voltage_scale": null,
+  "i_max": null,
+  "foc_kp_speed": null,
+  "foc_ki_speed": null,
+  "speed_tol_rel": 0.05,
+  "speed_tol_abs": null,
+  "ai_id_relative": false,
+  "delta_id_max": 0.3,
+  "export_abc_traces": false,
+  "plot_style": "vak_ru",
+  "plot_formats": [
+    "png",
+    "pdf",
+    "svg"
+  ]
+}

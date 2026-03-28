@@ -1,0 +1,14 @@
+{
+  "mean_pass": true,
+  "worst_case_pass": false,
+  "details": {
+    "avg_power_saving_pct_mean": 0.6147884835796003,
+    "avg_power_saving_pct_min": 0.5151508570179902,
+    "avg_eta_gain_pct_mean": 0.0013968558560217836,
+    "avg_eta_gain_pct_min": -0.019478794161115198,
+    "err_failures_mean": 0.0,
+    "err_failures_max": 0.0,
+    "start_stop_power_saving_pct_mean": 2.4344030008979956,
+    "start_stop_power_saving_pct_min": 2.1898001313737314
+  }
+}

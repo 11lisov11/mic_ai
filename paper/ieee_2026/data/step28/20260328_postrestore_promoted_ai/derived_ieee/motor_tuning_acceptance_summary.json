@@ -1,0 +1,46 @@
+{
+  "rows": [
+    {
+      "motor": "air56",
+      "avg_power_saving_pct_mean": 0.5705540416901611,
+      "avg_power_saving_pct_min": 0.2463959069341437,
+      "avg_eta_gain_pct_mean": 0.0015362317417683,
+      "avg_eta_gain_pct_min": -0.0309718775581613,
+      "err_failures_mean": 0.2,
+      "err_failures_max": 1.0,
+      "start_stop_power_saving_pct_mean": 2.3298587387504037,
+      "start_stop_power_saving_pct_min": 1.163334833937213,
+      "mean_pass": true,
+      "worst_case_pass": false,
+      "acceptance_pass": false
+    },
+    {
+      "motor": "al31",
+      "avg_power_saving_pct_mean": 0.3300196583537201,
+      "avg_power_saving_pct_min": -1.5100636869465611,
+      "avg_eta_gain_pct_mean": 0.0009113011546624,
+      "avg_eta_gain_pct_min": -0.0069168030479432,
+      "err_failures_mean": 0.6,
+      "err_failures_max": 1.0,
+      "start_stop_power_saving_pct_mean": 1.1482292155770235,
+      "start_stop_power_saving_pct_min": -6.012616631514289,
+      "mean_pass": true,
+      "worst_case_pass": false,
+      "acceptance_pass": false
+    },
+    {
+      "motor": "ao2",
+      "avg_power_saving_pct_mean": 0.1683579244930438,
+      "avg_power_saving_pct_min": 0.0178824771622565,
+      "avg_eta_gain_pct_mean": 0.3187636945644506,
+      "avg_eta_gain_pct_min": 0.0514208864567655,
+      "err_failures_mean": 0.0,
+      "err_failures_max": 0.0,
+      "start_stop_power_saving_pct_mean": 0.6940609757059124,
+      "start_stop_power_saving_pct_min": -0.1569884862270054,
+      "mean_pass": true,
+      "worst_case_pass": true,
+      "acceptance_pass": true
+    }
+  ]
+}
