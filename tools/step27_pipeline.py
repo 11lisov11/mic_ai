@@ -22,6 +22,7 @@ if str(ROOT) not in sys.path:
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
 from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisorConfig
 from mic_ai.core.env import make_env_from_config
+from mic_ai.tools.checkpoint_adaptation import adapt_checkpoint_state_dict_for_model
 from mic_ai.tools.scenario_compare import (
     _clone_with_sim,
     _err_limit,
@@ -328,27 +329,32 @@ def _resolve_checkpoint(
     )
 
 
-def _load_agent(ckpt: Path, feature_keys: List[str] | None = None) -> PPOVoltageAgent:
+def _load_agent(
+    ckpt: Path,
+    feature_keys: List[str] | None = None,
+    ai_control_mode: str = "ai_id_ref",
+) -> PPOVoltageAgent:
     state = torch.load(ckpt, map_location="cpu")
     hidden = _infer_hidden_sizes(state) or (128, 128)
     action_dim = _infer_action_dim(state)
-    resolved_feature_keys = list(feature_keys) if feature_keys else _resolve_feature_keys(None, state)
+    if str(ai_control_mode).lower().strip() in {"ai_current", "ai_voltage", "foc_assist", "ai_speed"}:
+        action_dim = max(action_dim, 2)
+    inferred_feature_keys = _resolve_feature_keys(None, state)
+    if feature_keys:
+        requested_feature_keys = list(feature_keys)
+        resolved_feature_keys = (
+            inferred_feature_keys
+            if requested_feature_keys != inferred_feature_keys
+            else requested_feature_keys
+        )
+    else:
+        resolved_feature_keys = inferred_feature_keys
     agent = PPOVoltageAgent(feature_keys=resolved_feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
-    model_state = agent.net.state_dict()
-    adapted_state = {}
-    for key, value in state.items():
-        target = model_state.get(key)
-        if target is None or not isinstance(value, torch.Tensor) or tuple(value.shape) == tuple(target.shape):
-            adapted_state[key] = value
-            continue
-        if value.ndim == 2 and target.ndim == 2 and value.shape[0] == target.shape[0]:
-            padded = target.detach().clone()
-            padded.zero_()
-            cols = min(int(value.shape[1]), int(target.shape[1]))
-            padded[:, :cols] = value[:, :cols].to(dtype=target.dtype)
-            adapted_state[key] = padded
-            continue
-        adapted_state[key] = value
+    adapted_state, _ = adapt_checkpoint_state_dict_for_model(
+        state,
+        agent.net.state_dict(),
+        target_control_mode=str(ai_control_mode).lower(),
+    )
     agent.net.load_state_dict(adapted_state, strict=False)
     agent.set_action_std(1e-6)
     return agent
@@ -655,6 +661,7 @@ def _simulate_rows(
     foc_feedback_mode: str,
     mic_feedback_mode: str,
     controller: str,
+    ai_control_mode: str,
     id_ref_params: Dict[str, object],
     supervisor_cfg: AiIdRefSupervisorConfig | None,
     sensorless: Dict[str, float],
@@ -737,7 +744,7 @@ def _simulate_rows(
                     env_cfg_mic,
                     dt,
                     t_end,
-                    "ai_id_ref",
+                    str(ai_control_mode),
                     float(id_ref_params["id_ref_alpha"]),
                     id_ref_params["id_ref_rate_limit"],
                     id_ref_params["id_ref_gate_speed_tol"],
@@ -941,6 +948,7 @@ def _run_air56_tuning(
             foc_feedback_mode=foc_feedback_mode,
             mic_feedback_mode=mic_feedback_mode,
             controller="MIC",
+            ai_control_mode="ai_id_ref",
             id_ref_params=_id_params_for_candidate(cand),
             supervisor_cfg=sup_cfg,
             sensorless=sensorless,
@@ -999,6 +1007,7 @@ def _run_air56_tuning(
                 foc_feedback_mode=foc_feedback_mode,
                 mic_feedback_mode=mic_feedback_mode,
                 controller="MIC",
+                ai_control_mode="ai_id_ref",
                 id_ref_params=_id_params_for_candidate(cand),
                 supervisor_cfg=sup_cfg,
                 sensorless=sensorless,
@@ -1326,6 +1335,7 @@ def _load_env_and_agent(
     *,
     foc_disable_lut: bool,
     require_agent: bool,
+    ai_control_mode: str = "ai_id_ref",
     motor_key: str | None = None,
     checkpoint_registry_path: str | None = None,
 ) -> Tuple[object, PPOVoltageAgent | None, Path | None]:
@@ -1340,7 +1350,7 @@ def _load_env_and_agent(
         config_path=str(cfg_path),
         registry_path=checkpoint_registry_path,
     )
-    agent = _load_agent(ckpt)
+    agent = _load_agent(ckpt, ai_control_mode=str(ai_control_mode))
     return env_cfg, agent, ckpt
 
 
@@ -1356,6 +1366,7 @@ def main() -> None:
     parser.add_argument("--foc-feedback-mode", default="encoder", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-feedback-mode", default="sensorless", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-mode", default="ai", choices=["ai", "rule"])
+    parser.add_argument("--ai-control-mode", default="ai_id_ref", choices=["ai_id_ref", "ai_current", "ai_voltage", "foc_assist", "ai_speed"])
     parser.add_argument("--mic-rule-id-ref-low", type=float, default=1.0)
     parser.add_argument("--mic-rule-id-ref-high", type=float, default=1.4)
     parser.add_argument("--mic-rule-speed-tol-rel", type=float, default=0.05)
@@ -1404,6 +1415,7 @@ def main() -> None:
     stage1_seed = int(args.air56_stage1_seed) if args.air56_stage1_seed is not None else int(seeds[0])
     stage2_seed = int(args.air56_stage2_seed) if args.air56_stage2_seed is not None else int(seeds[0])
     mic_mode = str(args.mic_mode).strip().lower()
+    ai_control_mode = str(args.ai_control_mode).strip().lower()
     mic_rule_params = {
         "id_ref_low": float(args.mic_rule_id_ref_low),
         "id_ref_high": float(args.mic_rule_id_ref_high),
@@ -1432,12 +1444,13 @@ def main() -> None:
     tuning_result: Dict[str, object] | None = None
     tuned_air56_candidate: Dict[str, object] | None = None
 
-    if (not bool(args.skip_air56_tune)) and ("air56" in motors) and mic_mode == "ai":
+    if (not bool(args.skip_air56_tune)) and ("air56" in motors) and mic_mode == "ai" and ai_control_mode == "ai_id_ref":
         print("[step27] AIR56 tuning started...", flush=True)
         air56_cfg, air56_agent, _air56_ckpt = _load_env_and_agent(
             MOTOR_REGISTRY["air56"].config_path,
             foc_disable_lut=bool(args.foc_disable_lut),
             require_agent=True,
+            ai_control_mode=ai_control_mode,
             motor_key="air56",
             checkpoint_registry_path=str(args.checkpoint_registry),
         )
@@ -1466,8 +1479,8 @@ def main() -> None:
         )
         tuned_air56_candidate = dict(tuning_result["selected_candidate"])
         print("[step27] AIR56 tuning done. Selected:", tuned_air56_candidate.get("tag"), flush=True)
-    elif (not bool(args.skip_air56_tune)) and ("air56" in motors) and mic_mode != "ai":
-        print("[step27] AIR56 tuning skipped because --mic-mode=rule.", flush=True)
+    elif (not bool(args.skip_air56_tune)) and ("air56" in motors) and (mic_mode != "ai" or ai_control_mode != "ai_id_ref"):
+        print("[step27] AIR56 tuning skipped because it only supports --mic-mode=ai with --ai-control-mode=ai_id_ref.", flush=True)
 
     per_seed_rows: List[Dict[str, object]] = []
     run_manifest_rows: List[Dict[str, object]] = []
@@ -1480,6 +1493,7 @@ def main() -> None:
             spec.config_path,
             foc_disable_lut=bool(args.foc_disable_lut),
             require_agent=(mic_mode == "ai"),
+            ai_control_mode=ai_control_mode,
             motor_key=str(motor),
             checkpoint_registry_path=str(args.checkpoint_registry),
         )
@@ -1496,8 +1510,8 @@ def main() -> None:
             id_ref_eval["id_ref_gate_min_scale"] = float(tuned_air56_candidate["id_ref_gate_min_scale"])
             id_ref_eval["id_ref_gate_exponent"] = float(tuned_air56_candidate["id_ref_gate_exponent"])
         else:
-            sup_cfg = base_sup if mic_mode == "ai" else None
-            sup_source = "config" if mic_mode == "ai" else "rule"
+            sup_cfg = base_sup if (mic_mode == "ai" and ai_control_mode == "ai_id_ref") else None
+            sup_source = "config" if (mic_mode == "ai" and ai_control_mode == "ai_id_ref") else ("ai" if mic_mode == "ai" else "rule")
 
         for seed in seeds:
             seed_dir = out_dir / "runs" / motor / f"seed_{seed}"
@@ -1515,6 +1529,7 @@ def main() -> None:
                 foc_feedback_mode=str(args.foc_feedback_mode),
                 mic_feedback_mode=str(args.mic_feedback_mode),
                 controller="MIC",
+                ai_control_mode=ai_control_mode,
                 id_ref_params=id_ref_eval,
                 supervisor_cfg=sup_cfg,
                 sensorless=sensorless,
@@ -1535,6 +1550,7 @@ def main() -> None:
                 foc_feedback_mode=str(args.foc_feedback_mode),
                 mic_feedback_mode=str(args.mic_feedback_mode),
                 controller="FOC",
+                ai_control_mode=ai_control_mode,
                 id_ref_params=id_ref_eval,
                 supervisor_cfg=None,
                 sensorless=sensorless,
@@ -1617,6 +1633,7 @@ def main() -> None:
                     "checkpoint": "" if ckpt is None else str(ckpt),
                     "supervisor_source": sup_source,
                     "mic_mode": mic_mode,
+                    "ai_control_mode": ai_control_mode,
                     "seed_perturbation_enabled": bool(seed_perturbation.enabled and seed_perturbation.level > 0.0),
                     "seed_perturbation_level": float(seed_perturbation.level),
                     "seed_perturb_load_torque_scale": float(perturb_ref.get("perturb_load_torque_scale", 1.0)),

@@ -26,7 +26,9 @@ from mic_ai.ai.train_ai_id_ref import FEATURE_KEYS as ID_FEATURE_KEYS
 from mic_ai.ai.train_ai_voltage import FEATURE_KEYS as VOLT_FEATURE_KEYS, _motor_key_from_config, resolve_config_path
 from mic_ai.analysis.metrics import calc_cos_phi, calc_i_rms, calc_p_el, calc_p_mech, calc_v_rms
 from mic_ai.core.env import make_env_from_config
+from mic_ai.tools.checkpoint_adaptation import adapt_checkpoint_state_dict_for_model
 from mic_ai.tools.plot_style import apply_vak_style, ensure_matplotlib, save_figure
+from mic_ai.tools.scenario_compare import _resolve_feature_keys
 from simulation.gym_env import InductionMotorEnv
 
 
@@ -104,6 +106,29 @@ def _infer_hidden_sizes(state: Dict[str, torch.Tensor]) -> Tuple[int, ...] | Non
         return int(w0.shape[0]), int(w2.shape[0])
     except Exception:
         return None
+
+
+def _load_ai_agent_from_checkpoint(ckpt: Path, ai_mode: str) -> PPOVoltageAgent:
+    state = torch.load(ckpt, map_location="cpu")
+    hidden = _infer_hidden_sizes(state) or (128, 128)
+    if ai_mode == "ai_id_ref":
+        feature_keys = _resolve_feature_keys(None, state)
+        action_dim = 1
+    elif ai_mode == "foc_assist":
+        feature_keys = FOC_FEATURE_KEYS
+        action_dim = 2
+    else:
+        feature_keys = VOLT_FEATURE_KEYS
+        action_dim = 2
+    agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
+    adapted_state, _ = adapt_checkpoint_state_dict_for_model(
+        state,
+        agent.net.state_dict(),
+        target_control_mode=str(ai_mode).lower(),
+    )
+    agent.net.load_state_dict(adapted_state, strict=False)
+    agent.set_action_std(1e-6)
+    return agent
 
 
 def _steady_slice(n: int, window_frac: float) -> slice:
@@ -1668,20 +1693,7 @@ def main() -> None:
         ckpt = Path(args.ai_checkpoint)
         if not ckpt.exists():
             raise FileNotFoundError(f"AI checkpoint not found: {ckpt}")
-        state = torch.load(ckpt, map_location="cpu")
-        hidden = _infer_hidden_sizes(state) or (128, 128)
-        if ai_mode == "ai_id_ref":
-            feature_keys = ID_FEATURE_KEYS
-            action_dim = 1
-        elif ai_mode == "foc_assist":
-            feature_keys = FOC_FEATURE_KEYS
-            action_dim = 2
-        else:
-            feature_keys = VOLT_FEATURE_KEYS
-            action_dim = 2
-        agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
-        agent.net.load_state_dict(state)
-        agent.set_action_std(1e-6)
+        agent = _load_ai_agent_from_checkpoint(ckpt, ai_mode)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1991,4 +2003,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

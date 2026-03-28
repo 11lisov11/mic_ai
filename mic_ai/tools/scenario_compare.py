@@ -20,9 +20,10 @@ if str(ROOT) not in sys.path:
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
 from mic_ai.ai.ai_env import AiEnvConfig, MicAiAIEnv
 from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisor, AiIdRefSupervisorConfig
-from mic_ai.ai.train_ai_id_ref import FEATURE_KEYS as ID_FEATURE_KEYS
+from mic_ai.ai.train_ai_id_ref import FEATURE_KEYS as ID_FEATURE_KEYS, build_feature_keys
 from mic_ai.analysis.metrics import calc_i_rms, calc_p_el, calc_p_mech
 from mic_ai.core.env import make_env_from_config
+from mic_ai.tools.checkpoint_adaptation import adapt_checkpoint_state_dict_for_model
 from mic_ai.tools.plot_style import apply_vak_style, ensure_matplotlib, save_figure
 from simulation.gym_env import InductionMotorEnv
 
@@ -49,14 +50,22 @@ def _infer_hidden_sizes(state: Dict[str, torch.Tensor]) -> tuple[int, ...] | Non
 
 
 def _infer_action_dim(state: Dict[str, torch.Tensor]) -> int:
-    w_out = state.get("actor_mu.weight")
-    if w_out is None:
-        return 1
-    try:
-        dim = int(w_out.shape[0])
-    except Exception:
-        return 1
-    return max(dim, 1)
+    for key in ("actor_mu.weight", "actor_head.weight", "log_std", "actor_mu.bias", "actor_head.bias"):
+        value = state.get(key)
+        if value is None:
+            continue
+        try:
+            if getattr(value, "ndim", 0) >= 2:
+                dim = int(value.shape[0])
+            elif getattr(value, "ndim", 0) == 1:
+                dim = int(value.shape[0])
+            else:
+                continue
+        except Exception:
+            continue
+        if dim > 0:
+            return dim
+    return 1
 
 
 def _parse_feature_keys_arg(feature_keys: object | None) -> List[str]:
@@ -87,6 +96,7 @@ def _resolve_feature_keys(feature_keys: object | None, state: Dict[str, torch.Te
         return explicit
 
     defaults = list(ID_FEATURE_KEYS)
+    defaults_with_episode_eta = list(build_feature_keys(include_energy_obs=True, include_episode_eta_obs=True))
     if not defaults:
         return []
     energy_obs = {"p_in_norm", "p_el_filt", "p_shaft_norm", "eta_norm"}
@@ -102,12 +112,21 @@ def _resolve_feature_keys(feature_keys: object | None, state: Dict[str, torch.Te
     except Exception:
         return defaults
 
+    if in_dim == len(defaults_with_episode_eta):
+        return defaults_with_episode_eta
     if in_dim == len(defaults):
         return defaults
     if in_dim == len(base):
         return base
-    if 0 < in_dim < len(defaults):
-        return list(defaults[:in_dim])
+    if 0 < in_dim < len(base):
+        return list(base[:in_dim])
+    if len(base) < in_dim < len(defaults):
+        energy_count = max(0, in_dim - len(base))
+        energy_keys = [k for k in defaults if k in energy_obs]
+        return list(base + energy_keys[:energy_count])
+    if len(defaults) < in_dim < len(defaults_with_episode_eta):
+        extra = defaults_with_episode_eta[len(defaults) : in_dim]
+        return list(defaults + extra)
     return defaults
 
 
@@ -314,7 +333,7 @@ def _build_ai_env(
     iq_limit = float(getattr(getattr(env_cfg, "foc", None), "iq_limit", i_base * 8.0))
     i_limit = max(iq_limit, i_base)
     control_mode = str(ai_control_mode).lower().strip()
-    if control_mode == "ai_current":
+    if control_mode in {"ai_current", "ai_speed"}:
         i_base = float(i_limit)
     id_ref_base = float(getattr(getattr(env_cfg, "foc", None), "id_ref", 0.0) or 0.0)
     # Allow a wider id_ref range for small motors where id_ref_base can be > I_n
@@ -363,7 +382,7 @@ def _build_ai_env(
         override_load_torque=False,
         override_omega_ref=False,
         drift_every_episodes=0,
-        enable_id_control=bool(control_mode == "ai_current"),
+        enable_id_control=bool(control_mode in {"ai_current", "foc_assist", "ai_speed"}),
     )
     base_env = InductionMotorEnv(env_cfg)
     return MicAiAIEnv(base_env, ai_cfg, curiosity=None, world_model=None, world_input_keys=ID_FEATURE_KEYS, world_target_keys=["omega_norm"])
@@ -656,7 +675,7 @@ def main() -> None:
     parser.add_argument("--include-v3", action="store_true", help="Also simulate V3 controller.")
     parser.add_argument("--use-total-power", action="store_true", help="Use p_in_total if available.")
     parser.add_argument("--foc-disable-lut", action="store_true", help="Disable id_ref LUT for FOC baseline.")
-    parser.add_argument("--ai-control-mode", type=str, default="ai_id_ref", choices=["ai_id_ref", "ai_current"])
+    parser.add_argument("--ai-control-mode", type=str, default="ai_id_ref", choices=["ai_id_ref", "ai_current", "ai_voltage", "foc_assist", "ai_speed"])
     parser.add_argument("--ai-id-relative", action="store_true", help="Use relative id_ref around base.")
     parser.add_argument("--delta-id-max", type=float, default=0.1)
     parser.add_argument("--ai-feature-keys", default=None, help="Comma-separated feature keys for AI checkpoint.")
@@ -733,11 +752,16 @@ def main() -> None:
         state = torch.load(ckpt, map_location="cpu")
         hidden = _infer_hidden_sizes(state) or (128, 128)
         action_dim = _infer_action_dim(state)
-        if str(args.ai_control_mode).lower().strip() == "ai_current":
+        if str(args.ai_control_mode).lower().strip() in {"ai_current", "ai_voltage", "foc_assist", "ai_speed"}:
             action_dim = max(action_dim, 2)
         feature_keys = _resolve_feature_keys(args.ai_feature_keys, state)
         agent = PPOVoltageAgent(feature_keys=feature_keys, action_dim=action_dim, device="cpu", hidden_sizes=hidden)
-        agent.net.load_state_dict(state)
+        adapted_state, _ = adapt_checkpoint_state_dict_for_model(
+            state,
+            agent.net.state_dict(),
+            target_control_mode=str(args.ai_control_mode).lower(),
+        )
+        agent.net.load_state_dict(adapted_state, strict=False)
         agent.set_action_std(1e-6)
 
     supervisor_cfg: AiIdRefSupervisorConfig | None = None

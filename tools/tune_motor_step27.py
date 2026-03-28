@@ -381,6 +381,7 @@ def _eval_candidate(
     motor_key: str,
     agent: object,
     candidate: Dict[str, object],
+    ai_control_mode: str = "ai_id_ref",
     scenarios: List[str],
     seeds: List[int],
     window_frac: float,
@@ -392,13 +393,15 @@ def _eval_candidate(
     seed_perturbation: SeedPerturbationSettings,
     acceptance_envelopes_path: Path = DEFAULT_ACCEPTANCE_ENVELOPES,
 ) -> Dict[str, float]:
-    sup_cfg = _candidate_to_supervisor(candidate)
     id_ref = _id_ref_eval_params(env_cfg)
-    id_ref["id_ref_alpha"] = float(candidate["id_ref_alpha"])
-    id_ref["delta_id_max"] = float(candidate["delta_id_max"])
-    id_ref["id_ref_gate_speed_tol_rel"] = float(candidate["id_ref_gate_speed_tol_rel"])
-    id_ref["id_ref_gate_min_scale"] = float(candidate["id_ref_gate_min_scale"])
-    id_ref["id_ref_gate_exponent"] = float(candidate["id_ref_gate_exponent"])
+    ai_mode = str(ai_control_mode).strip().lower()
+    sup_cfg = _candidate_to_supervisor(candidate) if ai_mode == "ai_id_ref" else None
+    if ai_mode == "ai_id_ref":
+        id_ref["id_ref_alpha"] = float(candidate["id_ref_alpha"])
+        id_ref["delta_id_max"] = float(candidate["delta_id_max"])
+        id_ref["id_ref_gate_speed_tol_rel"] = float(candidate["id_ref_gate_speed_tol_rel"])
+        id_ref["id_ref_gate_min_scale"] = float(candidate["id_ref_gate_min_scale"])
+        id_ref["id_ref_gate_exponent"] = float(candidate["id_ref_gate_exponent"])
     sensorless = _sensorless_params(env_cfg)
 
     per_seed: List[Dict[str, float]] = []
@@ -417,6 +420,7 @@ def _eval_candidate(
             foc_feedback_mode=str(foc_feedback_mode),
             mic_feedback_mode=str(mic_feedback_mode),
             controller="MIC",
+            ai_control_mode=ai_mode,
             id_ref_params=id_ref,
             supervisor_cfg=sup_cfg,
             sensorless=sensorless,

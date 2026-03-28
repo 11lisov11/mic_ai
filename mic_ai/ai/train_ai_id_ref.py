@@ -26,6 +26,7 @@ from mic_ai.ai.ai_voltage_config import get_curriculum_config, load_ai_voltage_c
 from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisor, AiIdRefSupervisorConfig
 from mic_ai.ai.scenario_randomization import wrap_scenario_with_ranges
 from mic_ai.core.env import make_env_from_config
+from mic_ai.tools.checkpoint_adaptation import adapt_checkpoint_state_dict_for_model
 from simulation.gym_env import InductionMotorEnv
 
 
@@ -38,6 +39,8 @@ BASE_FEATURE_KEYS = [
     "slip_norm",
     "load_torque_norm",
 ]
+
+TWO_ACTION_CONTROL_MODES = {"ai_current", "foc_assist", "ai_speed"}
 
 
 def build_feature_keys(include_energy_obs: bool, include_episode_eta_obs: bool = False) -> List[str]:
@@ -94,6 +97,19 @@ def _parse_range(text: str | None) -> tuple[float, float] | None:
     return lo, hi
 
 
+def _parse_hidden_sizes(text: str | None) -> tuple[int, ...] | None:
+    if not text:
+        return None
+    parts = [item.strip() for item in str(text).replace(";", ",").split(",") if item.strip()]
+    sizes: List[int] = []
+    for part in parts:
+        value = int(part)
+        if value <= 0:
+            raise ValueError(f"hidden size must be positive, got {value}")
+        sizes.append(value)
+    return tuple(sizes) if sizes else None
+
+
 def _normalize_range(value: object | None) -> tuple[float, float] | None:
     if value is None:
         return None
@@ -109,6 +125,37 @@ def _normalize_range(value: object | None) -> tuple[float, float] | None:
     if isinstance(value, str):
         return _parse_range(value)
     return None
+
+
+def _curriculum_scale(episode: int, warmup_episodes: int, ramp_episodes: int) -> float:
+    warmup = max(int(warmup_episodes), 0)
+    ramp = max(int(ramp_episodes), 0)
+    if warmup <= 0 and ramp <= 0:
+        return 1.0
+    if int(episode) < warmup:
+        return 0.0
+    if ramp <= 0:
+        return 1.0
+    if int(episode) < warmup + ramp:
+        return float(int(episode) - warmup) / float(ramp)
+    return 1.0
+
+
+def _infer_hidden_sizes_from_state_dict(state: Dict[str, torch.Tensor]) -> tuple[int, ...] | None:
+    layers: List[tuple[int, int]] = []
+    for key, value in state.items():
+        if not key.startswith("actor_body.") or not key.endswith(".weight"):
+            continue
+        parts = key.split(".")
+        if len(parts) < 3 or not parts[1].isdigit():
+            continue
+        if not torch.is_tensor(value) or value.ndim != 2:
+            continue
+        layers.append((int(parts[1]), int(value.shape[0])))
+    if not layers:
+        return None
+    layers.sort(key=lambda item: item[0])
+    return tuple(out_dim for _, out_dim in layers)
 
 
 def _prepare_output_file(path: Path) -> Path:
@@ -241,9 +288,11 @@ def _run_external_step27_selection(
     *,
     run_dir: Path,
     motor: str,
-    candidate_json: str,
+    ai_control_mode: str = "ai_id_ref",
+    candidate_json: str | None,
     candidate_index: int,
     candidate_tag: str,
+    candidate_tags: str = "",
     seeds: str,
     scenarios: str,
     seed_perturbation: bool,
@@ -266,6 +315,7 @@ def _run_external_step27_selection(
     feature_keys: List[str] | None = None,
     init_checkpoint: str | None = None,
     include_init_checkpoint: bool = False,
+    resume: bool = False,
 ) -> Dict[str, object]:
     from tools.scan_step27_checkpoints import scan_checkpoints
 
@@ -281,12 +331,15 @@ def _run_external_step27_selection(
         included_init_path = (eval_dir / "actor_ep_init.pth").resolve()
         if init_path != included_init_path:
             shutil.copyfile(init_path, included_init_path)
+    candidate_json_arg = "" if candidate_json is None else str(candidate_json)
     summary = scan_checkpoints(
         motor=str(motor),
+        ai_control_mode=str(ai_control_mode),
         checkpoint_glob=str((run_dir / "eval").resolve()),
-        candidate_json=str(candidate_json),
+        candidate_json=candidate_json_arg,
         candidate_index=int(candidate_index),
         candidate_tag=str(candidate_tag),
+        candidate_tags=[part.strip() for part in str(candidate_tags).split(",") if part.strip()],
         seeds=_parse_int_csv(seeds),
         scenarios=_parse_scenarios(scenarios),
         out_dir=scan_out_dir,
@@ -308,6 +361,7 @@ def _run_external_step27_selection(
         min_start_stop_saving_pct_min_seed=min_start_stop_saving_pct_min_seed,
         top_k=int(top_k),
         feature_keys=None if feature_keys is None else list(feature_keys),
+        resume=bool(resume),
     )
     best = dict(summary.get("best") or {})
     selected_raw = str(best.get("checkpoint", "")).strip()
@@ -322,6 +376,7 @@ def _run_external_step27_selection(
     payload: Dict[str, object] = {
         "enabled": True,
         "motor": str(motor),
+        "ai_control_mode": str(ai_control_mode),
         "scan_summary_json": str((scan_out_dir / f"{motor}_checkpoint_scan_summary.json").resolve()),
         "scan_rows_json": str((scan_out_dir / f"{motor}_checkpoint_scan.json").resolve()),
         "selected_checkpoint": str(selected_path),
@@ -330,9 +385,12 @@ def _run_external_step27_selection(
         "selected_score": float(best.get("score", float("inf"))),
         "acceptance_pass": bool(best.get("acceptance_pass", False)),
         "promoted_checkpoint": str(promoted_path),
-        "candidate_json": str(Path(candidate_json).resolve()),
+        "candidate_json": None
+        if not str(candidate_json_arg).strip()
+        else str(Path(candidate_json_arg).resolve()),
         "candidate_index": int(candidate_index),
         "candidate_tag": str(candidate_tag),
+        "candidate_tags": [part.strip() for part in str(candidate_tags).split(",") if part.strip()],
         "seeds": _parse_int_csv(seeds),
         "scenarios": _parse_scenarios(scenarios),
         "seed_perturbation": bool(seed_perturbation),
@@ -359,6 +417,7 @@ def _run_external_step27_selection(
         "min_start_stop_saving_pct_min_seed": None
         if min_start_stop_saving_pct_min_seed is None
         else float(min_start_stop_saving_pct_min_seed),
+        "resume": bool(resume),
         "include_init_checkpoint": bool(include_init_checkpoint),
         "included_init_checkpoint": None if included_init_path is None else str(included_init_path),
         "best_metrics": best,
@@ -399,27 +458,14 @@ def _promote_external_step27_checkpoint(
 def _adapt_checkpoint_state_dict_for_model(
     state_dict: Dict[str, torch.Tensor],
     model_state_dict: Dict[str, torch.Tensor],
+    *,
+    target_control_mode: str | None = None,
 ) -> tuple[Dict[str, torch.Tensor], List[str]]:
-    adapted: Dict[str, torch.Tensor] = {}
-    adjusted: List[str] = []
-    for key, value in state_dict.items():
-        target = model_state_dict.get(key)
-        if target is None or not isinstance(value, torch.Tensor):
-            adapted[key] = value
-            continue
-        if tuple(value.shape) == tuple(target.shape):
-            adapted[key] = value
-            continue
-        if value.ndim == 2 and target.ndim == 2 and value.shape[0] == target.shape[0]:
-            padded = target.detach().clone()
-            padded.zero_()
-            cols = min(int(value.shape[1]), int(target.shape[1]))
-            padded[:, :cols] = value[:, :cols].to(dtype=target.dtype)
-            adapted[key] = padded
-            adjusted.append(key)
-            continue
-        adapted[key] = value
-    return adapted, adjusted
+    return adapt_checkpoint_state_dict_for_model(
+        state_dict,
+        model_state_dict,
+        target_control_mode=target_control_mode,
+    )
 
 
 def build_env(
@@ -466,7 +512,7 @@ def build_env(
     iq_limit = float(iq_limit_cfg)
     id_ref_base = float(getattr(foc_cfg, "id_ref", 0.0) or 0.0)
     mode = str(control_mode).lower()
-    if mode == "ai_current":
+    if mode in {"ai_current", "ai_speed"}:
         # Current-control mode: keep a wide normalization range because the agent can command iq/id directly.
         i_limit = float(max(iq_limit, i_base_nom * 8.0, 5.0))
         i_base = float(i_limit)
@@ -491,14 +537,17 @@ def build_env(
     w_current_cfg = w_current
     if w_current_cfg is None:
         w_current_cfg = float(getattr(env_cfg, "ai_w_id_current", 0.0))
+    tracking_mode = mode in {"ai_current", "ai_speed"}
+    baseline_speed_err = float(getattr(env_cfg, "baseline_speed_err", getattr(env_cfg, "baseline_speed_error", 0.0)))
+    baseline_current_rms = float(getattr(env_cfg, "baseline_current_rms", 0.0))
 
     ai_cfg = AiEnvConfig(
         episode_steps=int(episode_steps),
         dt=float(env_cfg.sim.dt),
         omega_ref=omega_ref,
         omega_ref_max=max(abs(omega_ref) * 1.2, 1e-3),
-        w_speed_error=0.0,
-        w_current_rms=0.0,
+        w_speed_error=float(w_speed) if tracking_mode else 0.0,
+        w_current_rms=float(w_current_cfg) if tracking_mode else 0.0,
         i_base=i_base,
         i_max=i_limit,
         control_mode=str(control_mode).lower(),
@@ -513,6 +562,8 @@ def build_env(
         w_ai_id_eta=float(w_eta),
         w_ai_id_eta_episode=float(w_eta_episode),
         ai_id_eta_clip=float(eta_clip),
+        baseline_speed_err=baseline_speed_err,
+        baseline_current_rms=baseline_current_rms,
         ai_id_energy_gate_mode=str(getattr(env_cfg, "ai_id_energy_gate_mode", "hard")),
         ai_id_energy_gate_min_scale=float(getattr(env_cfg, "ai_id_energy_gate_min_scale", 0.0)),
         ai_id_energy_gate_exponent=float(getattr(env_cfg, "ai_id_energy_gate_exponent", 1.0)),
@@ -528,6 +579,13 @@ def build_env(
         w_int_scale=float(getattr(env_cfg, "ai_w_int_scale", 0.0)),
         wm_lr=float(getattr(env_cfg, "ai_wm_lr", 1e-4)),
         curiosity_beta=float(getattr(env_cfg, "ai_curiosity_beta", 0.0)),
+        foc_assist_reward_mode=str(getattr(env_cfg, "foc_assist_reward_mode", "baseline")),
+        w_foc_speed=float(getattr(env_cfg, "w_foc_speed", 1.0)),
+        w_foc_power=float(getattr(env_cfg, "w_foc_power", 0.5)),
+        w_foc_current=float(getattr(env_cfg, "w_foc_current", 0.1)),
+        w_foc_action=float(getattr(env_cfg, "w_foc_action", 0.01)),
+        foc_speed_tol=float(getattr(env_cfg, "foc_speed_tol", 0.5)),
+        p_el_tau=float(getattr(env_cfg, "p_el_tau", 0.02)),
         id_ref_alpha=float(id_ref_alpha),
         id_ref_rate_limit=None if id_ref_rate_limit is None else float(id_ref_rate_limit),
         id_ref_gate_speed_tol=None if id_ref_gate_speed_tol is None else float(id_ref_gate_speed_tol),
@@ -552,7 +610,7 @@ def build_env(
         load_torque_override=None if load_torque is None else float(load_torque),
         override_load_torque=bool(override_load_torque),
         override_omega_ref=bool(override_omega_ref),
-        enable_id_control=bool(str(control_mode).lower() == "ai_current"),
+        enable_id_control=bool(str(control_mode).lower() in TWO_ACTION_CONTROL_MODES),
     )
 
     base_env = InductionMotorEnv(env_cfg)
@@ -566,6 +624,36 @@ def build_env(
     setattr(env, "_train_env_cfg", env_cfg)
     setattr(env, "_train_env_config_path", str(env_config_path))
     return env
+
+
+def _apply_env_reward_overrides(
+    env: MicAiAIEnv,
+    *,
+    energy_gate_mode: str | None = None,
+    energy_gate_min_scale: float | None = None,
+    energy_gate_exponent: float | None = None,
+    terminal_energy_bonus: float | None = None,
+    terminal_eta_target: float | None = None,
+    terminal_shaft_ratio_min: float | None = None,
+    i_soft_limit: float | None = None,
+    i_soft_penalty: float | None = None,
+) -> None:
+    if energy_gate_mode is not None:
+        env.cfg.ai_id_energy_gate_mode = str(energy_gate_mode)
+    if energy_gate_min_scale is not None:
+        env.cfg.ai_id_energy_gate_min_scale = float(energy_gate_min_scale)
+    if energy_gate_exponent is not None:
+        env.cfg.ai_id_energy_gate_exponent = float(energy_gate_exponent)
+    if terminal_energy_bonus is not None:
+        env.cfg.ai_id_terminal_energy_bonus = float(terminal_energy_bonus)
+    if terminal_eta_target is not None:
+        env.cfg.ai_id_terminal_eta_target = float(terminal_eta_target)
+    if terminal_shaft_ratio_min is not None:
+        env.cfg.ai_id_terminal_shaft_ratio_min = float(terminal_shaft_ratio_min)
+    if i_soft_limit is not None:
+        env.cfg.i_soft_limit = float(i_soft_limit)
+    if i_soft_penalty is not None:
+        env.cfg.i_soft_penalty = float(i_soft_penalty)
 
 
 def train(
@@ -608,6 +696,8 @@ def train(
     sigma_decay_episodes: int,
     power_warmup_episodes: int,
     power_ramp_episodes: int,
+    energy_warmup_episodes: int,
+    energy_ramp_episodes: int,
     eval_interval: int,
     eval_scenarios: str,
     eval_dt: float | None,
@@ -621,11 +711,13 @@ def train(
     update_every_episodes: int,
     lr: float = 5e-4,
     entropy_coef: float = 0.005,
+    actor_anchor_coef: float = 0.0,
     external_step27_select: bool = False,
     external_step27_motor: str | None = None,
     external_step27_candidate_json: str | None = None,
     external_step27_candidate_index: int = 0,
     external_step27_candidate_tag: str = "",
+    external_step27_candidate_tags: str = "",
     external_step27_seeds: str = "101,202,303",
     external_step27_scenarios: str = "speed_step,ramp,load_step,start_stop",
     external_step27_seed_perturbation: bool = False,
@@ -646,15 +738,49 @@ def train(
     external_step27_min_start_stop_saving_pct_min_seed: float | None = None,
     external_step27_top_k: int = 10,
     external_step27_include_init_checkpoint: bool = False,
+    external_step27_resume: bool = False,
     init_checkpoint: str | None = None,
     output_dir: str | None = None,
     results_root: str | None = None,
+    energy_gate_mode: str | None = None,
+    energy_gate_min_scale: float | None = None,
+    energy_gate_exponent: float | None = None,
+    terminal_energy_bonus: float | None = None,
+    terminal_eta_target: float | None = None,
+    terminal_shaft_ratio_min: float | None = None,
+    i_soft_limit: float | None = None,
+    i_soft_penalty: float | None = None,
+    hidden_sizes_override: tuple[int, ...] | None = None,
 ) -> Dict[str, str]:
     feature_keys = build_feature_keys(include_energy_obs, include_episode_eta_obs)
     if seed is not None:
         random.seed(int(seed))
         np.random.seed(int(seed))
         torch.manual_seed(int(seed))
+
+    init_path: Path | None = None
+    init_state: Dict[str, torch.Tensor] | None = None
+    if init_checkpoint:
+        from mic_ai.tools.scenario_compare import _resolve_feature_keys
+
+        init_path = Path(str(init_checkpoint)).resolve()
+        if not init_path.exists():
+            raise FileNotFoundError(f"Init checkpoint not found: {init_path}")
+        state_raw = torch.load(init_path, map_location="cpu")
+        if isinstance(state_raw, dict) and "state_dict" in state_raw and isinstance(state_raw.get("state_dict"), dict):
+            state_raw = state_raw["state_dict"]
+        if not isinstance(state_raw, dict):
+            raise ValueError(f"Unsupported checkpoint format: {init_path}")
+        init_state = state_raw
+        inferred_feature_keys = list(_resolve_feature_keys(None, init_state))
+        if len(feature_keys) < len(inferred_feature_keys) and feature_keys == inferred_feature_keys[: len(feature_keys)]:
+            feature_keys = inferred_feature_keys
+            print(
+                "[train_ai_id_ref] inferred feature_keys from init checkpoint {} -> {}".format(
+                    init_path.name,
+                    feature_keys,
+                )
+            )
 
     env = build_env(
         env_config,
@@ -685,6 +811,17 @@ def train(
         omega_ref_override=omega_ref_override,
         feature_keys=feature_keys,
     )
+    _apply_env_reward_overrides(
+        env,
+        energy_gate_mode=energy_gate_mode,
+        energy_gate_min_scale=energy_gate_min_scale,
+        energy_gate_exponent=energy_gate_exponent,
+        terminal_energy_bonus=terminal_energy_bonus,
+        terminal_eta_target=terminal_eta_target,
+        terminal_shaft_ratio_min=terminal_shaft_ratio_min,
+        i_soft_limit=i_soft_limit,
+        i_soft_penalty=i_soft_penalty,
+    )
     env_train_cfg = getattr(env, "_train_env_cfg", None)
     train_supervisor_cfg = _train_supervisor_from_env(env_train_cfg)
     train_supervisor: AiIdRefSupervisor | None = None
@@ -704,25 +841,35 @@ def train(
             f"update_steps={train_supervisor_cfg.update_steps} "
             f"dither={train_supervisor_cfg.dither_amp}"
         )
+    base_terminal_energy_bonus = float(getattr(env.cfg, "ai_id_terminal_energy_bonus", 0.0))
 
     external_step27_motor_name = str(external_step27_motor or "").strip().lower()
-    external_step27_candidate_path = None if external_step27_candidate_json is None else Path(str(external_step27_candidate_json)).expanduser().resolve()
+    external_candidate_raw = None if external_step27_candidate_json is None else str(external_step27_candidate_json).strip()
+    if external_candidate_raw is not None and external_candidate_raw.lower() in {"", "none", "null"}:
+        external_candidate_raw = None
+    external_step27_candidate_path = None if external_candidate_raw is None else Path(external_candidate_raw).expanduser().resolve()
     if external_step27_select:
         if not external_step27_motor_name:
             raise ValueError("--external-step27-motor is required when --external-step27-select is enabled")
-        if external_step27_candidate_path is None:
+        if str(control_mode).lower() == "ai_id_ref" and external_step27_candidate_path is None:
             raise ValueError("--external-step27-candidate-json is required when --external-step27-select is enabled")
-        if not external_step27_candidate_path.exists():
+        if external_step27_candidate_path is not None and not external_step27_candidate_path.exists():
             raise FileNotFoundError(f"External Step27 candidate json not found: {external_step27_candidate_path}")
 
     scenarios = [s for s in (scenarios or []) if s]
     scenario_sample = str(scenario_sample or "random").lower()
     rng = np.random.default_rng(seed)
 
-    hidden_sizes = (64, 64) if fast else (128, 128)
+    hidden_sizes = tuple(hidden_sizes_override) if hidden_sizes_override else ((64, 64) if fast else (128, 128))
+    inferred_hidden_sizes = None if init_state is None else _infer_hidden_sizes_from_state_dict(init_state)
+    if hidden_sizes_override:
+        hidden_sizes = tuple(int(x) for x in hidden_sizes_override)
+    elif inferred_hidden_sizes:
+        hidden_sizes = tuple(int(x) for x in inferred_hidden_sizes)
+        print(f"[train_ai_id_ref] inferred hidden_sizes={hidden_sizes} from init checkpoint {init_path.name}")
     train_epochs = 3 if fast else 5
     minibatch_frac = 0.5 if fast else 0.25
-    action_dim = 2 if str(control_mode).lower() == "ai_current" else 1
+    action_dim = 2 if str(control_mode).lower() in TWO_ACTION_CONTROL_MODES else 1
     agent = PPOVoltageAgent(
         feature_keys=feature_keys,
         action_dim=action_dim,
@@ -738,16 +885,12 @@ def train(
         train_epochs=train_epochs,
         minibatch_frac=minibatch_frac,
     )
-    if init_checkpoint:
-        init_path = Path(str(init_checkpoint)).resolve()
-        if not init_path.exists():
-            raise FileNotFoundError(f"Init checkpoint not found: {init_path}")
-        state = torch.load(init_path, map_location="cpu")
-        if isinstance(state, dict) and "state_dict" in state and isinstance(state.get("state_dict"), dict):
-            state = state["state_dict"]
-        if not isinstance(state, dict):
-            raise ValueError(f"Unsupported checkpoint format: {init_path}")
-        state, adjusted_keys = _adapt_checkpoint_state_dict_for_model(state, agent.net.state_dict())
+    if init_state is not None and init_path is not None:
+        state, adjusted_keys = _adapt_checkpoint_state_dict_for_model(
+            init_state,
+            agent.net.state_dict(),
+            target_control_mode=str(control_mode).lower(),
+        )
         missing_keys, unexpected_keys = agent.net.load_state_dict(state, strict=False)
         print(
             "[train_ai_id_ref] warm-start checkpoint={} missing_keys={} unexpected_keys={} adjusted_keys={}".format(
@@ -757,6 +900,11 @@ def train(
                 len(adjusted_keys),
             )
         )
+    if float(actor_anchor_coef) > 0.0:
+        if init_state is None:
+            raise ValueError("--actor-anchor-coef requires --init-checkpoint")
+        agent.set_actor_anchor_from_current(float(actor_anchor_coef))
+        print(f"[train_ai_id_ref] actor anchor enabled coef={float(actor_anchor_coef):.6f}")
 
     output_root_path = OUTPUT_DIR if output_dir is None else Path(str(output_dir)).expanduser()
     if not output_root_path.is_absolute():
@@ -772,7 +920,7 @@ def train(
     ckpt_dir = (checkpoint_root / env_name).resolve()
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    mode_tag = "ai_current" if str(control_mode).lower() == "ai_current" else "ai_id_ref"
+    mode_tag = str(control_mode).lower()
     run_dir = results_root_path / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{env_name}_{mode_tag}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -831,15 +979,12 @@ def train(
             sigma = float(sigma_start + (sigma_end - sigma_start) * frac)
         agent.set_action_std(sigma)
 
-        power_scale = 1.0
-        if power_warmup_episodes > 0 or power_ramp_episodes > 0:
-            if ep < power_warmup_episodes:
-                power_scale = 0.0
-            elif ep < power_warmup_episodes + max(power_ramp_episodes, 1):
-                power_scale = (ep - power_warmup_episodes) / max(power_ramp_episodes, 1)
-            else:
-                power_scale = 1.0
-        env.cfg.w_ai_id_power = float(w_power) * float(power_scale)
+        power_scale = _curriculum_scale(ep, power_warmup_episodes, power_ramp_episodes)
+        energy_scale = _curriculum_scale(ep, energy_warmup_episodes, energy_ramp_episodes)
+        env.cfg.w_ai_id_power = float(w_power) * float(power_scale) * float(energy_scale)
+        env.cfg.w_ai_id_eta = float(w_eta) * float(energy_scale)
+        env.cfg.w_ai_id_eta_episode = float(w_eta_episode) * float(energy_scale)
+        env.cfg.ai_id_terminal_energy_bonus = float(base_terminal_energy_bonus) * float(energy_scale)
 
         while not done and steps < int(episode_steps):
             action, logp, value = agent.act(obs)
@@ -857,7 +1002,11 @@ def train(
             obs = obs_next
             steps += 1
 
-        losses = {"actor_loss": agent.last_actor_loss, "value_loss": agent.last_value_loss}
+        losses = {
+            "actor_loss": agent.last_actor_loss,
+            "value_loss": agent.last_value_loss,
+            "anchor_loss": getattr(agent, "last_anchor_loss", 0.0),
+        }
         if (ep + 1) % update_every == 0 or ep == episodes - 1:
             with torch.no_grad():
                 last_value = float(agent.net(agent._to_tensor(obs).unsqueeze(0))[2].item())
@@ -880,6 +1029,7 @@ def train(
             "mean_reward": float(total_reward / max(steps, 1)),
             "actor_loss": float(losses.get("actor_loss", 0.0)),
             "value_loss": float(losses.get("value_loss", 0.0)),
+            "anchor_loss": float(losses.get("anchor_loss", 0.0)),
             "scenario": scenario_name,
             "omega_ref": omega_ref_logged,
             "load_torque": load_logged,
@@ -887,7 +1037,12 @@ def train(
             "scenario_load_scale": float(scenario_meta.get("load_scale", 1.0)),
             "scenario_omega_peak": float(scenario_meta.get("omega_peak", omega_ref_logged)),
             "scenario_load_peak": float(scenario_meta.get("load_peak", load_logged)),
+            "power_scale_eff": float(power_scale),
+            "energy_scale_eff": float(energy_scale),
             "w_power_eff": float(getattr(env.cfg, "w_ai_id_power", w_power)),
+            "w_eta_eff": float(getattr(env.cfg, "w_ai_id_eta", w_eta)),
+            "w_eta_episode_eff": float(getattr(env.cfg, "w_ai_id_eta_episode", w_eta_episode)),
+            "terminal_energy_bonus_eff": float(getattr(env.cfg, "ai_id_terminal_energy_bonus", base_terminal_energy_bonus)),
             "exploration_sigma": float(sigma),
         }
         episodes_log.append(entry)
@@ -956,9 +1111,11 @@ def train(
         external_step27_selection = _run_external_step27_selection(
             run_dir=run_dir,
             motor=external_step27_motor_name,
-            candidate_json=str(external_step27_candidate_path),
+            ai_control_mode=str(control_mode).lower(),
+            candidate_json=None if external_step27_candidate_path is None else str(external_step27_candidate_path),
             candidate_index=int(external_step27_candidate_index),
             candidate_tag=str(external_step27_candidate_tag),
+            candidate_tags=str(external_step27_candidate_tags),
             seeds=str(external_step27_seeds),
             scenarios=str(external_step27_scenarios),
             seed_perturbation=bool(external_step27_seed_perturbation),
@@ -981,6 +1138,7 @@ def train(
             feature_keys=feature_keys,
             init_checkpoint=init_checkpoint,
             include_init_checkpoint=bool(external_step27_include_init_checkpoint),
+            resume=bool(external_step27_resume),
         )
         external_step27_selection = _promote_external_step27_checkpoint(
             ckpt_dir=ckpt_dir,
@@ -1025,6 +1183,8 @@ def train(
         "sigma_decay_episodes": int(sigma_decay_episodes),
         "power_warmup_episodes": int(power_warmup_episodes),
         "power_ramp_episodes": int(power_ramp_episodes),
+        "energy_warmup_episodes": int(energy_warmup_episodes),
+        "energy_ramp_episodes": int(energy_ramp_episodes),
         "eval_interval": int(eval_interval),
         "eval_scenarios": str(eval_scenarios),
         "eval_dt": None if eval_dt is None else float(eval_dt),
@@ -1034,10 +1194,23 @@ def train(
         "eval_error_tol_abs": float(eval_error_tol_abs),
         "eval_use_total_power": bool(eval_use_total_power),
         "include_energy_obs": bool(include_energy_obs),
+        "include_episode_eta_obs": bool(include_episode_eta_obs),
         "update_every_episodes": int(update_every),
         "optimizer": {
             "lr": float(lr),
             "entropy_coef": float(entropy_coef),
+            "actor_anchor_coef": float(actor_anchor_coef),
+            "hidden_sizes": [int(x) for x in hidden_sizes],
+        },
+        "reward_overrides": {
+            "energy_gate_mode": None if energy_gate_mode is None else str(energy_gate_mode),
+            "energy_gate_min_scale": None if energy_gate_min_scale is None else float(energy_gate_min_scale),
+            "energy_gate_exponent": None if energy_gate_exponent is None else float(energy_gate_exponent),
+            "terminal_energy_bonus": None if terminal_energy_bonus is None else float(terminal_energy_bonus),
+            "terminal_eta_target": None if terminal_eta_target is None else float(terminal_eta_target),
+            "terminal_shaft_ratio_min": None if terminal_shaft_ratio_min is None else float(terminal_shaft_ratio_min),
+            "i_soft_limit": None if i_soft_limit is None else float(i_soft_limit),
+            "i_soft_penalty": None if i_soft_penalty is None else float(i_soft_penalty),
         },
         "external_step27_selection": external_step27_selection,
         "external_step27_min_avg_power_saving_pct": float(external_step27_min_avg_power_saving_pct),
@@ -1065,6 +1238,7 @@ def train(
         if external_step27_min_start_stop_saving_pct_min_seed is None
         else float(external_step27_min_start_stop_saving_pct_min_seed),
         "external_step27_include_init_checkpoint": bool(external_step27_include_init_checkpoint),
+        "external_step27_resume": bool(external_step27_resume),
         "feature_keys": feature_keys,
         "init_checkpoint": None if init_checkpoint is None else str(Path(init_checkpoint).resolve()),
         "output_dir": str(output_root_path),
@@ -1092,7 +1266,7 @@ def train(
 def main() -> None:
     p = argparse.ArgumentParser(description="Train AI to adapt FOC id_ref for efficiency (minimize P_in).")
     p.add_argument("config", help="Env config path (.py)")
-    p.add_argument("--control-mode", type=str, default="ai_id_ref", choices=["ai_id_ref", "ai_current"])
+    p.add_argument("--control-mode", type=str, default="ai_id_ref", choices=["ai_id_ref", "ai_current", "foc_assist", "ai_speed"])
     p.add_argument("--episodes", type=int, default=400)
     p.add_argument("--episode-steps", type=int, default=200)
     p.add_argument("--w-speed", type=float, default=1.0)
@@ -1133,6 +1307,16 @@ def main() -> None:
     p.add_argument("--sigma-decay-episodes", type=int, default=100, help="Episodes to decay sigma.")
     p.add_argument("--power-warmup-episodes", type=int, default=0, help="Episodes before enabling power penalty.")
     p.add_argument("--power-ramp-episodes", type=int, default=50, help="Episodes to ramp power penalty.")
+    p.add_argument("--energy-warmup-episodes", type=int, default=0, help="Episodes before enabling eta/terminal energy terms.")
+    p.add_argument("--energy-ramp-episodes", type=int, default=0, help="Episodes to ramp eta/terminal energy terms.")
+    p.add_argument("--energy-gate-mode", type=str, default=None, choices=["hard", "soft"], help="Override ai_id_energy_gate_mode from env config.")
+    p.add_argument("--energy-gate-min-scale", type=float, default=None, help="Override ai_id_energy_gate_min_scale from env config.")
+    p.add_argument("--energy-gate-exponent", type=float, default=None, help="Override ai_id_energy_gate_exponent from env config.")
+    p.add_argument("--terminal-energy-bonus", type=float, default=None, help="Override ai_id_terminal_energy_bonus from env config.")
+    p.add_argument("--terminal-eta-target", type=float, default=None, help="Override ai_id_terminal_eta_target from env config.")
+    p.add_argument("--terminal-shaft-ratio-min", type=float, default=None, help="Override ai_id_terminal_shaft_ratio_min from env config.")
+    p.add_argument("--i-soft-limit", type=float, default=None, help="Override i_soft_limit from env config.")
+    p.add_argument("--i-soft-penalty", type=float, default=None, help="Override i_soft_penalty from env config.")
     p.add_argument(
         "--include-energy-obs",
         action="store_true",
@@ -1146,6 +1330,8 @@ def main() -> None:
     p.add_argument("--update-every-episodes", type=int, default=1, help="PPO update frequency in episodes.")
     p.add_argument("--lr", type=float, default=5e-4, help="PPO optimizer learning rate.")
     p.add_argument("--entropy-coef", type=float, default=0.005, help="PPO entropy coefficient.")
+    p.add_argument("--actor-anchor-coef", type=float, default=0.0, help="Penalty that anchors actor outputs to the warm-start policy.")
+    p.add_argument("--hidden-sizes", type=str, default=None, help="Comma-separated hidden sizes, e.g. 64,64 or 96,96.")
     p.add_argument("--eval-interval", type=int, default=0, help="Run scenario_compare every N episodes (0 disables).")
     p.add_argument("--eval-scenarios", type=str, default="speed_step,ramp,load_step", help="Scenarios for eval.")
     p.add_argument("--eval-dt", type=float, default=None, help="Override dt for eval.")
@@ -1159,6 +1345,7 @@ def main() -> None:
     p.add_argument("--external-step27-candidate-json", type=str, default=None, help="Candidate JSON used for external Step27 selection.")
     p.add_argument("--external-step27-candidate-index", type=int, default=0, help="Candidate index in --external-step27-candidate-json.")
     p.add_argument("--external-step27-candidate-tag", type=str, default="", help="Candidate tag in --external-step27-candidate-json.")
+    p.add_argument("--external-step27-candidate-tags", type=str, default="", help="Comma-separated candidate tags to rank per checkpoint during external Step27 selection.")
     p.add_argument("--external-step27-seeds", type=str, default="101,202,303", help="Comma-separated seed list for external Step27 selection.")
     p.add_argument("--external-step27-scenarios", type=str, default="speed_step,ramp,load_step,start_stop", help="Comma-separated scenario list for external Step27 selection.")
     p.add_argument("--external-step27-seed-perturbation", action="store_true", help="Enable seed perturbation during external Step27 selection.")
@@ -1179,6 +1366,7 @@ def main() -> None:
     p.add_argument("--external-step27-min-start-stop-saving-pct-min-seed", type=float, default=None, help="Optional minimum start_stop_power_saving_pct_min_seed for external Step27 checkpoint selection.")
     p.add_argument("--external-step27-top-k", type=int, default=10, help="How many ranked rows to keep in external Step27 summary.")
     p.add_argument("--external-step27-include-init-checkpoint", action="store_true", help="Also rank the warm-start init checkpoint during external Step27 selection.")
+    p.add_argument("--external-step27-resume", action="store_true", help="Resume a previously interrupted external Step27 checkpoint scan in the same run dir.")
     p.add_argument("--output-dir", type=str, default=None, help="Directory for shared checkpoints/episode logs.")
     p.add_argument("--results-root", type=str, default=None, help="Directory for per-run artifacts and eval snapshots.")
     p.add_argument("--init-checkpoint", type=str, default=None, help="Optional actor checkpoint to warm-start training.")
@@ -1197,6 +1385,7 @@ def main() -> None:
     omega_ref_pu_range = _parse_range(args.omega_ref_pu_range)
     load_range = _parse_range(args.load_torque_range)
     load_mult_range = _parse_range(args.load_mult_range)
+    hidden_sizes = _parse_hidden_sizes(args.hidden_sizes)
     override_omega_ref = bool(args.override_omega_ref)
     override_load_torque = bool(args.override_load_torque)
     if scenarios:
@@ -1266,6 +1455,8 @@ def main() -> None:
         sigma_decay_episodes=int(args.sigma_decay_episodes),
         power_warmup_episodes=int(args.power_warmup_episodes),
         power_ramp_episodes=int(args.power_ramp_episodes),
+        energy_warmup_episodes=int(args.energy_warmup_episodes),
+        energy_ramp_episodes=int(args.energy_ramp_episodes),
         eval_interval=int(args.eval_interval),
         eval_scenarios=str(args.eval_scenarios),
         eval_dt=None if args.eval_dt is None else float(args.eval_dt),
@@ -1279,11 +1470,13 @@ def main() -> None:
         update_every_episodes=int(args.update_every_episodes),
         lr=float(args.lr),
         entropy_coef=float(args.entropy_coef),
+        actor_anchor_coef=float(args.actor_anchor_coef),
         external_step27_select=bool(args.external_step27_select),
         external_step27_motor=args.external_step27_motor,
         external_step27_candidate_json=args.external_step27_candidate_json,
         external_step27_candidate_index=int(args.external_step27_candidate_index),
         external_step27_candidate_tag=str(args.external_step27_candidate_tag),
+        external_step27_candidate_tags=str(args.external_step27_candidate_tags),
         external_step27_seeds=str(args.external_step27_seeds),
         external_step27_scenarios=str(args.external_step27_scenarios),
         external_step27_seed_perturbation=bool(args.external_step27_seed_perturbation),
@@ -1314,9 +1507,19 @@ def main() -> None:
         else float(args.external_step27_min_start_stop_saving_pct_min_seed),
         external_step27_top_k=int(args.external_step27_top_k),
         external_step27_include_init_checkpoint=bool(args.external_step27_include_init_checkpoint),
+        external_step27_resume=bool(args.external_step27_resume),
         init_checkpoint=args.init_checkpoint,
         output_dir=args.output_dir,
         results_root=args.results_root,
+        energy_gate_mode=args.energy_gate_mode,
+        energy_gate_min_scale=None if args.energy_gate_min_scale is None else float(args.energy_gate_min_scale),
+        energy_gate_exponent=None if args.energy_gate_exponent is None else float(args.energy_gate_exponent),
+        terminal_energy_bonus=None if args.terminal_energy_bonus is None else float(args.terminal_energy_bonus),
+        terminal_eta_target=None if args.terminal_eta_target is None else float(args.terminal_eta_target),
+        terminal_shaft_ratio_min=None if args.terminal_shaft_ratio_min is None else float(args.terminal_shaft_ratio_min),
+        i_soft_limit=None if args.i_soft_limit is None else float(args.i_soft_limit),
+        i_soft_penalty=None if args.i_soft_penalty is None else float(args.i_soft_penalty),
+        hidden_sizes_override=hidden_sizes,
     )
 
 

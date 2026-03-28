@@ -56,7 +56,15 @@ def calc_p_el(v_abc: Iterable[float], i_abc: Iterable[float]) -> float:
 
 
 def calc_p_mech(omega: float, torque: float) -> float:
-    return float(omega * torque)
+    max_abs = 1e6
+    max_power = 1e12
+    omega_safe = float(np.nan_to_num(float(omega), nan=0.0, posinf=max_abs, neginf=-max_abs))
+    torque_safe = float(np.nan_to_num(float(torque), nan=0.0, posinf=max_abs, neginf=-max_abs))
+    omega_safe = float(np.clip(omega_safe, -max_abs, max_abs))
+    torque_safe = float(np.clip(torque_safe, -max_abs, max_abs))
+    power = omega_safe * torque_safe
+    power = float(np.nan_to_num(power, nan=0.0, posinf=max_power, neginf=-max_power))
+    return float(np.clip(power, -max_power, max_power))
 
 
 def calc_eta(p_mech: float, p_in: float, eps: float = 1e-9) -> float:

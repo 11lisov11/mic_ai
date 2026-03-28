@@ -185,6 +185,49 @@ def compute_terminal_energy_bonus(
     return float(reward_scale * eta_gain * shaft_ratio * tracking_gate)
 
 
+def compute_safe_core_loss(
+    *,
+    loss_core_k: float,
+    omega_core: float,
+    psi_s: float,
+    loss_core_omega_exp: float,
+    loss_core_psi_exp: float,
+    max_input: float = 1e6,
+    max_loss: float = 1e12,
+) -> float:
+    if float(loss_core_k) <= 0.0:
+        return 0.0
+    omega_val = float(np.nan_to_num(abs(float(omega_core)), nan=0.0, posinf=max_input, neginf=0.0))
+    psi_val = float(np.nan_to_num(abs(float(psi_s)), nan=0.0, posinf=max_input, neginf=0.0))
+    omega_val = float(min(max(omega_val, 0.0), max_input))
+    psi_val = float(min(max(psi_val, 0.0), max_input))
+    try:
+        loss = float(loss_core_k) * (omega_val ** float(loss_core_omega_exp)) * (psi_val ** float(loss_core_psi_exp))
+    except OverflowError:
+        loss = float(max_loss)
+    loss = float(np.nan_to_num(loss, nan=0.0, posinf=max_loss, neginf=0.0))
+    return float(min(max(loss, 0.0), max_loss))
+
+
+def compute_safe_l2_norm(*values: float, max_abs: float = 1e6, max_norm: float = 1e12) -> float:
+    arr = np.asarray([float(v) for v in values], dtype=np.float64)
+    arr = np.nan_to_num(arr, nan=0.0, posinf=max_abs, neginf=-max_abs)
+    arr = np.clip(arr, -max_abs, max_abs)
+    sq = float(np.dot(arr, arr))
+    if not math.isfinite(sq):
+        return float(max_norm)
+    return float(min(math.sqrt(max(sq, 0.0)), max_norm))
+
+
+def compute_safe_obs_raw(*values: float, max_abs: float = 1e6) -> np.ndarray:
+    arr = np.asarray([float(v) for v in values], dtype=np.float64)
+    arr = np.nan_to_num(arr, nan=0.0, posinf=max_abs, neginf=-max_abs)
+    arr = np.clip(arr, -max_abs, max_abs)
+    return arr.astype(np.float32, copy=False)
+
+
+
+
 class MicAiAIEnv:
     """
     Thin wrapper over an existing motor environment to expose a Gym-like API for AI agents.
@@ -389,7 +432,7 @@ class MicAiAIEnv:
         return 0.0
 
     def _current_rms(self, currents_abc: Tuple[float, float, float]) -> float:
-        return float(np.sqrt(np.mean(np.square(currents_abc))))
+        return compute_safe_l2_norm(*currents_abc) / math.sqrt(3.0)
 
     def _build_agent_obs(self, omega: float, omega_ref: float, i_d: float, i_q: float, load_torque: float = 0.0, omega_syn: float | None = None) -> Dict[str, float]:
         omega_base = self._omega_nominal
@@ -447,13 +490,11 @@ class MicAiAIEnv:
         enriched["action_vq_norm"] = float(action_norm.get("vq", 0.0))
         enriched["delta_rel"] = enriched["action_iq_norm"]
         enriched["delta_id_rel"] = enriched["action_id_norm"]
-        arr = np.array([float(enriched.get(k, 0.0)) for k in self.world_input_keys], dtype=np.float32)
-        arr = np.nan_to_num(arr, nan=0.0, posinf=1e3, neginf=-1e3)
+        arr = compute_safe_obs_raw(*[float(enriched.get(k, 0.0)) for k in self.world_input_keys], max_abs=1e3)
         return arr
 
     def _encode_world_target(self, obs_norm: Dict[str, float]) -> np.ndarray:
-        arr = np.array([float(obs_norm.get(k, 0.0)) for k in self.world_target_keys], dtype=np.float32)
-        arr = np.nan_to_num(arr, nan=0.0, posinf=1e3, neginf=-1e3)
+        arr = compute_safe_obs_raw(*[float(obs_norm.get(k, 0.0)) for k in self.world_target_keys], max_abs=1e3)
         return arr
 
     def _apply_drift_if_needed(self) -> None:
@@ -716,10 +757,7 @@ class MicAiAIEnv:
         self.base_env.t = t_now + self.dt
         self.base_env.w_mech = float(omega_m_next)
 
-        obs_raw = np.array(
-            [omega_m_next, omega_ref_base, torque_e, *i_abc_next, v_d_out, v_q_out],
-            dtype=np.float32,
-        )
+        obs_raw = compute_safe_obs_raw(omega_m_next, omega_ref_base, torque_e, *i_abc_next, v_d_out, v_q_out)
         info: Dict[str, Any] = {
             "omega_ref": omega_ref_base,
             "omega_meas": float(omega_m_next),
@@ -794,7 +832,7 @@ class MicAiAIEnv:
         theta_mech += omega_m_next * self.dt
         i_abc_next = dq_to_abc(i_d_next, i_q_next, theta_e_prev)
         try:
-            i_rms = math.sqrt((i_abc_next[0] ** 2 + i_abc_next[1] ** 2 + i_abc_next[2] ** 2) / 3.0)
+            i_rms = compute_safe_l2_norm(i_abc_next[0], i_abc_next[1], i_abc_next[2]) / math.sqrt(3.0)
         except Exception:
             i_rms = 0.0
         p_in = float(v_abc[0] * i_abc_next[0] + v_abc[1] * i_abc_next[1] + v_abc[2] * i_abc_next[2])
@@ -808,7 +846,13 @@ class MicAiAIEnv:
         if loss_core_k > 0.0:
             psi_s = math.hypot(getattr(state, "psi_ds", 0.0), getattr(state, "psi_qs", 0.0))
             omega_core = abs(omega_syn)
-            p_core = float(loss_core_k) * (omega_core ** loss_core_omega_exp) * (psi_s ** loss_core_psi_exp)
+            p_core = compute_safe_core_loss(
+                loss_core_k=float(loss_core_k),
+                omega_core=omega_core,
+                psi_s=psi_s,
+                loss_core_omega_exp=float(loss_core_omega_exp),
+                loss_core_psi_exp=float(loss_core_psi_exp),
+            )
         p_in_total = p_in + p_inv + p_core
 
         self.base_env.theta_mech = theta_mech
@@ -817,10 +861,7 @@ class MicAiAIEnv:
         self.base_env.t = t_now + self.dt
         self.base_env.w_mech = float(omega_m_next)
 
-        obs_raw = np.array(
-            [omega_m_next, omega_ref_base, torque_e, *i_abc_next, v_d_out, v_q_out],
-            dtype=np.float32,
-        )
+        obs_raw = compute_safe_obs_raw(omega_m_next, omega_ref_base, torque_e, *i_abc_next, v_d_out, v_q_out)
         info: Dict[str, Any] = {
             "omega_ref": omega_ref_base,
             "omega_meas": float(omega_m_next),
@@ -1007,7 +1048,13 @@ class MicAiAIEnv:
         if loss_core_k > 0.0:
             psi_s = math.hypot(getattr(state, "psi_ds", 0.0), getattr(state, "psi_qs", 0.0))
             omega_core = abs(omega_syn)
-            p_core = float(loss_core_k) * (omega_core ** loss_core_omega_exp) * (psi_s ** loss_core_psi_exp)
+            p_core = compute_safe_core_loss(
+                loss_core_k=float(loss_core_k),
+                omega_core=omega_core,
+                psi_s=psi_s,
+                loss_core_omega_exp=float(loss_core_omega_exp),
+                loss_core_psi_exp=float(loss_core_psi_exp),
+            )
         p_in_total = p_in + p_inv + p_core
 
         self.base_env.theta_mech = theta_mech
@@ -1019,10 +1066,7 @@ class MicAiAIEnv:
             controller.theta_e = theta_e
             controller.omega_syn = omega_syn
 
-        obs_raw = np.array(
-            [omega_m_next, omega_ref_base, torque_e, *i_abc_next, v_d_out, v_q_out],
-            dtype=np.float32,
-        )
+        obs_raw = compute_safe_obs_raw(omega_m_next, omega_ref_base, torque_e, *i_abc_next, v_d_out, v_q_out)
         info: Dict[str, Any] = {
             "omega_ref": omega_ref_base,
             "omega_meas": float(omega_m_next),
@@ -1047,7 +1091,7 @@ class MicAiAIEnv:
     def _step_gym(self, action: Dict[str, float]) -> Tuple[np.ndarray, bool, Dict[str, Any]]:
         omega_target = self._action_to_speed_ref(action)
         omega_norm = np.clip(omega_target / self._omega_base, -1.0, 1.0)
-        obs_raw, _, done, info = self.base_env.step(np.array([omega_norm], dtype=np.float32))
+        obs_raw, _, done, info = self.base_env.step(compute_safe_obs_raw(omega_norm))
         if not isinstance(info, dict):
             info = {}
         info.setdefault("omega_ref", omega_target)
@@ -1089,7 +1133,7 @@ class MicAiAIEnv:
         self.base_env.i_q = float(i_q_next)
         self.base_env.w_mech = float(omega_m)
 
-        obs_raw = np.array([omega_m, omega_target, torque_e, *i_abc, 0.0, 0.0], dtype=np.float32)
+        obs_raw = compute_safe_obs_raw(omega_m, omega_target, torque_e, *i_abc, 0.0, 0.0)
         info: Dict[str, Any] = {
             "omega_ref": omega_target,
             "omega_meas": float(omega_m),
@@ -1219,7 +1263,7 @@ class MicAiAIEnv:
             omega_ref_scale = max(abs(omega_ref), 1e-6)
             speed_err_abs = abs(omega_meas - omega_ref)
             err_norm = speed_err_abs / omega_ref_scale
-            i_rms = math.sqrt(i_d_next**2 + i_q_next**2)
+            i_rms = compute_safe_l2_norm(i_d_next, i_q_next)
             current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
             i_rms_norm = i_rms / current_limit
 
@@ -1230,7 +1274,7 @@ class MicAiAIEnv:
             v_abc = info.get("v_abc", (0.0, 0.0, 0.0))
             i_abc = info.get("i_abc", (0.0, 0.0, 0.0))
             try:
-                i_rms_abc = float(np.sqrt(np.mean(np.square(np.asarray(i_abc, dtype=float)))))
+                i_rms_abc = compute_safe_l2_norm(*i_abc) / math.sqrt(3.0)
             except Exception:
                 i_rms_abc = float(i_rms)
             p_in, p_in_pos = self._extract_p_in(info)
@@ -1626,7 +1670,7 @@ class MicAiAIEnv:
             omega_ref_scale = max(abs(omega_ref), 1e-6)
             speed_err_abs = abs(omega_ref - omega_meas)
             err_norm = speed_err_abs / omega_ref_scale
-            current_rms = math.sqrt(i_d_next**2 + i_q_next**2)
+            current_rms = compute_safe_l2_norm(i_d_next, i_q_next)
             current_limit = max(float(self._i_max if self._i_max is not None else self._i_base), 1e-6)
             p_in, p_in_pos = self._extract_p_in(info)
             p_base = max(float(self._v_nominal) * current_limit, 1e-6)
@@ -2004,7 +2048,7 @@ class MicAiAIEnv:
                 r_int = float(min(self.curiosity.compute_intrinsic_reward(x_t, y_true), self.cfg.r_int_clip))
 
             speed_err = abs(omega_ref - omega_meas)
-            current_rms = math.sqrt(i_d_next**2 + i_q_next**2)
+            current_rms = compute_safe_l2_norm(i_d_next, i_q_next)
             self._cum_speed_err += speed_err
             self._cum_current_rms += current_rms
             self._cum_r_int += r_int

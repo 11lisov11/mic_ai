@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple
 
@@ -86,9 +87,24 @@ class PPOVoltageAgent:
         self.total_steps = 0
         self.last_actor_loss: float = 0.0
         self.last_value_loss: float = 0.0
+        self.last_anchor_loss: float = 0.0
+        self.actor_anchor_net: ActorCritic | None = None
+        self.actor_anchor_coef: float = 0.0
 
     def set_action_std(self, std: float) -> None:
         self.action_std_override = float(std)
+
+    def set_actor_anchor_from_current(self, coef: float) -> None:
+        coef = float(coef)
+        self.actor_anchor_coef = max(0.0, coef)
+        self.last_anchor_loss = 0.0
+        if self.actor_anchor_coef <= 0.0:
+            self.actor_anchor_net = None
+            return
+        self.actor_anchor_net = copy.deepcopy(self.net).to(self.device)
+        self.actor_anchor_net.eval()
+        for param in self.actor_anchor_net.parameters():
+            param.requires_grad_(False)
 
     def _to_tensor(self, obs: Dict[str, float]) -> torch.Tensor:
         arr = np.array([obs.get(k, 0.0) for k in self.feature_keys], dtype=np.float32)
@@ -137,7 +153,11 @@ class PPOVoltageAgent:
 
     def update(self, last_value: float = 0.0) -> Dict[str, float]:
         if not self.buffer:
-            return {"actor_loss": self.last_actor_loss, "value_loss": self.last_value_loss}
+            return {
+                "actor_loss": self.last_actor_loss,
+                "value_loss": self.last_value_loss,
+                "anchor_loss": self.last_anchor_loss,
+            }
 
         states = np.stack([tr.state for tr in self.buffer], axis=0)
         actions = np.stack([tr.action for tr in self.buffer], axis=0)
@@ -171,7 +191,18 @@ class PPOVoltageAgent:
                 policy_loss = -(torch.min(ratio * adv_t, clipped_ratio * adv_t)).mean()
 
                 value_loss = nn.functional.mse_loss(values, ret_t)
-                loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
+                if self.actor_anchor_net is not None and self.actor_anchor_coef > 0.0:
+                    with torch.no_grad():
+                        anchor_mu, _, _ = self.actor_anchor_net(s_t)
+                    anchor_loss = nn.functional.mse_loss(mu, anchor_mu)
+                else:
+                    anchor_loss = torch.zeros((), device=self.device)
+                loss = (
+                    policy_loss
+                    + self.value_coef * value_loss
+                    - self.entropy_coef * entropy
+                    + self.actor_anchor_coef * anchor_loss
+                )
 
                 self.optim.zero_grad()
                 loss.backward()
@@ -180,9 +211,14 @@ class PPOVoltageAgent:
 
                 self.last_actor_loss = float(policy_loss.detach().cpu())
                 self.last_value_loss = float(value_loss.detach().cpu())
+                self.last_anchor_loss = float(anchor_loss.detach().cpu())
 
         self.buffer.clear()
-        return {"actor_loss": self.last_actor_loss, "value_loss": self.last_value_loss}
+        return {
+            "actor_loss": self.last_actor_loss,
+            "value_loss": self.last_value_loss,
+            "anchor_loss": self.last_anchor_loss,
+        }
 
 
 __all__ = ["PPOVoltageAgent"]

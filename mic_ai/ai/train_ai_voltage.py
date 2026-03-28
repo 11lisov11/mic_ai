@@ -274,6 +274,55 @@ def _normalize_range(value: object | None) -> tuple[float, float] | None:
     return None
 
 
+def _parse_hidden_sizes(text: str | None) -> tuple[int, ...] | None:
+    if not text:
+        return None
+    parts = [item.strip() for item in str(text).replace(";", ",").split(",") if item.strip()]
+    sizes: List[int] = []
+    for part in parts:
+        value = int(part)
+        if value <= 0:
+            raise ValueError(f"hidden size must be positive, got {value}")
+        sizes.append(value)
+    return tuple(sizes) if sizes else None
+
+
+def _infer_hidden_sizes_from_state_dict(state: Dict[str, torch.Tensor]) -> tuple[int, ...] | None:
+    layers: List[tuple[int, int]] = []
+    for key, value in state.items():
+        if not key.startswith("actor_body.") or not key.endswith(".weight"):
+            continue
+        parts = key.split(".")
+        if len(parts) < 3 or not parts[1].isdigit():
+            continue
+        if not torch.is_tensor(value) or value.ndim != 2:
+            continue
+        layers.append((int(parts[1]), int(value.shape[0])))
+    if not layers:
+        return None
+    layers.sort(key=lambda item: item[0])
+    return tuple(out_dim for _, out_dim in layers)
+
+
+def _load_agent_state_with_padding(agent: PPOVoltageAgent, state: Dict[str, torch.Tensor]) -> None:
+    model_state = agent.net.state_dict()
+    adapted_state: Dict[str, torch.Tensor] = {}
+    for key, value in state.items():
+        target = model_state.get(key)
+        if target is None or not isinstance(value, torch.Tensor) or tuple(value.shape) == tuple(target.shape):
+            adapted_state[key] = value
+            continue
+        if value.ndim == 2 and target.ndim == 2 and value.shape[0] == target.shape[0]:
+            padded = target.detach().clone()
+            padded.zero_()
+            cols = min(int(value.shape[1]), int(target.shape[1]))
+            padded[:, :cols] = value[:, :cols].to(dtype=target.dtype)
+            adapted_state[key] = padded
+            continue
+        adapted_state[key] = value
+    agent.net.load_state_dict(adapted_state, strict=False)
+
+
 def _run_eval_episodes(
     agent: PPOVoltageAgent, env: MicAiAIEnv, episodes: int, episode_steps: int, log_path: Path
 ) -> Tuple[Path, List[Dict[str, float]]]:
@@ -346,6 +395,11 @@ def train_ai_voltage(
     scenario_sample: str = "random",
     seed: int | None = None,
     include_energy_obs: bool = False,
+    hidden_sizes: tuple[int, ...] | None = None,
+    lr: float = 5e-4,
+    entropy_coef: float = 0.005,
+    init_checkpoint: str | None = None,
+    actor_anchor_coef: float = 0.0,
     update_every_episodes: int = 1,
     eval_interval: int = 0,
     eval_episodes: int = 3,
@@ -386,7 +440,15 @@ def train_ai_voltage(
         override_load_torque=not bool(scenarios),
     )
 
-    hidden_sizes = (64, 64) if fast else (128, 128)
+    init_state: Dict[str, torch.Tensor] | None = None
+    if init_checkpoint:
+        init_path = Path(init_checkpoint).expanduser().resolve()
+        init_state = torch.load(init_path, map_location="cpu")
+        inferred_hidden = _infer_hidden_sizes_from_state_dict(init_state)
+        if hidden_sizes is None and inferred_hidden is not None:
+            hidden_sizes = inferred_hidden
+
+    hidden_sizes = tuple(hidden_sizes) if hidden_sizes is not None else ((64, 64) if fast else (128, 128))
     train_epochs = 3 if fast else 5
     minibatch_frac = 0.5 if fast else 0.25
     agent = PPOVoltageAgent(
@@ -394,19 +456,28 @@ def train_ai_voltage(
         action_dim=2,
         device=device,
         hidden_sizes=hidden_sizes,
-        lr=5e-4,
+        lr=float(lr),
         gamma=0.99,
         gae_lambda=0.95,
         clip_eps=0.2,
-        entropy_coef=0.005,
+        entropy_coef=float(entropy_coef),
         value_coef=0.3,
         max_grad_norm=0.5,
         train_epochs=train_epochs,
         minibatch_frac=minibatch_frac,
     )
+    if init_state is not None:
+        _load_agent_state_with_padding(agent, init_state)
+    if float(actor_anchor_coef) > 0.0:
+        if init_state is None:
+            raise ValueError("--actor-anchor-coef requires --init-checkpoint")
+        agent.set_actor_anchor_from_current(float(actor_anchor_coef))
 
     motor_ckpt_dir = CHECKPOINT_DIR / motor_key
     motor_ckpt_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = RESULTS_ROOT / f"{ts}_{Path(config_name).stem}" if results_dir is None else Path(results_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
 
     episodes_log: List[Dict[str, float]] = []
     epi_idx: List[int] = []
@@ -541,7 +612,11 @@ def train_ai_voltage(
 
         with torch.no_grad():
             last_value = float(agent.net(agent._to_tensor(obs).unsqueeze(0))[2].item())
-        losses = {"actor_loss": agent.last_actor_loss, "value_loss": agent.last_value_loss}
+        losses = {
+            "actor_loss": agent.last_actor_loss,
+            "value_loss": agent.last_value_loss,
+            "anchor_loss": getattr(agent, "last_anchor_loss", 0.0),
+        }
         if (ep + 1) % update_every == 0 or ep == num_episodes - 1:
             losses = agent.update(last_value=last_value)
 
@@ -568,6 +643,7 @@ def train_ai_voltage(
             "wm_loss_mean": float(metrics_env.get("wm_loss_mean", 0.0)),
             "actor_loss": float(losses.get("actor_loss", 0.0)),
             "value_loss": float(losses.get("value_loss", 0.0)),
+            "anchor_loss": float(losses.get("anchor_loss", 0.0)),
             "omega_mean": float(metrics_env.get("omega_mean", 0.0)),
             "delta_speed": float(metrics_env.get("delta_speed", 0.0)),
             "momentum_mean": float(metrics_env.get("momentum_mean", 0.0)),
@@ -633,7 +709,8 @@ def train_ai_voltage(
             f"mean_reward {entry['mean_reward']:.3f} | mean|e_w| {entry['mean_speed_error']:.4f} | "
             f"mean_i_rms {entry['mean_current_rms']:.4f} | mean_p_in_pos {entry['mean_p_in_pos']:.4f} | "
             f"act_norm {entry['mean_action_norm']:.3f} | "
-            f"loss_pi {entry['actor_loss']:.4f} loss_v {entry['value_loss']:.4f} | sigma {sigma:.3f}"
+            f"loss_pi {entry['actor_loss']:.4f} loss_v {entry['value_loss']:.4f} "
+            f"loss_anchor {entry['anchor_loss']:.4f} | sigma {sigma:.3f}"
         )
 
         if eval_interval > 0 and (ep + 1) % int(eval_interval) == 0:
@@ -666,17 +743,13 @@ def train_ai_voltage(
         mean_action_norm=np.array(arr_action_norm, dtype=np.float32),
         actor_loss=np.array(arr_actor_loss, dtype=np.float32),
         value_loss=np.array(arr_value_loss, dtype=np.float32),
+        anchor_loss=np.array([float(e.get("anchor_loss", 0.0)) for e in episodes_log], dtype=np.float32),
         steps=np.array(arr_steps, dtype=np.int32),
         hard_terminated=np.array(arr_hard, dtype=np.int32),
         exploration_sigma=np.array(arr_sigma, dtype=np.float32),
         omega_mean=np.array(arr_omega_mean, dtype=np.float32),
         delta_speed=np.array(arr_delta_speed, dtype=np.float32),
     )
-
-    # results_run artifacts
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = RESULTS_ROOT / f"{ts}_{Path(config_name).stem}" if results_dir is None else Path(results_dir)
-    run_dir.mkdir(parents=True, exist_ok=True)
 
     with (run_dir / "training_metrics.json").open("w", encoding="utf-8") as f:
         json.dump(episodes_log, f, indent=2)
@@ -693,6 +766,7 @@ def train_ai_voltage(
         mean_action_norm=np.array(arr_action_norm, dtype=np.float32),
         actor_loss=np.array(arr_actor_loss, dtype=np.float32),
         value_loss=np.array(arr_value_loss, dtype=np.float32),
+        anchor_loss=np.array([float(e.get("anchor_loss", 0.0)) for e in episodes_log], dtype=np.float32),
         steps=np.array(arr_steps, dtype=np.int32),
         hard_terminated=np.array(arr_hard, dtype=np.int32),
         exploration_sigma=np.array(arr_sigma, dtype=np.float32),
@@ -714,6 +788,11 @@ def train_ai_voltage(
         "seed": None if seed is None else int(seed),
         "device": str(device),
         "include_energy_obs": bool(include_energy_obs),
+        "hidden_sizes": [int(x) for x in hidden_sizes],
+        "lr": float(lr),
+        "entropy_coef": float(entropy_coef),
+        "init_checkpoint": "" if init_checkpoint is None else str(Path(init_checkpoint).expanduser().resolve()),
+        "actor_anchor_coef": float(actor_anchor_coef),
         "update_every_episodes": int(update_every),
         "feature_keys": feature_keys,
         "eval_interval": int(eval_interval),
@@ -884,6 +963,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility.")
     parser.add_argument("--include-energy-obs", action="store_true", help="Add p_in_norm and p_el_filt to observations.")
+    parser.add_argument("--hidden-sizes", default=None, help="Comma-separated hidden sizes, e.g. 64,64 or 96,96.")
+    parser.add_argument("--lr", type=float, default=5e-4)
+    parser.add_argument("--entropy-coef", type=float, default=0.005)
+    parser.add_argument("--init-checkpoint", default=None, help="Optional warm-start checkpoint.")
+    parser.add_argument("--actor-anchor-coef", type=float, default=0.0, help="Penalty anchoring actor outputs to warm-start policy.")
     parser.add_argument("--update-every-episodes", type=int, default=1, help="PPO update frequency in episodes.")
     parser.add_argument("--eval-interval", type=int, default=0, help="Run eval episodes every N episodes.")
     parser.add_argument("--eval-episodes", type=int, default=3)
@@ -905,6 +989,7 @@ if __name__ == "__main__":
 
         curriculum_omega_pu = _parse_csv_floats(args.curriculum_omega_pu)
         curriculum_boundaries = _parse_csv_ints(args.curriculum_boundaries)
+        hidden_sizes = _parse_hidden_sizes(args.hidden_sizes)
         omega_ref_range = _parse_range(args.omega_ref_range)
         omega_ref_pu_range = _parse_range(args.omega_ref_pu_range)
         load_range = _parse_range(args.load_torque_range)
@@ -955,6 +1040,11 @@ if __name__ == "__main__":
             scenario_sample=str(args.scenario_sample),
             seed=args.seed,
             include_energy_obs=bool(args.include_energy_obs),
+            hidden_sizes=hidden_sizes,
+            lr=float(args.lr),
+            entropy_coef=float(args.entropy_coef),
+            init_checkpoint=args.init_checkpoint,
+            actor_anchor_coef=float(args.actor_anchor_coef),
             update_every_episodes=int(args.update_every_episodes),
             eval_interval=int(args.eval_interval),
             eval_episodes=int(args.eval_episodes),

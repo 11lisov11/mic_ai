@@ -65,6 +65,12 @@ def test_power_metrics_and_eta_bounds() -> None:
     assert abs(eta - (500.0 / 690.0)) < 1e-9
 
 
+def test_calc_p_mech_clamps_non_finite_overflow() -> None:
+    p_mech = calc_p_mech(float("inf"), -1e308)
+    assert math.isfinite(p_mech)
+    assert p_mech == -1e12
+
+
 def test_calc_eta_handles_invalid_input() -> None:
     assert calc_eta(100.0, 0.0) == 0.0
     assert calc_eta(float("nan"), 10.0) == 0.0
@@ -82,6 +88,13 @@ def test_rms_and_power_handle_non_finite_input() -> None:
     assert math.isfinite(p_el)
     assert i_rms >= 0.0
     assert v_rms >= 0.0
+
+
+def test_calc_p_mech_handles_overflow_and_non_finite_input() -> None:
+    assert calc_p_mech(float("nan"), 10.0) == 0.0
+    assert math.isfinite(calc_p_mech(float("inf"), 10.0))
+    assert math.isfinite(calc_p_mech(-float("inf"), 10.0))
+    assert calc_p_mech(1e308, 1e308) == 1e12
 
 
 def test_calc_cos_phi_non_finite_inputs_returns_bounded_value() -> None:
