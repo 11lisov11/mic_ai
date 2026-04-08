@@ -1,8 +1,8 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-03-29`
+Date updated: `2026-04-08`
 Repository: `C:\mic_theory`
-Last pushed commit: `48b0cb9`
+Last pushed commit: `c1cc4a3`
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -115,9 +115,13 @@ Goal: keep the project state legible.
 Status:
 - root already contains a single active plan
 - historical plans are archived
+- root hygiene regression is now added:
+  - `tests/test_root_hygiene_smoke.py`
+  - paired smoke remains green together with the plan-completion smoke:
+    - `pytest -q tests/test_root_hygiene_smoke.py tests/test_report_plan_completion_smoke.py`
+    - `3 passed`
 
 Remaining:
-- add regression that root does not accumulate extra `PROJECT_MASTER_*` files again
 - document that progress logs live only in `docs/plan_archive/`
 
 Acceptance:
