@@ -2,7 +2,7 @@
 
 Date updated: `2026-04-08`
 Repository: `C:\mic_theory`
-Last pushed commit: `eaf8d78`
+Last pushed commit: `a49f507`
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -313,25 +313,80 @@ Goal: close the real red branch that still blocks submission.
   - explicit local-safe retune around the new basin checkpoint `actor_ep019` also failed to close strict acceptance:
     - `outputs/air56_ep019_basin128_localsearch_20260408a/air56_tuning_summary.json`
     - best remained the checkpoint baseline
-  - newest active branch is now the strict power-recovery continuation from `actor_ep019`:
-    - `outputs/air56_ep019_powerrecover_20260408b/results_run/20260408_153717_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_progress.json`
-    - live signal so far:
-      - checkpoints `actor_ep002` through `actor_ep007` already pass strict aggregate gates
+  - strict power-recovery continuation from `actor_ep019` produced a new aggregate-passing frontier, then was stopped early after frontier convergence:
+    - `outputs/air56_ep019_powerrecover_20260408b/results_run/20260408_153717_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_state.json`
+    - evaluated checkpoints through `actor_ep010`
+    - result:
+      - checkpoints `actor_ep001` through `actor_ep010` already pass strict aggregate gates
       - failure mode is no longer aggregate power / eta; it is row-level `load_step` tracking (`err`)
-      - strongest balance so far is `actor_ep006`:
+      - strongest retune base is `actor_ep006`:
         - `avg_power_saving_pct = 0.8630392380153374`
         - `avg_eta_gain_pct = 0.10702947229523918`
         - `avg_power_saving_pct_min_seed = 0.7322733162081374`
         - `avg_eta_gain_pct_min_seed = 0.08032673473104546`
         - `load_step pass_count = 2/5`
-      - highest aggregate margin so far is `actor_ep007`, but with worse `load_step` robustness:
-        - `load_step pass_count = 1/5`
-  - current execution rule:
-    - do not start another retrain until the active strict scan above finishes
-    - if no envelope-clean winner appears, run one targeted local-safe retune around the best aggregate-passing checkpoint from this branch, prioritizing:
+      - later checkpoints `actor_ep007` through `actor_ep010` increased aggregate margin further, but degraded `load_step` robustness:
+        - best aggregate row seen was `actor_ep010`
+        - `avg_power_saving_pct = 1.1987031809245041`
+        - `avg_eta_gain_pct = 0.14100228475193544`
+        - `avg_power_saving_pct_min_seed = 1.069864840233517`
+        - `avg_eta_gain_pct_min_seed = 0.10926801078245396`
+        - `load_step pass_count = 0/5`
+    - current execution rule:
+    - do not start another retrain from this branch
+    - run one targeted local-safe retune around the best aggregate-passing checkpoint from this branch, prioritizing:
       - `load_step pass_count`
       - then `avg_power_saving_pct_min_seed`
       - then `avg_eta_gain_pct_min_seed`
+    - prepared candidate set for this step:
+      - `outputs/tmp_air56_ep006_loadfix_candidates_20260408c.json`
+  - cheap deploy-layer closure around the new frontier is now exhausted:
+    - `outputs/air56_ep006_loadfix_retune_20260408c/air56_tuning_summary.json`
+    - `outputs/air56_ep003_loadfix_retune_20260408d/air56_tuning_summary.json`
+    - `outputs/air56_ep002_gatepush_retune_20260408f/air56_tuning_summary.json`
+    - result:
+      - none of the targeted retunes lifted `load_step` above `2/5`
+      - best strict aggregate remained near:
+        - `actor_ep002 + gatepush_base`
+        - `avg_power_saving_pct = 0.871666248176804`
+        - `avg_eta_gain_pct = 0.12165800277003369`
+        - `avg_power_saving_pct_min_seed = 0.688967361816506`
+        - `avg_eta_gain_pct_min_seed = 0.09873716093466156`
+        - `load_step pass_count = 2/5`
+      - conclusion:
+        - candidate-only closure for the current AIR56 frontier is exhausted
+        - the next justified step is training-level continuation, not another deploy sweep
+  - first training-level load-step-heavy continuation with unchanged `w_speed=1.0` was cut early as a bad direction:
+    - partial branch:
+      - `outputs/air56_ep002_loadheavy_multitag_20260408g/results_run/20260408_200239_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_progress.json`
+    - partial result before stop:
+      - `actor_ep001 + gatepush_softbias`
+      - `avg_power_saving_pct = 1.0572538354551404`
+      - `avg_eta_gain_pct = 0.129798548254087`
+      - `avg_power_saving_pct_min_seed = 0.9594248805978312`
+      - `avg_eta_gain_pct_min_seed = 0.11383264526707848`
+      - `load_step pass_count = 1/5`
+    - conclusion:
+      - load-heavy sampling alone was pushing aggregate up while degrading the actual blocker
+      - this branch was stopped to save compute on the weak machine
+  - active current branch is now the same load-step-heavy continuation but with a materially stronger tracking objective:
+    - `outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_progress.json`
+    - training changed:
+      - `w_speed = 2.0`
+      - shorter continuation from `actor_ep002`
+      - same strict multi-tag external selector
+    - current signal:
+      - first evaluated checkpoint:
+        - `actor_ep000 + gatepush_steps_17`
+        - `avg_power_saving_pct = 0.90145555278697`
+        - `avg_eta_gain_pct = 0.11822145171243581`
+        - `avg_power_saving_pct_min_seed = 0.7569173098613602`
+        - `avg_eta_gain_pct_min_seed = 0.09688896411172987`
+        - `err_failures = 0.6`
+        - `load_step pass_count = 2/5`
+      - interpretation:
+        - unlike the `w_speed=1.0` branch, the stronger tracking objective did not immediately collapse `load_step`
+        - this is the first current live branch still worth finishing before escalating to a heavier recipe
   - historical `speedfix_ft actor_ep015` basin is also now ruled out for the current strict objective:
     - `outputs/air56_speedfix_actor015_candidategrid_20260326/air56_tuning_summary.json`
     - best candidate remained `mix04_base`
