@@ -2,7 +2,7 @@
 
 Date updated: `2026-04-08`
 Repository: `C:\mic_theory`
-Last pushed commit: `c1cc4a3`
+Last pushed commit: `eaf8d78`
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -11,12 +11,10 @@ Last pushed commit: `c1cc4a3`
 - `C:\mt` and `C:\mic_theory_repo_restored` are not canonical roots.
 
 ## Current factual snapshot
-- Git state is not clean because the current research cycle added local trainer/test/plan changes:
-  - branch: `main`
-- tracked local changes include trainer/eval/runtime safety fixes, reserve-mode loader fixes, new checkpoint-adaptation helper, and plan updates
-- Latest focused regression after the trainer-capacity/curriculum changes is green:
-  - `pytest -q tests/test_ai_env.py tests/test_metrics_power_factor.py tests/test_train_ai_id_ref_external_step27.py tests/test_scan_step27_checkpoints.py tests/test_ppo_voltage_anchor.py tests/test_ai_env_reward_gate.py`
-  - `55 passed`
+- Git state is currently clean on branch `main` after push `eaf8d78`.
+- Latest confirmed smoke in the current cycle is green:
+  - `pytest -q tests/test_root_hygiene_smoke.py tests/test_report_plan_completion_smoke.py`
+  - `3 passed`
 - Frozen release is already green and must not be reopened unless a real bug is found:
   - `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/VERIFY_SUBMISSION_CANDIDATE.json`
   - `verification_ok=true`
@@ -62,7 +60,7 @@ Last pushed commit: `c1cc4a3`
 5. Main orchestration scripts are still too monolithic.
 6. Repository hygiene is not finished:
    - `README.md` still needs UTF-8 normalization and content cleanup.
-   - root hygiene regression is still missing.
+   - archive placement / root hygiene rule still needs to be documented outside the test itself.
 7. Final test coverage is still incomplete for the newest onboarding and reward-alignment modes.
 
 ## Definition of 100% done
@@ -303,6 +301,37 @@ Goal: close the real red branch that still blocks submission.
       - conclusion:
         - the strict incumbent basin remains stable
         - but this continuation recipe still does not move the negative worst-case eta tail
+  - later strict `128x128` incumbent-basin continuation also finished without a new winner:
+    - `outputs/air56_incumbent_basin128_20260329a/results_run/20260329_011801_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - best remained `actor_ep_init + mix04_base`
+    - exact result:
+      - `avg_power_saving_pct = 0.6147884835796003`
+      - `avg_eta_gain_pct = 0.0013968558560217836`
+      - `avg_power_saving_pct_min_seed = 0.5151508570179902`
+      - `avg_eta_gain_pct_min_seed = -0.019478794161115198`
+      - `envelope_all_rows_pass = true`
+  - explicit local-safe retune around the new basin checkpoint `actor_ep019` also failed to close strict acceptance:
+    - `outputs/air56_ep019_basin128_localsearch_20260408a/air56_tuning_summary.json`
+    - best remained the checkpoint baseline
+  - newest active branch is now the strict power-recovery continuation from `actor_ep019`:
+    - `outputs/air56_ep019_powerrecover_20260408b/results_run/20260408_153717_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_progress.json`
+    - live signal so far:
+      - checkpoints `actor_ep002` through `actor_ep007` already pass strict aggregate gates
+      - failure mode is no longer aggregate power / eta; it is row-level `load_step` tracking (`err`)
+      - strongest balance so far is `actor_ep006`:
+        - `avg_power_saving_pct = 0.8630392380153374`
+        - `avg_eta_gain_pct = 0.10702947229523918`
+        - `avg_power_saving_pct_min_seed = 0.7322733162081374`
+        - `avg_eta_gain_pct_min_seed = 0.08032673473104546`
+        - `load_step pass_count = 2/5`
+      - highest aggregate margin so far is `actor_ep007`, but with worse `load_step` robustness:
+        - `load_step pass_count = 1/5`
+  - current execution rule:
+    - do not start another retrain until the active strict scan above finishes
+    - if no envelope-clean winner appears, run one targeted local-safe retune around the best aggregate-passing checkpoint from this branch, prioritizing:
+      - `load_step pass_count`
+      - then `avg_power_saving_pct_min_seed`
+      - then `avg_eta_gain_pct_min_seed`
   - historical `speedfix_ft actor_ep015` basin is also now ruled out for the current strict objective:
     - `outputs/air56_speedfix_actor015_candidategrid_20260326/air56_tuning_summary.json`
     - best candidate remained `mix04_base`
