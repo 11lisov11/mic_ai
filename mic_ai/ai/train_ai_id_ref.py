@@ -110,6 +110,51 @@ def _parse_hidden_sizes(text: str | None) -> tuple[int, ...] | None:
     return tuple(sizes) if sizes else None
 
 
+def _parse_scenario_reward_overrides(text: str | None) -> Dict[str, Dict[str, float]] | None:
+    if not text:
+        return None
+    raw = str(text).strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    if path.exists():
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    else:
+        payload = json.loads(raw)
+    if not isinstance(payload, dict):
+        raise ValueError("scenario reward overrides must be a JSON object")
+    allowed_keys = {
+        "w_speed",
+        "w_power",
+        "w_shaft",
+        "w_eta",
+        "w_eta_episode",
+        "terminal_energy_bonus",
+        "ai_id_speed_tol",
+        "ai_id_speed_tol_rel",
+        "id_ref_gate_speed_tol",
+        "id_ref_gate_speed_tol_rel",
+        "id_ref_gate_min_scale",
+        "id_ref_gate_exponent",
+    }
+    normalized: Dict[str, Dict[str, float]] = {}
+    for scenario_name, scenario_payload in payload.items():
+        scenario = str(scenario_name).strip()
+        if not scenario:
+            continue
+        if not isinstance(scenario_payload, dict):
+            raise ValueError(f"scenario override for {scenario!r} must be an object")
+        row: Dict[str, float] = {}
+        for key, value in scenario_payload.items():
+            key_norm = str(key).strip()
+            if key_norm not in allowed_keys:
+                raise ValueError(f"unsupported scenario reward override key: {key_norm}")
+            row[key_norm] = float(value)
+        if row:
+            normalized[scenario] = row
+    return normalized or None
+
+
 def _normalize_range(value: object | None) -> tuple[float, float] | None:
     if value is None:
         return None
@@ -656,6 +701,67 @@ def _apply_env_reward_overrides(
         env.cfg.i_soft_penalty = float(i_soft_penalty)
 
 
+def _apply_scenario_reward_overrides(
+    env: MicAiAIEnv,
+    *,
+    scenario_name: str,
+    base_w_speed: float,
+    base_w_power: float,
+    base_w_shaft: float,
+    base_w_eta: float,
+    base_w_eta_episode: float,
+    base_terminal_energy_bonus: float,
+    base_ai_id_speed_tol: float,
+    base_ai_id_speed_tol_rel: float | None,
+    base_id_ref_gate_speed_tol: float | None,
+    base_id_ref_gate_speed_tol_rel: float | None,
+    base_id_ref_gate_min_scale: float,
+    base_id_ref_gate_exponent: float,
+    scenario_reward_overrides: Dict[str, Dict[str, float]] | None,
+) -> Dict[str, float]:
+    scenario_key = str(scenario_name or "").strip()
+    override = dict((scenario_reward_overrides or {}).get(scenario_key, {}))
+    effective = {
+        "w_speed": float(override.get("w_speed", base_w_speed)),
+        "w_power": float(override.get("w_power", base_w_power)),
+        "w_shaft": float(override.get("w_shaft", base_w_shaft)),
+        "w_eta": float(override.get("w_eta", base_w_eta)),
+        "w_eta_episode": float(override.get("w_eta_episode", base_w_eta_episode)),
+        "terminal_energy_bonus": float(override.get("terminal_energy_bonus", base_terminal_energy_bonus)),
+        "ai_id_speed_tol": float(override.get("ai_id_speed_tol", base_ai_id_speed_tol)),
+        "ai_id_speed_tol_rel": None
+        if "ai_id_speed_tol_rel" not in override and base_ai_id_speed_tol_rel is None
+        else float(override.get("ai_id_speed_tol_rel", base_ai_id_speed_tol_rel or 0.0)),
+        "id_ref_gate_speed_tol": None
+        if "id_ref_gate_speed_tol" not in override and base_id_ref_gate_speed_tol is None
+        else float(override.get("id_ref_gate_speed_tol", base_id_ref_gate_speed_tol or 0.0)),
+        "id_ref_gate_speed_tol_rel": None
+        if "id_ref_gate_speed_tol_rel" not in override and base_id_ref_gate_speed_tol_rel is None
+        else float(override.get("id_ref_gate_speed_tol_rel", base_id_ref_gate_speed_tol_rel or 0.0)),
+        "id_ref_gate_min_scale": float(override.get("id_ref_gate_min_scale", base_id_ref_gate_min_scale)),
+        "id_ref_gate_exponent": float(override.get("id_ref_gate_exponent", base_id_ref_gate_exponent)),
+    }
+    env.cfg.w_ai_id_speed = float(effective["w_speed"])
+    env.cfg.w_ai_id_power = float(effective["w_power"])
+    env.cfg.w_ai_id_shaft = float(effective["w_shaft"])
+    env.cfg.w_ai_id_eta = float(effective["w_eta"])
+    env.cfg.w_ai_id_eta_episode = float(effective["w_eta_episode"])
+    env.cfg.ai_id_terminal_energy_bonus = float(effective["terminal_energy_bonus"])
+    env.cfg.ai_id_speed_tol = float(effective["ai_id_speed_tol"])
+    env.cfg.ai_id_speed_tol_rel = (
+        None if effective["ai_id_speed_tol_rel"] is None else float(effective["ai_id_speed_tol_rel"])
+    )
+    env.cfg.id_ref_gate_speed_tol = (
+        None if effective["id_ref_gate_speed_tol"] is None else float(effective["id_ref_gate_speed_tol"])
+    )
+    env.cfg.id_ref_gate_speed_tol_rel = (
+        None if effective["id_ref_gate_speed_tol_rel"] is None else float(effective["id_ref_gate_speed_tol_rel"])
+    )
+    env.cfg.id_ref_gate_min_scale = float(effective["id_ref_gate_min_scale"])
+    env.cfg.id_ref_gate_exponent = float(effective["id_ref_gate_exponent"])
+    return effective
+
+
 def train(
     env_config: str,
     episodes: int,
@@ -751,6 +857,7 @@ def train(
     i_soft_limit: float | None = None,
     i_soft_penalty: float | None = None,
     hidden_sizes_override: tuple[int, ...] | None = None,
+    scenario_reward_overrides: Dict[str, Dict[str, float]] | None = None,
 ) -> Dict[str, str]:
     feature_keys = build_feature_keys(include_energy_obs, include_episode_eta_obs)
     if seed is not None:
@@ -981,10 +1088,25 @@ def train(
 
         power_scale = _curriculum_scale(ep, power_warmup_episodes, power_ramp_episodes)
         energy_scale = _curriculum_scale(ep, energy_warmup_episodes, energy_ramp_episodes)
-        env.cfg.w_ai_id_power = float(w_power) * float(power_scale) * float(energy_scale)
-        env.cfg.w_ai_id_eta = float(w_eta) * float(energy_scale)
-        env.cfg.w_ai_id_eta_episode = float(w_eta_episode) * float(energy_scale)
-        env.cfg.ai_id_terminal_energy_bonus = float(base_terminal_energy_bonus) * float(energy_scale)
+        effective_weights = _apply_scenario_reward_overrides(
+            env,
+            scenario_name=scenario_name,
+            base_w_speed=float(w_speed),
+            base_w_power=float(w_power) * float(power_scale) * float(energy_scale),
+            base_w_shaft=float(w_shaft),
+            base_w_eta=float(w_eta) * float(energy_scale),
+            base_w_eta_episode=float(w_eta_episode) * float(energy_scale),
+            base_terminal_energy_bonus=float(base_terminal_energy_bonus) * float(energy_scale),
+            base_ai_id_speed_tol=float(ai_id_speed_tol),
+            base_ai_id_speed_tol_rel=None if ai_id_speed_tol_rel is None else float(ai_id_speed_tol_rel),
+            base_id_ref_gate_speed_tol=None if id_ref_gate_speed_tol is None else float(id_ref_gate_speed_tol),
+            base_id_ref_gate_speed_tol_rel=None
+            if id_ref_gate_speed_tol_rel is None
+            else float(id_ref_gate_speed_tol_rel),
+            base_id_ref_gate_min_scale=float(id_ref_gate_min_scale),
+            base_id_ref_gate_exponent=float(id_ref_gate_exponent),
+            scenario_reward_overrides=scenario_reward_overrides,
+        )
 
         while not done and steps < int(episode_steps):
             action, logp, value = agent.act(obs)
@@ -1039,10 +1161,21 @@ def train(
             "scenario_load_peak": float(scenario_meta.get("load_peak", load_logged)),
             "power_scale_eff": float(power_scale),
             "energy_scale_eff": float(energy_scale),
-            "w_power_eff": float(getattr(env.cfg, "w_ai_id_power", w_power)),
-            "w_eta_eff": float(getattr(env.cfg, "w_ai_id_eta", w_eta)),
-            "w_eta_episode_eff": float(getattr(env.cfg, "w_ai_id_eta_episode", w_eta_episode)),
-            "terminal_energy_bonus_eff": float(getattr(env.cfg, "ai_id_terminal_energy_bonus", base_terminal_energy_bonus)),
+            "w_speed_eff": float(effective_weights["w_speed"]),
+            "w_power_eff": float(effective_weights["w_power"]),
+            "w_shaft_eff": float(effective_weights["w_shaft"]),
+            "w_eta_eff": float(effective_weights["w_eta"]),
+            "w_eta_episode_eff": float(effective_weights["w_eta_episode"]),
+            "terminal_energy_bonus_eff": float(effective_weights["terminal_energy_bonus"]),
+            "ai_id_speed_tol_eff": float(effective_weights["ai_id_speed_tol"]),
+            "ai_id_speed_tol_rel_eff": effective_weights["ai_id_speed_tol_rel"],
+            "id_ref_gate_speed_tol_eff": effective_weights["id_ref_gate_speed_tol"],
+            "id_ref_gate_speed_tol_rel_eff": effective_weights["id_ref_gate_speed_tol_rel"],
+            "id_ref_gate_min_scale_eff": float(effective_weights["id_ref_gate_min_scale"]),
+            "id_ref_gate_exponent_eff": float(effective_weights["id_ref_gate_exponent"]),
+            "scenario_reward_override_keys": sorted(
+                list((scenario_reward_overrides or {}).get(str(scenario_name or "").strip(), {}).keys())
+            ),
             "exploration_sigma": float(sigma),
         }
         episodes_log.append(entry)
@@ -1212,6 +1345,7 @@ def train(
             "i_soft_limit": None if i_soft_limit is None else float(i_soft_limit),
             "i_soft_penalty": None if i_soft_penalty is None else float(i_soft_penalty),
         },
+        "scenario_reward_overrides": scenario_reward_overrides,
         "external_step27_selection": external_step27_selection,
         "external_step27_min_avg_power_saving_pct": float(external_step27_min_avg_power_saving_pct),
         "external_step27_min_avg_eta_gain_pct": float(external_step27_min_avg_eta_gain_pct),
@@ -1299,6 +1433,12 @@ def main() -> None:
     p.add_argument("--omega-ref-pu-range", type=str, default=None, help="Random omega_ref range in pu, e.g., 0.2,1.2.")
     p.add_argument("--scenarios", type=str, default="", help="Comma-separated scenario list (e.g., speed_step,ramp,load_step,start_stop).")
     p.add_argument("--scenario-sample", type=str, default="random", choices=["random", "cycle"])
+    p.add_argument(
+        "--scenario-reward-overrides-json",
+        type=str,
+        default=None,
+        help="JSON file or inline JSON with per-scenario reward overrides, e.g. {\"load_step\": {\"w_speed\": 3.0, \"w_power\": 4.0}}.",
+    )
     p.add_argument("--load-torque-range", type=str, default=None, help="Random load torque range, N*m (min,max).")
     p.add_argument("--load-mult-range", type=str, default=None, help="Random load multiplier of env load (min,max).")
     p.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility.")
@@ -1386,6 +1526,7 @@ def main() -> None:
     load_range = _parse_range(args.load_torque_range)
     load_mult_range = _parse_range(args.load_mult_range)
     hidden_sizes = _parse_hidden_sizes(args.hidden_sizes)
+    scenario_reward_overrides = _parse_scenario_reward_overrides(args.scenario_reward_overrides_json)
     override_omega_ref = bool(args.override_omega_ref)
     override_load_torque = bool(args.override_load_torque)
     if scenarios:
@@ -1520,6 +1661,7 @@ def main() -> None:
         i_soft_limit=None if args.i_soft_limit is None else float(args.i_soft_limit),
         i_soft_penalty=None if args.i_soft_penalty is None else float(args.i_soft_penalty),
         hidden_sizes_override=hidden_sizes,
+        scenario_reward_overrides=scenario_reward_overrides,
     )
 
 

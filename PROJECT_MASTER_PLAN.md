@@ -1,8 +1,8 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-04-08`
+Date updated: `2026-04-11`
 Repository: `C:\mic_theory`
-Last pushed commit: `a49f507`
+Last pushed commit: `4b4bffa`
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -11,7 +11,7 @@ Last pushed commit: `a49f507`
 - `C:\mt` and `C:\mic_theory_repo_restored` are not canonical roots.
 
 ## Current factual snapshot
-- Git state is currently clean on branch `main` after push `eaf8d78`.
+- Git state is currently dirty only because the active root plan is being updated with the latest `2026-04-11` AIR56 findings and the new `AIR56` scenario-specific training controls.
 - Latest confirmed smoke in the current cycle is green:
   - `pytest -q tests/test_root_hygiene_smoke.py tests/test_report_plan_completion_smoke.py`
   - `3 passed`
@@ -41,6 +41,11 @@ Last pushed commit: `a49f507`
   - runtime validation is now partially complete: reward-only micro-runs were validated and found insufficient
   - `mic_ai/ai/train_ai_id_ref.py`
   - added energy curriculum, CLI reward overrides, hidden-size override, hidden-size inference from warm-start checkpoints, mixed-width checkpoint adaptation, and external Step27 resume plumbing
+  - now also supports per-scenario training-time overrides for:
+    - reward weights
+    - `ai_id_speed_tol` / `ai_id_speed_tol_rel`
+    - `id_ref_gate_*`
+  - scenario override JSON loading is now BOM-safe, so PowerShell-created UTF-8 files are accepted without manual cleanup
   - now also exposes `foc_assist` / `ai_speed` as trainable control modes instead of hard-limiting the CLI to `ai_id_ref` / `ai_current`
   - now also propagates `foc_assist` reward knobs from env configs and allows external Step27 scans for non-`ai_id_ref` modes without `candidate_json`
   - now also remaps `1-action ai_id_ref` warm-start checkpoints into the `id` slot when crossing into `2-action` modes (`ai_current` / `ai_speed` / `foc_assist`), instead of silently placing that policy into the `iq` slot
@@ -260,7 +265,7 @@ Goal: close the real red branch that still blocks submission.
     - `outputs/air56_etaep_init_localsearch_20260328r/air56_tuning_summary.json`
     - envelope-clean candidate `etaep_loadfix_delta_1` exists, but it falls below strict aggregate power / eta thresholds
     - best near-pass candidate remained `etaep_bias_dn_2`-family and did not close strict acceptance
-- current scientific conclusion:
+  - current scientific conclusion:
   - `AIR56` is no longer a pure deploy-parameter problem, and the active frontier is now eta-focused rather than the older reltrack `speed_step` branch
   - the remaining cheap blocker is still checkpoint-level, but the candidate layer around the new eta frontier is now effectively exhausted
   - shortlist-per-checkpoint ranking proved useful and is now the preferred cheap selector:
@@ -368,25 +373,66 @@ Goal: close the real red branch that still blocks submission.
       - `load_step pass_count = 1/5`
     - conclusion:
       - load-heavy sampling alone was pushing aggregate up while degrading the actual blocker
+  - scenario-specific reward-only continuation from the current frontier is now also closed as a dead end:
+    - code path:
+      - `mic_ai/ai/train_ai_id_ref.py`
+      - added `--scenario-reward-overrides-json`
+    - run:
+      - `outputs/air56_actor_ep001_scenario_override_20260411a`
+    - strict partial verdict before early stop:
+      - best new row after `5/9` processed checkpoints:
+        - `actor_ep000 + gatepush_base`
+        - `avg_power_saving_pct = 1.0061047586070822`
+        - `avg_eta_gain_pct = 0.1159674136063582`
+        - `avg_power_saving_pct_min_seed = 0.9434941923518431`
+        - `avg_eta_gain_pct_min_seed = 0.08997925122549155`
+        - `load_step pass_count = 2/5`
+      - later trained checkpoints degraded to `load_step pass_count = 1/5`
+    - conclusion:
+      - scenario-specific reward shifts alone did not move the row-level blocker
+      - keeping the run alive past `5/9` checkpoints was not justified on the weak machine
+  - scenario-specific load-step gate/tolerance continuation is the current best new signal but still not a closure:
+    - code path:
+      - `mic_ai/ai/train_ai_id_ref.py`
+      - per-scenario overrides now cover:
+        - `ai_id_speed_tol`
+        - `ai_id_speed_tol_rel`
+        - `id_ref_gate_speed_tol`
+        - `id_ref_gate_speed_tol_rel`
+        - `id_ref_gate_min_scale`
+        - `id_ref_gate_exponent`
+    - run:
+      - `outputs/air56_actor_ep001_loadgate_20260411b`
+    - best partial row after `3/7` processed checkpoints:
+      - `actor_ep002 + eta_mid_60_sp`
+      - `avg_power_saving_pct = 1.0161607550775114`
+      - `avg_eta_gain_pct = 0.12701110643196345`
+      - `avg_power_saving_pct_min_seed = 0.8806894996602782`
+      - `avg_eta_gain_pct_min_seed = 0.11647485611738229`
+      - `load_step pass_count = 2/5`
+    - conclusion:
+      - tighter training-time `speed_tol` and `id_ref` gate did improve the shape of the tradeoff versus the previous dead branch
+      - but after the first three checkpoints there was still no row-level lift beyond `load_step = 2/5`
+      - this is still not enough to justify calling `AIR56` closed
       - this branch was stopped to save compute on the weak machine
-  - active current branch is now the same load-step-heavy continuation but with a materially stronger tracking objective:
-    - `outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_progress.json`
+  - latest training-level load-step-heavy continuation with a materially stronger tracking objective also completed without closure:
+    - `outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
     - training changed:
       - `w_speed = 2.0`
       - shorter continuation from `actor_ep002`
       - same strict multi-tag external selector
-    - current signal:
-      - first evaluated checkpoint:
-        - `actor_ep000 + gatepush_steps_17`
-        - `avg_power_saving_pct = 0.90145555278697`
-        - `avg_eta_gain_pct = 0.11822145171243581`
-        - `avg_power_saving_pct_min_seed = 0.7569173098613602`
-        - `avg_eta_gain_pct_min_seed = 0.09688896411172987`
-        - `err_failures = 0.6`
-        - `load_step pass_count = 2/5`
-      - interpretation:
-        - unlike the `w_speed=1.0` branch, the stronger tracking objective did not immediately collapse `load_step`
-        - this is the first current live branch still worth finishing before escalating to a heavier recipe
+    - best result:
+      - `actor_ep001 + gatepush_base`
+      - `avg_power_saving_pct = 0.9939138562946258`
+      - `avg_eta_gain_pct = 0.11796196074999099`
+      - `avg_power_saving_pct_min_seed = 0.8902879268877617`
+      - `avg_eta_gain_pct_min_seed = 0.07561588804608499`
+      - `err_failures = 0.6`
+      - `load_step pass_count = 2/5`
+    - conclusion:
+      - stronger tracking weight improved the branch relative to the failed `w_speed=1.0` variant
+      - but it still did not move `AIR56` beyond the same `load_step = 2/5` barrier
+      - therefore the cheap/medium continuation layer around the current `actor_ep002` frontier is now exhausted
   - historical `speedfix_ft actor_ep015` basin is also now ruled out for the current strict objective:
     - `outputs/air56_speedfix_actor015_candidategrid_20260326/air56_tuning_summary.json`
     - best candidate remained `mix04_base`
@@ -747,30 +793,104 @@ Remaining:
 Acceptance:
 - `pytest -q` green after all final cleanup
 
-## Current next command order
-This is the strict next execution sequence from the current state.
+## Current phased execution plan
+This is the strict execution sequence from the current state. Work must move phase by phase without parallel detours.
 
-1. Freeze the current best local pairs as the factual baselines:
+### Phase 1. Close `AIR56` row-level blocker
+1. Freeze the factual baselines and do not relitigate them:
    - `AL31`: `actor_ep_init + mid04_speed_dn_04`
    - `AIR56` strict incumbent: `actor_ep005 + mix04_base`
-   - `AIR56` near-pass frontier: `actor_ep_init + etaep_bias_dn_2`
-2. Do not spend more compute on exhausted candidate-only retunes for those baselines.
-3. Keep `AL31` parked as a tiny-tail blocker; do not spend more compute on near-identical `ai_id_ref` continuations until `AIR56` changes the global context.
-4. For `AIR56`, do not reopen exhausted reserve/control-family probes:
-   - `ai_current`
-   - `ai_voltage`
-   - `ai_speed`
-   - `foc_assist`
-5. Next `AIR56` attempt must change the algorithmic basin or optimization regime itself while preserving the known reltrack/incumbent lessons.
-   - first preferred branch:
-     - medium-budget `ai_id_ref` basin/objective shift from the strict incumbent lineage
-     - external selection only against the strict incumbent deployment candidate `mix04_base`
-     - strict W1 thresholds:
-       - `avg_power_saving_pct >= 0.5`
-       - `avg_eta_gain_pct >= 0.0`
-       - `avg_power_saving_pct_min_seed >= 0.5`
-       - `avg_eta_gain_pct_min_seed >= 0.0`
-       - `envelope_all_rows_pass = true`
-6. Only after both motors are green, rerun full Step27 and Step28.
-7. After W1 closes, move to onboarding-energy closure, then refactor/docs/tests.
+   - `AIR56` latest aggregate-strong frontier in the current live lineage:
+     - checkpoint: `actor_ep001` from `outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth`
+     - strongest cheap cross-family deploy pair found on `2026-04-10`:
+       - `actor_ep001 + rand007_soft_track`
+       - artifact: `outputs/air56_actor_ep001_rand007_strictp02_recheck_20260410a/air56_checkpoint_scan_summary.json`
+       - exact metrics:
+         - `avg_power_saving_pct = 1.0235631825310492`
+         - `avg_eta_gain_pct = 0.12333297875300409`
+         - `avg_power_saving_pct_min_seed = 0.9007889773490402`
+         - `avg_eta_gain_pct_min_seed = 0.10435077177434193`
+         - `load_step pass_count = 2/5`
+         - `envelope_all_rows_pass = false`
+2. Treat the current `AIR56` blocker as exactly one problem:
+   - aggregate thresholds are already green on the latest frontier
+   - the blocker is now broader than the old simplified description "`load_step` only":
+     - the best current cheap cross-family pair still fails canonical envelope at `load_step = 2/5`
+     - archival pairs that looked green on relaxed scans do not survive a fresh strict `p0.2` recheck
+   - strict rechecks completed on `2026-04-10` and already ruled out as final AIR56 proofs:
+     - `actor_ep005 + rand007_soft_track`
+       - `outputs/air56_actor_ep005_rand007_strictp02_recheck_20260410a/air56_checkpoint_scan_summary.json`
+       - failed `speed_step` row and strict min-seed aggregate thresholds
+     - `best_actor + eta_mid_60_sp`
+       - `outputs/air56_bestactor_eta60sp_strictp02_recheck_20260410a/air56_checkpoint_scan_summary.json`
+       - failed `speed_step` row and strict aggregate thresholds
+3. Do not spend more compute on already exhausted `AIR56` branches:
+   - candidate-only retunes around `ep002/ep003/ep006/ep019`
+   - reserve control families `ai_current`, `ai_voltage`, `ai_speed`, `foc_assist`
+   - near-identical short continuations that preserve the same local basin
+   - the extra `2026-04-10` cheap dead ends are now also closed:
+     - `outputs/air56_ep001_loadheavy_wspeed3_20260410a`
+       - short training branch with stronger `w_speed=3.0`
+       - shortlist checkpoints degraded to `load_step = 1/5`
+     - `outputs/air56_loadstep_curriculum_20260410a`
+       - short loadstep-curriculum branch with narrow omega/load randomization
+       - shortlist checkpoints also degraded to `load_step = 1/5`
+     - `outputs/air56_actor_ep001_rand007_localsearch_20260410a/air56_tuning_summary.json`
+       - narrow local retune around the best current cross-family pair
+       - best remained `rand007_base`; no envelope closure
+4. Next `AIR56` run must change the training regime itself while staying in `ai_id_ref`:
+   - objective or curriculum must target joint `load_step + speed_step` robustness instead of overfitting one scenario
+   - external selection stays strict and canonical
+   - deployment ranking stays against known real candidates, not synthetic thresholds only
+   - preferred next branch after the `2026-04-10` findings:
+     - warm-start from `actor_ep001` in `outputs/air56_ep002_loadheavy_wspeed2_20260408h/.../actor_ep001.pth`
+     - balanced mixed curriculum with repeated `load_step` and `speed_step`
+     - external selector over a combined real candidate family:
+       - `gatepush_base`
+       - `rand007_soft_track`
+       - strongest still-credible `specific_power` candidate family
+5. `AIR56` exit criterion:
+   - `avg_power_saving_pct >= 0.5`
+   - `avg_eta_gain_pct >= 0.0`
+   - `avg_power_saving_pct_min_seed >= 0.5`
+   - `avg_eta_gain_pct_min_seed >= 0.0`
+   - `envelope_all_rows_pass = true`
+
+### Phase 2. Close `AL31` tiny worst-case eta tail
+1. Keep `AL31` parked until `AIR56` is green.
+2. Do not reopen medium `ai_id_ref` continuations already shown exhausted.
+3. After `AIR56` closure, run only one narrow `AL31` tail-closure branch aimed at:
+   - keeping `envelope_all_rows_pass = true`
+   - lifting `avg_eta_gain_pct_min_seed` from `-0.000206...` to `>= 0`
+4. `AL31` exit criterion:
+   - `avg_power_saving_pct >= 0`
+   - `avg_eta_gain_pct >= 0`
+   - `avg_power_saving_pct_min_seed >= 0`
+   - `avg_eta_gain_pct_min_seed >= 0`
+   - `envelope_all_rows_pass = true`
+
+### Phase 3. Rebuild post-restore proof
+1. Only after `AIR56` and `AL31` are both strict-green, rerun full live `Step27` for all three motors.
+2. Rebuild `Step28` in `--mic-mode ai`.
+3. Rebuild checklist, dossier, passport block, and verify artifacts.
+4. Accept only a candidate with:
+   - `ready_for_submission=true`
+   - `checklist_ready_for_submission=true`
+   - `verification_ok=true`
+
+### Phase 4. Finish universal onboarding
+1. Close the energy gate on the verification benchmark.
+2. Produce and document both flows:
+   - passport-only
+   - passport + identification
+3. Acceptance:
+   - correctness green
+   - energy green
+   - real reproducible artifacts for both flows
+
+### Phase 5. Finish engineering cleanup
+1. Refactor monolithic orchestration scripts.
+2. Normalize `README.md` and runbooks.
+3. Run final full `pytest -q` on the cleaned repo.
+4. Project is `100%` done only after all previous phases are green together.
 
