@@ -414,6 +414,24 @@ Goal: close the real red branch that still blocks submission.
       - tighter training-time `speed_tol` and `id_ref` gate did improve the shape of the tradeoff versus the previous dead branch
       - but after the first three checkpoints there was still no row-level lift beyond `load_step = 2/5`
       - this is still not enough to justify calling `AIR56` closed
+  - explicit candidate-layer closure around the best new load-gate checkpoint is now also exhausted:
+    - run:
+      - `outputs/air56_ep002_loadgate_localsearch_20260411c_sync/air56_tuning_summary.json`
+    - checkpoint under test:
+      - `outputs/air56_actor_ep001_loadgate_20260411b/results_run/20260411_004825_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep002.pth`
+    - result:
+      - best remained baseline `eta_mid_60_sp`
+      - exact metrics:
+        - `avg_power_saving_pct = 1.0161607550775114`
+        - `avg_eta_gain_pct = 0.12701110643196345`
+        - `avg_power_saving_pct_min_seed = 0.8806894996602782`
+        - `avg_eta_gain_pct_min_seed = 0.11647485611738229`
+        - `load_step pass_count = 2/5`
+      - all targeted softer load-gate variants remained below this baseline and still failed strict envelope acceptance
+    - conclusion:
+      - the new load-gate basin produced a better tradeoff than the previous reward-only dead branch
+      - but its candidate layer is already exhausted at the current partial-best checkpoint
+      - the only cheap remaining step on this branch is to finish the interrupted external checkpoint scan for the remaining `actor_ep003+`, `actor_ep004+`, `actor_ep005+`, and `actor_ep_init`
       - this branch was stopped to save compute on the weak machine
   - latest training-level load-step-heavy continuation with a materially stronger tracking objective also completed without closure:
     - `outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
