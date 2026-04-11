@@ -22,6 +22,8 @@ from mic_ai.ai.train_ai_id_ref import (
     _infer_hidden_sizes_from_state_dict,
     _parse_hidden_sizes,
     _parse_scenario_reward_overrides,
+    _parse_seed_scenario_reward_overrides,
+    _select_episode_seed,
     _promote_external_step27_checkpoint,
     _run_external_step27_selection,
     build_env,
@@ -62,6 +64,14 @@ def test_collect_underhorizon_scenarios_flags_short_episode_horizon() -> None:
             "required_horizon_s": pytest.approx(0.2),
         },
     ]
+
+
+def test_select_episode_seed_cycles_over_failing_seed_list() -> None:
+    assert _select_episode_seed(0, [202, 505]) == 202
+    assert _select_episode_seed(1, [202, 505]) == 505
+    assert _select_episode_seed(2, [202, 505]) == 202
+    assert _select_episode_seed(3, [202, 505]) == 505
+    assert _select_episode_seed(0, None) is None
 
 
 def test_build_env_respects_scenario_functions_when_overrides_disabled() -> None:
@@ -847,6 +857,23 @@ def test_parse_scenario_reward_overrides_from_json_file(tmp_path: Path) -> None:
     assert parsed["speed_step"]["terminal_energy_bonus"] == pytest.approx(1.25)
 
 
+def test_parse_seed_scenario_reward_overrides_from_json_file(tmp_path: Path) -> None:
+    payload = {
+        "505": {"start_stop": {"w_speed": 4.0, "id_ref_gate_min_scale": 0.25}},
+        "202": {"start_stop": {"w_eta_episode": 1.8, "reward_start_frac": 0.15}},
+    }
+    path = tmp_path / "seed_scenario_overrides.json"
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8-sig")
+
+    parsed = _parse_seed_scenario_reward_overrides(str(path))
+
+    assert parsed is not None
+    assert parsed[505]["start_stop"]["w_speed"] == pytest.approx(4.0)
+    assert parsed[505]["start_stop"]["id_ref_gate_min_scale"] == pytest.approx(0.25)
+    assert parsed[202]["start_stop"]["w_eta_episode"] == pytest.approx(1.8)
+    assert parsed[202]["start_stop"]["reward_start_frac"] == pytest.approx(0.15)
+
+
 def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) -> None:
     cfg_path = tmp_path / "env_cfg.py"
     cfg_path.write_text("from config.env_demo_true_motor1 import *  # noqa: F401,F403\n", encoding="utf-8")
@@ -884,6 +911,7 @@ def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) 
     eff = _apply_scenario_reward_overrides(
         env,
         scenario_name="load_step",
+        episode_seed=None,
         base_w_speed=1.0,
         base_w_power=2.0,
         base_w_shaft=0.5,
@@ -910,6 +938,7 @@ def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) 
                 "id_ref_gate_exponent": 1.4,
             }
         },
+        seed_scenario_reward_overrides=None,
     )
 
     assert eff["w_speed"] == pytest.approx(3.0)
@@ -937,6 +966,84 @@ def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) 
     assert env.cfg.id_ref_gate_speed_tol_rel == pytest.approx(0.08)
     assert env.cfg.id_ref_gate_min_scale == pytest.approx(0.2)
     assert env.cfg.id_ref_gate_exponent == pytest.approx(1.4)
+
+
+def test_apply_scenario_reward_overrides_allows_seed_specific_override_to_win(tmp_path: Path) -> None:
+    cfg_path = tmp_path / "env_cfg.py"
+    cfg_path.write_text("from config.env_demo_true_motor1 import *  # noqa: F401,F403\n", encoding="utf-8")
+
+    env = build_env(
+        str(cfg_path),
+        episode_steps=5,
+        control_mode="ai_id_ref",
+        w_speed=1.0,
+        w_power=2.0,
+        w_current=None,
+        w_smooth=0.05,
+        w_mag=0.0,
+        w_shaft=0.5,
+        w_eta=0.3,
+        w_eta_episode=0.1,
+        eta_clip=1.2,
+        override_load_torque=True,
+        override_omega_ref=True,
+        ai_id_ref_relative=True,
+        delta_id_max=0.1,
+        id_ref_alpha=1.0,
+        id_ref_rate_limit=None,
+        ai_id_speed_tol=0.5,
+        ai_id_speed_tol_rel=None,
+        id_ref_gate_speed_tol=None,
+        id_ref_gate_speed_tol_rel=None,
+        id_ref_gate_min_scale=0.0,
+        id_ref_gate_exponent=1.0,
+        load_torque=None,
+        omega_ref_override=None,
+        feature_keys=["omega_norm"],
+    )
+
+    eff = _apply_scenario_reward_overrides(
+        env,
+        scenario_name="start_stop",
+        episode_seed=505,
+        base_w_speed=1.0,
+        base_w_power=2.0,
+        base_w_shaft=0.5,
+        base_w_eta=0.3,
+        base_w_eta_episode=0.1,
+        base_reward_start_frac=0.0,
+        base_terminal_energy_bonus=0.8,
+        base_ai_id_speed_tol=0.5,
+        base_ai_id_speed_tol_rel=None,
+        base_id_ref_gate_speed_tol=None,
+        base_id_ref_gate_speed_tol_rel=None,
+        base_id_ref_gate_min_scale=0.0,
+        base_id_ref_gate_exponent=1.0,
+        scenario_reward_overrides={
+            "start_stop": {
+                "w_speed": 3.0,
+                "w_eta_episode": 0.9,
+                "id_ref_gate_min_scale": 0.12,
+            }
+        },
+        seed_scenario_reward_overrides={
+            505: {
+                "start_stop": {
+                    "w_speed": 4.2,
+                    "ai_id_speed_tol_rel": 0.03,
+                    "id_ref_gate_min_scale": 0.22,
+                }
+            }
+        },
+    )
+
+    assert eff["w_speed"] == pytest.approx(4.2)
+    assert eff["w_eta_episode"] == pytest.approx(0.9)
+    assert eff["ai_id_speed_tol_rel"] == pytest.approx(0.03)
+    assert eff["id_ref_gate_min_scale"] == pytest.approx(0.22)
+    assert env.cfg.w_ai_id_speed == pytest.approx(4.2)
+    assert env.cfg.ai_id_speed_tol_rel == pytest.approx(0.03)
+    assert env.cfg.id_ref_gate_min_scale == pytest.approx(0.22)
 
 
 def test_build_feature_keys_includes_episode_eta_only_when_requested() -> None:

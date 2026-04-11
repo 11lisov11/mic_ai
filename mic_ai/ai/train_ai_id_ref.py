@@ -80,6 +80,13 @@ def _parse_int_csv(text: str) -> List[int]:
     return [int(item.strip()) for item in str(text).split(",") if item.strip()]
 
 
+def _select_episode_seed(episode_index: int, episode_seed_cycle: List[int] | None) -> int | None:
+    if not episode_seed_cycle:
+        return None
+    idx = int(episode_index) % len(episode_seed_cycle)
+    return int(episode_seed_cycle[idx])
+
+
 def _parse_range(text: str | None) -> tuple[float, float] | None:
     if not text:
         return None
@@ -110,6 +117,23 @@ def _parse_hidden_sizes(text: str | None) -> tuple[int, ...] | None:
     return tuple(sizes) if sizes else None
 
 
+_SCENARIO_REWARD_OVERRIDE_KEYS = {
+    "w_speed",
+    "w_power",
+    "w_shaft",
+    "w_eta",
+    "w_eta_episode",
+    "reward_start_frac",
+    "terminal_energy_bonus",
+    "ai_id_speed_tol",
+    "ai_id_speed_tol_rel",
+    "id_ref_gate_speed_tol",
+    "id_ref_gate_speed_tol_rel",
+    "id_ref_gate_min_scale",
+    "id_ref_gate_exponent",
+}
+
+
 def _parse_scenario_reward_overrides(text: str | None) -> Dict[str, Dict[str, float]] | None:
     if not text:
         return None
@@ -123,21 +147,6 @@ def _parse_scenario_reward_overrides(text: str | None) -> Dict[str, Dict[str, fl
         payload = json.loads(raw)
     if not isinstance(payload, dict):
         raise ValueError("scenario reward overrides must be a JSON object")
-    allowed_keys = {
-        "w_speed",
-        "w_power",
-        "w_shaft",
-        "w_eta",
-        "w_eta_episode",
-        "reward_start_frac",
-        "terminal_energy_bonus",
-        "ai_id_speed_tol",
-        "ai_id_speed_tol_rel",
-        "id_ref_gate_speed_tol",
-        "id_ref_gate_speed_tol_rel",
-        "id_ref_gate_min_scale",
-        "id_ref_gate_exponent",
-    }
     normalized: Dict[str, Dict[str, float]] = {}
     for scenario_name, scenario_payload in payload.items():
         scenario = str(scenario_name).strip()
@@ -148,11 +157,50 @@ def _parse_scenario_reward_overrides(text: str | None) -> Dict[str, Dict[str, fl
         row: Dict[str, float] = {}
         for key, value in scenario_payload.items():
             key_norm = str(key).strip()
-            if key_norm not in allowed_keys:
+            if key_norm not in _SCENARIO_REWARD_OVERRIDE_KEYS:
                 raise ValueError(f"unsupported scenario reward override key: {key_norm}")
             row[key_norm] = float(value)
         if row:
             normalized[scenario] = row
+    return normalized or None
+
+
+def _parse_seed_scenario_reward_overrides(text: str | None) -> Dict[int, Dict[str, Dict[str, float]]] | None:
+    if not text:
+        return None
+    raw = str(text).strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    if path.exists():
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    else:
+        payload = json.loads(raw)
+    if not isinstance(payload, dict):
+        raise ValueError("seed-scenario reward overrides must be a JSON object")
+
+    normalized: Dict[int, Dict[str, Dict[str, float]]] = {}
+    for seed_key, seed_payload in payload.items():
+        seed_int = int(seed_key)
+        if not isinstance(seed_payload, dict):
+            raise ValueError(f"seed override for {seed_key!r} must be an object")
+        scenario_map: Dict[str, Dict[str, float]] = {}
+        for scenario_name, scenario_payload in seed_payload.items():
+            scenario = str(scenario_name).strip()
+            if not scenario:
+                continue
+            if not isinstance(scenario_payload, dict):
+                raise ValueError(f"seed scenario override for {seed_key!r}/{scenario!r} must be an object")
+            row: Dict[str, float] = {}
+            for key, value in scenario_payload.items():
+                key_norm = str(key).strip()
+                if key_norm not in _SCENARIO_REWARD_OVERRIDE_KEYS:
+                    raise ValueError(f"unsupported seed scenario reward override key: {key_norm}")
+                row[key_norm] = float(value)
+            if row:
+                scenario_map[scenario] = row
+        if scenario_map:
+            normalized[int(seed_int)] = scenario_map
     return normalized or None
 
 
@@ -758,6 +806,7 @@ def _apply_scenario_reward_overrides(
     env: MicAiAIEnv,
     *,
     scenario_name: str,
+    episode_seed: int | None,
     base_w_speed: float,
     base_w_power: float,
     base_w_shaft: float,
@@ -772,9 +821,18 @@ def _apply_scenario_reward_overrides(
     base_id_ref_gate_min_scale: float,
     base_id_ref_gate_exponent: float,
     scenario_reward_overrides: Dict[str, Dict[str, float]] | None,
+    seed_scenario_reward_overrides: Dict[int, Dict[str, Dict[str, float]]] | None,
 ) -> Dict[str, float]:
     scenario_key = str(scenario_name or "").strip()
     override = dict((scenario_reward_overrides or {}).get(scenario_key, {}))
+    if episode_seed is not None:
+        seed_override = (
+            (seed_scenario_reward_overrides or {})
+            .get(int(episode_seed), {})
+            .get(scenario_key, {})
+        )
+        if seed_override:
+            override.update(dict(seed_override))
     effective = {
         "w_speed": float(override.get("w_speed", base_w_speed)),
         "w_power": float(override.get("w_power", base_w_power)),
@@ -870,6 +928,7 @@ def train(
     include_energy_obs: bool,
     include_episode_eta_obs: bool,
     update_every_episodes: int,
+    episode_seed_cycle: List[int] | None = None,
     lr: float = 5e-4,
     entropy_coef: float = 0.005,
     actor_anchor_coef: float = 0.0,
@@ -913,6 +972,7 @@ def train(
     i_soft_penalty: float | None = None,
     hidden_sizes_override: tuple[int, ...] | None = None,
     scenario_reward_overrides: Dict[str, Dict[str, float]] | None = None,
+    seed_scenario_reward_overrides: Dict[int, Dict[str, Dict[str, float]]] | None = None,
 ) -> Dict[str, str]:
     feature_keys = build_feature_keys(include_energy_obs, include_episode_eta_obs)
     if seed is not None:
@@ -1122,6 +1182,12 @@ def train(
             print(f"[{env_name}] time budget reached at ep {ep}")
             break
 
+        episode_seed = _select_episode_seed(ep, episode_seed_cycle)
+        if episode_seed is not None:
+            random.seed(int(episode_seed))
+            np.random.seed(int(episode_seed))
+            torch.manual_seed(int(episode_seed))
+
         scenario_name = ""
         if scenarios:
             if scenario_sample == "cycle":
@@ -1144,11 +1210,12 @@ def train(
         if scenarios or omega_ref_range is not None or load_torque_range is not None:
             sim_cfg = getattr(getattr(env.base_env, "env", None), "sim", None)
             t_end = float(getattr(sim_cfg, "t_end", 0.0) or 0.0)
+            scenario_rng = rng if episode_seed is None else np.random.default_rng(int(episode_seed))
             wrapped_omega, wrapped_load, scenario_meta = wrap_scenario_with_ranges(
                 getattr(env.base_env, "omega_ref_func", lambda _t: float(getattr(env.cfg, "omega_ref", 0.0))),
                 getattr(env.base_env, "load_torque_func", lambda _t: 0.0),
                 t_end=t_end,
-                rng=rng,
+                rng=scenario_rng,
                 omega_ref_range=omega_ref_range,
                 load_torque_range=load_torque_range,
             )
@@ -1170,6 +1237,7 @@ def train(
         effective_weights = _apply_scenario_reward_overrides(
             env,
             scenario_name=scenario_name,
+            episode_seed=episode_seed,
             base_w_speed=float(w_speed),
             base_w_power=float(w_power) * float(power_scale) * float(energy_scale),
             base_w_shaft=float(w_shaft),
@@ -1186,6 +1254,7 @@ def train(
             base_id_ref_gate_min_scale=float(id_ref_gate_min_scale),
             base_id_ref_gate_exponent=float(id_ref_gate_exponent),
             scenario_reward_overrides=scenario_reward_overrides,
+            seed_scenario_reward_overrides=seed_scenario_reward_overrides,
         )
         sim_cfg = getattr(getattr(env.base_env, "env", None), "sim", None)
         scenario_t_end = float(getattr(sim_cfg, "t_end", 0.0) or 0.0)
@@ -1246,6 +1315,7 @@ def train(
             "value_loss": float(losses.get("value_loss", 0.0)),
             "anchor_loss": float(losses.get("anchor_loss", 0.0)),
             "scenario": scenario_name,
+            "episode_seed": None if episode_seed is None else int(episode_seed),
             "omega_ref": omega_ref_logged,
             "load_torque": load_logged,
             "scenario_omega_scale": float(scenario_meta.get("omega_scale", 1.0)),
@@ -1272,6 +1342,16 @@ def train(
             "scenario_reward_override_keys": sorted(
                 list((scenario_reward_overrides or {}).get(str(scenario_name or "").strip(), {}).keys())
             ),
+            "seed_scenario_reward_override_keys": sorted(
+                list(
+                    (seed_scenario_reward_overrides or {})
+                    .get(int(episode_seed), {})
+                    .get(str(scenario_name or "").strip(), {})
+                    .keys()
+                )
+            )
+            if episode_seed is not None
+            else [],
             "exploration_sigma": float(sigma),
         }
         episodes_log.append(entry)
@@ -1442,6 +1522,7 @@ def train(
             "i_soft_penalty": None if i_soft_penalty is None else float(i_soft_penalty),
         },
         "scenario_reward_overrides": scenario_reward_overrides,
+        "seed_scenario_reward_overrides": seed_scenario_reward_overrides,
         "external_step27_selection": external_step27_selection,
         "external_step27_min_avg_power_saving_pct": float(external_step27_min_avg_power_saving_pct),
         "external_step27_min_avg_eta_gain_pct": float(external_step27_min_avg_eta_gain_pct),
@@ -1529,11 +1610,18 @@ def main() -> None:
     p.add_argument("--omega-ref-pu-range", type=str, default=None, help="Random omega_ref range in pu, e.g., 0.2,1.2.")
     p.add_argument("--scenarios", type=str, default="", help="Comma-separated scenario list (e.g., speed_step,ramp,load_step,start_stop).")
     p.add_argument("--scenario-sample", type=str, default="random", choices=["random", "cycle"])
+    p.add_argument("--episode-seeds", type=str, default="", help="Optional comma-separated episode seed cycle for deterministic replay of failing cases.")
     p.add_argument(
         "--scenario-reward-overrides-json",
         type=str,
         default=None,
         help="JSON file or inline JSON with per-scenario reward overrides, e.g. {\"load_step\": {\"w_speed\": 3.0, \"w_power\": 4.0}}.",
+    )
+    p.add_argument(
+        "--seed-scenario-reward-overrides-json",
+        type=str,
+        default=None,
+        help="JSON file or inline JSON with per-seed per-scenario overrides, e.g. {\"505\": {\"start_stop\": {\"w_speed\": 4.0}}}.",
     )
     p.add_argument("--load-torque-range", type=str, default=None, help="Random load torque range, N*m (min,max).")
     p.add_argument("--load-mult-range", type=str, default=None, help="Random load multiplier of env load (min,max).")
@@ -1623,6 +1711,8 @@ def main() -> None:
     load_mult_range = _parse_range(args.load_mult_range)
     hidden_sizes = _parse_hidden_sizes(args.hidden_sizes)
     scenario_reward_overrides = _parse_scenario_reward_overrides(args.scenario_reward_overrides_json)
+    seed_scenario_reward_overrides = _parse_seed_scenario_reward_overrides(args.seed_scenario_reward_overrides_json)
+    episode_seed_cycle = _parse_int_csv(args.episode_seeds) if str(args.episode_seeds).strip() else None
     override_omega_ref = bool(args.override_omega_ref)
     override_load_torque = bool(args.override_load_torque)
     if scenarios:
@@ -1684,6 +1774,7 @@ def main() -> None:
         omega_ref_override=omega_ref_override,
         scenarios=scenarios,
         scenario_sample=str(args.scenario_sample),
+        episode_seed_cycle=episode_seed_cycle,
         omega_ref_range=omega_ref_range,
         load_torque_range=load_range,
         seed=args.seed,
@@ -1758,6 +1849,7 @@ def main() -> None:
         i_soft_penalty=None if args.i_soft_penalty is None else float(args.i_soft_penalty),
         hidden_sizes_override=hidden_sizes,
         scenario_reward_overrides=scenario_reward_overrides,
+        seed_scenario_reward_overrides=seed_scenario_reward_overrides,
     )
 
 

@@ -630,7 +630,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Universal onboarding pipeline for a new motor: "
-            "passport -> optional identification -> generated env config -> training -> 3-motor validation."
+            "passport -> optional identification -> generated env config -> training -> benchmark validation."
         )
     )
     parser.add_argument("--passport-json", required=True)
@@ -658,7 +658,14 @@ def main() -> None:
     parser.add_argument("--max-train-attempts", type=int, default=1)
     parser.add_argument("--train-episodes-scale", type=float, default=1.5)
 
-    parser.add_argument("--benchmark-motors", default="air56,al31,ao2")
+    parser.add_argument(
+        "--benchmark-motors",
+        default="air56,al31",
+        help=(
+            "Comma-separated benchmark motors for onboarding validation. "
+            "Default follows the active 2-motor release scope; add ao2 explicitly to re-open backlog validation."
+        ),
+    )
     parser.add_argument("--benchmark-scenarios", default="speed_step,ramp,load_step,start_stop")
     parser.add_argument("--benchmark-seed", type=int, default=101)
     parser.add_argument("--benchmark-dt", type=float, default=None)

@@ -19,11 +19,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from mic_ai.ai.ai_env import MicAiAIEnv
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
-from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisorConfig
+from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisor, AiIdRefSupervisorConfig
+from mic_ai.analysis.metrics import calc_i_rms, calc_p_el, calc_p_mech
 from mic_ai.core.env import make_env_from_config
 from mic_ai.tools.checkpoint_adaptation import adapt_checkpoint_state_dict_for_model
 from mic_ai.tools.scenario_compare import (
+    _build_ai_env,
     _clone_with_sim,
     _err_limit,
     _infer_action_dim,
@@ -85,6 +88,7 @@ DEFAULT_CHECKPOINT_REGISTRY = "config/checkpoint_registry.json"
 CONTROLLER_ORDER: Tuple[str, ...] = ("PI", "FOC", "MIC")
 DEFAULT_SEEDS: Tuple[int, ...] = (101, 202, 303, 404, 505)
 DEFAULT_SCENARIOS: Tuple[str, ...] = ("speed_step", "ramp", "load_step", "start_stop")
+AI_ID_REF_HYBRID_MODE = "ai_id_ref_hybrid"
 
 METRIC_FIELDS: Tuple[str, ...] = (
     "avg_power_saving_pct",
@@ -103,6 +107,17 @@ def _parse_csv_list(text: str) -> List[str]:
 
 def _parse_int_list(text: str) -> List[int]:
     return _parse_int_list_shared(text)
+
+
+def _normalize_ai_control_mode(mode: str) -> str:
+    text = str(mode).strip().lower()
+    if text == AI_ID_REF_HYBRID_MODE:
+        return "ai_id_ref"
+    return text
+
+
+def _is_ai_id_ref_like_mode(mode: str) -> bool:
+    return _normalize_ai_control_mode(str(mode)) == "ai_id_ref"
 
 
 def _stable_int_from_text(text: str) -> int:
@@ -334,10 +349,11 @@ def _load_agent(
     feature_keys: List[str] | None = None,
     ai_control_mode: str = "ai_id_ref",
 ) -> PPOVoltageAgent:
+    mode = _normalize_ai_control_mode(str(ai_control_mode))
     state = torch.load(ckpt, map_location="cpu")
     hidden = _infer_hidden_sizes(state) or (128, 128)
     action_dim = _infer_action_dim(state)
-    if str(ai_control_mode).lower().strip() in {"ai_current", "ai_voltage", "foc_assist", "ai_speed"}:
+    if mode in {"ai_current", "ai_voltage", "foc_assist", "ai_speed"}:
         action_dim = max(action_dim, 2)
     inferred_feature_keys = _resolve_feature_keys(None, state)
     if feature_keys:
@@ -353,7 +369,7 @@ def _load_agent(
     adapted_state, _ = adapt_checkpoint_state_dict_for_model(
         state,
         agent.net.state_dict(),
-        target_control_mode=str(ai_control_mode).lower(),
+        target_control_mode=mode,
     )
     agent.net.load_state_dict(adapted_state, strict=False)
     agent.set_action_std(1e-6)
@@ -377,19 +393,23 @@ def _disable_lut_if_needed(env_cfg: object, disable: bool) -> object:
     return cfg
 
 
-def _id_ref_eval_params(env_cfg: object) -> Dict[str, object]:
-    gate_rel = getattr(env_cfg, "ai_eval_id_ref_gate_speed_tol_rel", None)
+def _id_ref_eval_params_from_prefix(env_cfg: object, *, prefix: str) -> Dict[str, object]:
+    gate_rel = getattr(env_cfg, f"{prefix}id_ref_gate_speed_tol_rel", None)
     return {
-        "id_ref_alpha": float(getattr(env_cfg, "ai_eval_id_ref_alpha", 1.0)),
+        "id_ref_alpha": float(getattr(env_cfg, f"{prefix}id_ref_alpha", 1.0)),
         "id_ref_rate_limit": None,
         "id_ref_gate_speed_tol": None,
         "id_ref_gate_speed_tol_rel": None if gate_rel is None else float(gate_rel),
-        "id_ref_gate_min_scale": float(getattr(env_cfg, "ai_eval_id_ref_gate_min_scale", 0.0)),
-        "id_ref_gate_exponent": float(getattr(env_cfg, "ai_eval_id_ref_gate_exponent", 1.0)),
-        "ai_id_relative": bool(getattr(env_cfg, "ai_eval_id_ref_relative", False)),
-        "delta_id_max": float(getattr(env_cfg, "ai_eval_delta_id_max", 0.1)),
-        "ai_id_allow_positive_delta": bool(getattr(env_cfg, "ai_eval_id_ref_allow_positive_delta", True)),
+        "id_ref_gate_min_scale": float(getattr(env_cfg, f"{prefix}id_ref_gate_min_scale", 0.0)),
+        "id_ref_gate_exponent": float(getattr(env_cfg, f"{prefix}id_ref_gate_exponent", 1.0)),
+        "ai_id_relative": bool(getattr(env_cfg, f"{prefix}id_ref_relative", False)),
+        "delta_id_max": float(getattr(env_cfg, f"{prefix}delta_id_max", 0.1)),
+        "ai_id_allow_positive_delta": bool(getattr(env_cfg, f"{prefix}id_ref_allow_positive_delta", True)),
     }
+
+
+def _id_ref_eval_params(env_cfg: object) -> Dict[str, object]:
+    return _id_ref_eval_params_from_prefix(env_cfg, prefix="ai_eval_")
 
 
 def _sensorless_params(env_cfg: object) -> Dict[str, float]:
@@ -406,33 +426,46 @@ def _sensorless_params(env_cfg: object) -> Dict[str, float]:
     }
 
 
-def _supervisor_from_env(env_cfg: object) -> AiIdRefSupervisorConfig | None:
-    if not bool(getattr(env_cfg, "ai_eval_supervisor_enabled", False)):
+def _supervisor_from_prefix(
+    env_cfg: object,
+    *,
+    enabled_attr: str,
+    prefix: str,
+) -> AiIdRefSupervisorConfig | None:
+    if not bool(getattr(env_cfg, enabled_attr, False)):
         return None
     cfg = AiIdRefSupervisorConfig(
         enabled=True,
-        speed_tol_rel=float(getattr(env_cfg, "ai_eval_sup_speed_tol_rel", 0.05)),
-        speed_tol_abs=float(getattr(env_cfg, "ai_eval_sup_speed_tol_abs", 0.0)),
-        omega_min_pu=float(getattr(env_cfg, "ai_eval_sup_omega_min", 0.1)),
-        update_steps=int(getattr(env_cfg, "ai_eval_sup_update", 20)),
-        dither_amp=float(getattr(env_cfg, "ai_eval_sup_dither", 0.04)),
-        bias_step=float(getattr(env_cfg, "ai_eval_sup_step", 0.01)),
-        bias_max=float(getattr(env_cfg, "ai_eval_sup_bias_max", 0.25)),
-        objective=str(getattr(env_cfg, "ai_eval_sup_objective", "specific_power")),
-        shaft_eps=float(getattr(env_cfg, "ai_eval_sup_shaft_eps", 10.0)),
-        reset_decay=float(getattr(env_cfg, "ai_eval_sup_reset_decay", 0.98)),
-        objective_clip=getattr(env_cfg, "ai_eval_sup_objective_clip", 10.0),
-        idle_enable=bool(getattr(env_cfg, "ai_eval_sup_idle_enable", False)),
-        idle_omega_pu=float(getattr(env_cfg, "ai_eval_sup_idle_omega_min", 0.05)),
-        idle_action=float(getattr(env_cfg, "ai_eval_sup_idle_action", -1.0)),
-        idle_blend=float(getattr(env_cfg, "ai_eval_sup_idle_blend", 1.0)),
-        idle_exit_boost_steps=int(getattr(env_cfg, "ai_eval_sup_idle_exit_boost", 0)),
-        idle_exit_action=float(getattr(env_cfg, "ai_eval_sup_idle_exit_action", 1.0)),
-        idle_bias_decay=float(getattr(env_cfg, "ai_eval_sup_idle_bias_decay", 0.95)),
+        speed_tol_rel=float(getattr(env_cfg, f"{prefix}speed_tol_rel", 0.05)),
+        speed_tol_abs=float(getattr(env_cfg, f"{prefix}speed_tol_abs", 0.0)),
+        omega_min_pu=float(getattr(env_cfg, f"{prefix}omega_min", 0.1)),
+        update_steps=int(getattr(env_cfg, f"{prefix}update", 20)),
+        dither_amp=float(getattr(env_cfg, f"{prefix}dither", 0.04)),
+        bias_step=float(getattr(env_cfg, f"{prefix}step", 0.01)),
+        bias_max=float(getattr(env_cfg, f"{prefix}bias_max", 0.25)),
+        objective=str(getattr(env_cfg, f"{prefix}objective", "specific_power")),
+        shaft_eps=float(getattr(env_cfg, f"{prefix}shaft_eps", 10.0)),
+        reset_decay=float(getattr(env_cfg, f"{prefix}reset_decay", 0.98)),
+        objective_clip=getattr(env_cfg, f"{prefix}objective_clip", 10.0),
+        idle_enable=bool(getattr(env_cfg, f"{prefix}idle_enable", False)),
+        idle_omega_pu=float(getattr(env_cfg, f"{prefix}idle_omega_min", 0.05)),
+        idle_action=float(getattr(env_cfg, f"{prefix}idle_action", -1.0)),
+        idle_blend=float(getattr(env_cfg, f"{prefix}idle_blend", 1.0)),
+        idle_exit_boost_steps=int(getattr(env_cfg, f"{prefix}idle_exit_boost", 0)),
+        idle_exit_action=float(getattr(env_cfg, f"{prefix}idle_exit_action", 1.0)),
+        idle_bias_decay=float(getattr(env_cfg, f"{prefix}idle_bias_decay", 0.95)),
     )
     if cfg.objective_clip is not None:
         cfg.objective_clip = float(cfg.objective_clip)
     return cfg
+
+
+def _supervisor_from_env(env_cfg: object) -> AiIdRefSupervisorConfig | None:
+    return _supervisor_from_prefix(
+        env_cfg,
+        enabled_attr="ai_eval_supervisor_enabled",
+        prefix="ai_eval_sup_",
+    )
 
 
 def _supervisor_to_candidate(base: AiIdRefSupervisorConfig, tag: str, source: str) -> Dict[str, object]:
@@ -482,6 +515,86 @@ def _candidate_to_supervisor(candidate: Dict[str, object]) -> AiIdRefSupervisorC
         idle_exit_action=float(candidate["idle_exit_action"]),
         idle_bias_decay=float(candidate["idle_bias_decay"]),
     )
+
+
+def _apply_id_ref_params_to_env_cfg(env: MicAiAIEnv, id_ref_params: Dict[str, object]) -> None:
+    cfg = env.cfg
+    updates = {
+        "id_ref_alpha": float(id_ref_params["id_ref_alpha"]),
+        "delta_id_max": float(id_ref_params["delta_id_max"]),
+        "id_ref_gate_speed_tol": id_ref_params["id_ref_gate_speed_tol"],
+        "id_ref_gate_speed_tol_rel": id_ref_params["id_ref_gate_speed_tol_rel"],
+        "id_ref_gate_min_scale": float(id_ref_params["id_ref_gate_min_scale"]),
+        "id_ref_gate_exponent": float(id_ref_params["id_ref_gate_exponent"]),
+        "ai_id_ref_relative": bool(id_ref_params["ai_id_relative"]),
+    }
+    for name, value in updates.items():
+        _try_set_attr(cfg, name, value)
+
+
+def _resolve_ai_id_ref_hybrid_bundle(env_cfg: object) -> Dict[str, object] | None:
+    if not bool(getattr(env_cfg, "ai_eval_hybrid_enabled", False)):
+        return None
+    cache = getattr(env_cfg, "_ai_eval_hybrid_bundle_cache", None)
+    if isinstance(cache, dict):
+        return cache
+
+    checkpoint_text = str(getattr(env_cfg, "ai_eval_hybrid_secondary_checkpoint_path", "")).strip()
+    if not checkpoint_text:
+        return None
+    checkpoint_path = Path(checkpoint_text)
+    if not checkpoint_path.is_absolute():
+        checkpoint_path = (ROOT / checkpoint_path).resolve()
+
+    secondary_id_ref = _id_ref_eval_params_from_prefix(env_cfg, prefix="ai_eval_hybrid_secondary_")
+    secondary_sup = _supervisor_from_prefix(
+        env_cfg,
+        enabled_attr="ai_eval_hybrid_secondary_supervisor_enabled",
+        prefix="ai_eval_hybrid_secondary_sup_",
+    )
+    bundle = {
+        "secondary_checkpoint": str(checkpoint_path.resolve()),
+        "secondary_agent": _load_agent(checkpoint_path.resolve(), ai_control_mode="ai_id_ref"),
+        "secondary_id_ref": secondary_id_ref,
+        "secondary_supervisor_cfg": secondary_sup,
+        "load_delta_threshold": float(getattr(env_cfg, "ai_eval_hybrid_load_delta_threshold", 0.05)),
+        "positive_only": bool(getattr(env_cfg, "ai_eval_hybrid_positive_only", True)),
+        "latch_steps": int(getattr(env_cfg, "ai_eval_hybrid_latch_steps", 0)),
+        "speed_err_threshold_rel": float(getattr(env_cfg, "ai_eval_hybrid_speed_err_threshold_rel", 0.0)),
+        "speed_err_threshold_abs": float(getattr(env_cfg, "ai_eval_hybrid_speed_err_threshold_abs", 0.0)),
+    }
+    _try_set_attr(env_cfg, "_ai_eval_hybrid_bundle_cache", bundle)
+    return bundle
+
+
+def _hybrid_should_activate_secondary(
+    *,
+    prev_load: float,
+    new_load: float,
+    omega_ref: float,
+    omega: float,
+    load_delta_threshold: float,
+    positive_only: bool,
+    speed_err_threshold_rel: float,
+    speed_err_threshold_abs: float,
+) -> bool:
+    load_delta = float(new_load) - float(prev_load)
+    load_trigger = False
+    load_delta_threshold = float(max(0.0, load_delta_threshold))
+    if load_delta_threshold > 0.0:
+        load_trigger = abs(load_delta) >= load_delta_threshold
+        if positive_only:
+            load_trigger = load_delta >= load_delta_threshold
+
+    speed_trigger = False
+    speed_err_rel = float(max(0.0, speed_err_threshold_rel))
+    speed_err_abs = float(max(0.0, speed_err_threshold_abs))
+    if speed_err_rel > 0.0 or speed_err_abs > 0.0:
+        omega_ref_abs = abs(float(omega_ref))
+        err_limit = max(speed_err_abs, speed_err_rel * max(omega_ref_abs, 1e-6))
+        speed_trigger = abs(float(omega_ref) - float(omega)) >= err_limit
+
+    return bool(load_trigger or speed_trigger)
 
 
 def _sample_supervisor_candidate(
@@ -647,6 +760,158 @@ def _build_handcrafted_candidates(base: Dict[str, object]) -> List[Dict[str, obj
     return out
 
 
+def _simulate_ai_hybrid(
+    primary_agent: PPOVoltageAgent,
+    env_cfg: object,
+    dt: float,
+    t_end: float,
+    primary_id_ref_params: Dict[str, object],
+    use_total_power: bool,
+    *,
+    primary_supervisor_cfg: AiIdRefSupervisorConfig | None,
+    hybrid_bundle: Dict[str, object],
+) -> Dict[str, np.ndarray]:
+    env = _build_ai_env(
+        env_cfg,
+        dt,
+        t_end,
+        "ai_id_ref",
+        float(primary_id_ref_params["id_ref_alpha"]),
+        primary_id_ref_params["id_ref_rate_limit"],
+        primary_id_ref_params["id_ref_gate_speed_tol"],
+        primary_id_ref_params["id_ref_gate_speed_tol_rel"],
+        float(primary_id_ref_params["id_ref_gate_min_scale"]),
+        float(primary_id_ref_params["id_ref_gate_exponent"]),
+        bool(primary_id_ref_params["ai_id_relative"]),
+        float(primary_id_ref_params["delta_id_max"]),
+    )
+    obs = env.reset()
+
+    omega_nom = float(2.0 * math.pi * env_cfg.scalar_vf.f_max / max(env_cfg.motor.p, 1))
+    primary_sup: AiIdRefSupervisor | None = None
+    if primary_supervisor_cfg is not None and bool(primary_supervisor_cfg.enabled):
+        primary_sup = AiIdRefSupervisor(primary_supervisor_cfg, omega_nominal=omega_nom)
+        primary_sup.reset()
+
+    secondary_agent = hybrid_bundle["secondary_agent"]
+    secondary_id_ref_params = dict(hybrid_bundle["secondary_id_ref"])
+    secondary_sup_cfg = hybrid_bundle.get("secondary_supervisor_cfg")
+    secondary_sup: AiIdRefSupervisor | None = None
+    if secondary_sup_cfg is not None and bool(secondary_sup_cfg.enabled):
+        secondary_sup = AiIdRefSupervisor(secondary_sup_cfg, omega_nominal=omega_nom)
+        secondary_sup.reset()
+
+    load_delta_threshold = float(max(0.0, float(hybrid_bundle.get("load_delta_threshold", 0.05))))
+    positive_only = bool(hybrid_bundle.get("positive_only", True))
+    latch_steps = int(hybrid_bundle.get("latch_steps", 0))
+    speed_err_threshold_rel = float(max(0.0, float(hybrid_bundle.get("speed_err_threshold_rel", 0.0))))
+    speed_err_threshold_abs = float(max(0.0, float(hybrid_bundle.get("speed_err_threshold_abs", 0.0))))
+
+    steps = int(max(t_end / dt, 1))
+    t = np.zeros(steps, dtype=float)
+    omega = np.zeros(steps, dtype=float)
+    omega_ref = np.zeros(steps, dtype=float)
+    i_rms = np.zeros(steps, dtype=float)
+    p_el = np.zeros(steps, dtype=float)
+    p_mech = np.zeros(steps, dtype=float)
+
+    active_secondary = False
+    hold_left = 0
+    prev_load = float(obs.get("load_torque_norm", 0.0))
+
+    for k in range(steps):
+        if active_secondary:
+            pair_agent = secondary_agent
+            pair_sup = secondary_sup
+            pair_id_ref = secondary_id_ref_params
+        else:
+            pair_agent = primary_agent
+            pair_sup = primary_sup
+            pair_id_ref = primary_id_ref_params
+
+        _apply_id_ref_params_to_env_cfg(env, pair_id_ref)
+
+        with torch.no_grad():
+            state_t = pair_agent._to_tensor(obs).unsqueeze(0)
+            mu, _std, _value = pair_agent.net(state_t)
+        action = torch.clamp(mu, -1.0, 1.0).squeeze(0).cpu().numpy().astype(np.float32)
+        if (
+            (not bool(pair_id_ref.get("ai_id_allow_positive_delta", True)))
+            and bool(pair_id_ref.get("ai_id_relative", False))
+            and action.size >= 1
+        ):
+            action[0] = np.float32(min(float(action[0]), 0.0))
+
+        gate_open = False
+        if pair_sup is not None:
+            omega_obs = float(obs.get("omega", 0.0))
+            omega_ref_obs = float(obs.get("omega_ref", 0.0))
+            action0, gate_open = pair_sup.adjust_action(
+                float(action[0]),
+                omega_ref=omega_ref_obs,
+                omega=float(omega_obs),
+            )
+            action[0] = np.float32(action0)
+
+        obs, _r, done, info = env.step(action)
+        t[k] = float(getattr(env.base_env, "t", k * dt))
+        omega[k] = float(info.get("omega_meas", obs.get("omega", 0.0)))
+        omega_ref[k] = float(info.get("omega_ref", obs.get("omega_ref", 0.0)))
+        i_abc = np.asarray(info.get("i_abc", (0.0, 0.0, 0.0)), dtype=float)
+        v_abc = np.asarray(info.get("v_abc", (0.0, 0.0, 0.0)), dtype=float)
+        torque = float(info.get("torque_e", getattr(env.base_env, "last_torque", 0.0)))
+        i_rms[k] = calc_i_rms(i_abc)
+        p_el_val = calc_p_el(v_abc, i_abc)
+        if use_total_power:
+            p_el_val = float(info.get("p_in_total", p_el_val))
+        p_el[k] = p_el_val
+        p_mech[k] = calc_p_mech(omega[k], torque)
+        if pair_sup is not None:
+            pair_sup.update(
+                p_in_pos=max(0.0, float(p_el_val)),
+                p_shaft_pos=max(0.0, float(p_mech[k])),
+                gate_open=gate_open,
+            )
+
+        new_load = float(obs.get("load_torque_norm", prev_load))
+        trigger = _hybrid_should_activate_secondary(
+            prev_load=prev_load,
+            new_load=new_load,
+            omega_ref=omega_ref[k],
+            omega=omega[k],
+            load_delta_threshold=load_delta_threshold,
+            positive_only=positive_only,
+            speed_err_threshold_rel=speed_err_threshold_rel,
+            speed_err_threshold_abs=speed_err_threshold_abs,
+        )
+        if (not active_secondary) and trigger:
+            active_secondary = True
+            hold_left = int(max(latch_steps, 0))
+        elif active_secondary and latch_steps > 0:
+            hold_left -= 1
+            if hold_left <= 0:
+                active_secondary = False
+        prev_load = new_load
+
+        if done:
+            t = t[: k + 1]
+            omega = omega[: k + 1]
+            omega_ref = omega_ref[: k + 1]
+            i_rms = i_rms[: k + 1]
+            p_el = p_el[: k + 1]
+            p_mech = p_mech[: k + 1]
+            break
+
+    return {
+        "t": t,
+        "omega": omega,
+        "omega_ref": omega_ref,
+        "i_rms": i_rms,
+        "p_el": p_el,
+        "p_mech": p_mech,
+    }
+
+
 def _simulate_rows(
     *,
     env_cfg: object,
@@ -692,6 +957,7 @@ def _simulate_rows(
 
     rows: List[Dict[str, object]] = []
     mode = str(mic_mode).strip().lower()
+    eval_ai_mode = _normalize_ai_control_mode(str(ai_control_mode))
     rule = dict(mic_rule_params or {})
     rule_low = float(rule.get("id_ref_low", 1.0))
     rule_high = float(rule.get("id_ref_high", 1.4))
@@ -739,24 +1005,39 @@ def _simulate_rows(
             else:
                 if agent is None:
                     raise RuntimeError("MIC evaluation requires loaded AI agent.")
-                mic = _simulate_ai(
-                    agent,
-                    env_cfg_mic,
-                    dt,
-                    t_end,
-                    str(ai_control_mode),
-                    float(id_ref_params["id_ref_alpha"]),
-                    id_ref_params["id_ref_rate_limit"],
-                    id_ref_params["id_ref_gate_speed_tol"],
-                    id_ref_params["id_ref_gate_speed_tol_rel"],
-                    float(id_ref_params["id_ref_gate_min_scale"]),
-                    float(id_ref_params["id_ref_gate_exponent"]),
-                    bool(id_ref_params["ai_id_relative"]),
-                    float(id_ref_params["delta_id_max"]),
-                    use_total_power,
-                    supervisor_cfg=supervisor_cfg,
-                    ai_id_allow_positive_delta=bool(id_ref_params["ai_id_allow_positive_delta"]),
-                )
+                hybrid_bundle = None
+                if str(ai_control_mode).strip().lower() == AI_ID_REF_HYBRID_MODE:
+                    hybrid_bundle = _resolve_ai_id_ref_hybrid_bundle(env_eval)
+                if hybrid_bundle is not None:
+                    mic = _simulate_ai_hybrid(
+                        agent,
+                        env_cfg_mic,
+                        dt,
+                        t_end,
+                        id_ref_params,
+                        use_total_power,
+                        primary_supervisor_cfg=supervisor_cfg,
+                        hybrid_bundle=hybrid_bundle,
+                    )
+                else:
+                    mic = _simulate_ai(
+                        agent,
+                        env_cfg_mic,
+                        dt,
+                        t_end,
+                        eval_ai_mode,
+                        float(id_ref_params["id_ref_alpha"]),
+                        id_ref_params["id_ref_rate_limit"],
+                        id_ref_params["id_ref_gate_speed_tol"],
+                        id_ref_params["id_ref_gate_speed_tol_rel"],
+                        float(id_ref_params["id_ref_gate_min_scale"]),
+                        float(id_ref_params["id_ref_gate_exponent"]),
+                        bool(id_ref_params["ai_id_relative"]),
+                        float(id_ref_params["delta_id_max"]),
+                        use_total_power,
+                        supervisor_cfg=supervisor_cfg,
+                        ai_id_allow_positive_delta=bool(id_ref_params["ai_id_allow_positive_delta"]),
+                    )
         elif controller == "FOC":
             mic = _simulate_controller(env_cfg_mic, dt, t_end, mode="foc", use_total_power=use_total_power)
         else:
@@ -1350,7 +1631,9 @@ def _load_env_and_agent(
         config_path=str(cfg_path),
         registry_path=checkpoint_registry_path,
     )
-    agent = _load_agent(ckpt, ai_control_mode=str(ai_control_mode))
+    if str(ai_control_mode).strip().lower() == AI_ID_REF_HYBRID_MODE:
+        _resolve_ai_id_ref_hybrid_bundle(env_cfg)
+    agent = _load_agent(ckpt, ai_control_mode=_normalize_ai_control_mode(str(ai_control_mode)))
     return env_cfg, agent, ckpt
 
 
@@ -1366,7 +1649,11 @@ def main() -> None:
     parser.add_argument("--foc-feedback-mode", default="encoder", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-feedback-mode", default="sensorless", choices=["encoder", "sensorless"])
     parser.add_argument("--mic-mode", default="ai", choices=["ai", "rule"])
-    parser.add_argument("--ai-control-mode", default="ai_id_ref", choices=["ai_id_ref", "ai_current", "ai_voltage", "foc_assist", "ai_speed"])
+    parser.add_argument(
+        "--ai-control-mode",
+        default="ai_id_ref",
+        choices=["ai_id_ref", AI_ID_REF_HYBRID_MODE, "ai_current", "ai_voltage", "foc_assist", "ai_speed"],
+    )
     parser.add_argument("--mic-rule-id-ref-low", type=float, default=1.0)
     parser.add_argument("--mic-rule-id-ref-high", type=float, default=1.4)
     parser.add_argument("--mic-rule-speed-tol-rel", type=float, default=0.05)
@@ -1510,8 +1797,8 @@ def main() -> None:
             id_ref_eval["id_ref_gate_min_scale"] = float(tuned_air56_candidate["id_ref_gate_min_scale"])
             id_ref_eval["id_ref_gate_exponent"] = float(tuned_air56_candidate["id_ref_gate_exponent"])
         else:
-            sup_cfg = base_sup if (mic_mode == "ai" and ai_control_mode == "ai_id_ref") else None
-            sup_source = "config" if (mic_mode == "ai" and ai_control_mode == "ai_id_ref") else ("ai" if mic_mode == "ai" else "rule")
+            sup_cfg = base_sup if (mic_mode == "ai" and _is_ai_id_ref_like_mode(ai_control_mode)) else None
+            sup_source = "config" if (mic_mode == "ai" and _is_ai_id_ref_like_mode(ai_control_mode)) else ("ai" if mic_mode == "ai" else "rule")
 
         for seed in seeds:
             seed_dir = out_dir / "runs" / motor / f"seed_{seed}"

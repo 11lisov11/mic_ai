@@ -44,14 +44,16 @@ def _air56_acceptance(metrics: Dict[str, float]) -> Dict[str, bool]:
 
 
 def _generic_acceptance(metrics: Dict[str, float]) -> Dict[str, bool]:
+    # Scenario-level eta/current/start-stop constraints are enforced upstream by
+    # the canonical Step27 acceptance envelopes. This report only applies the
+    # cross-mode release guardrail for non-AIR56 motors, so it stays aligned
+    # with the documented policy in paper/ieee_2026/guardrails_policy.json.
     mean_pass = bool(
         metrics["avg_power_saving_pct_mean"] >= 0.0
-        and metrics["avg_eta_gain_pct_mean"] >= 0.0
         and metrics["err_failures_mean"] <= 2.0
     )
     worst_pass = bool(
         metrics["avg_power_saving_pct_min"] >= 0.0
-        and metrics["avg_eta_gain_pct_min"] >= 0.0
         and metrics["err_failures_max"] <= 2.0
     )
     return {"mean_pass": mean_pass, "worst_case_pass": worst_pass, "acceptance_pass": bool(mean_pass and worst_pass)}

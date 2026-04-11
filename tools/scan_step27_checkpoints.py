@@ -15,9 +15,11 @@ from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisorConfig  # noqa: E402
 from tools.common_utils import json_dump as _json_dump_shared  # noqa: E402
 from tools.common_utils import write_csv as _write_csv_shared  # noqa: E402
 from tools.step27_pipeline import (  # noqa: E402
+    AI_ID_REF_HYBRID_MODE,
     _id_ref_eval_params,
     _load_agent,
     _load_env_and_agent,
+    _normalize_ai_control_mode,
     _supervisor_from_env,
     _supervisor_to_candidate,
 )
@@ -353,6 +355,7 @@ def scan_checkpoints(
     resume: bool = False,
 ) -> Dict[str, object]:
     ai_mode = str(ai_control_mode).strip().lower()
+    eval_ai_mode = _normalize_ai_control_mode(ai_mode)
     seeds_list = [int(s) for s in (seeds or [101])]
     scenarios_list = [str(s) for s in (scenarios or ["speed_step", "ramp", "load_step", "start_stop"])]
     if not seeds_list:
@@ -381,7 +384,7 @@ def scan_checkpoints(
     )
     base_candidate = _build_base_candidate(env_cfg)
     candidate_tags_list = [str(tag).strip() for tag in (candidate_tags or []) if str(tag).strip()]
-    if ai_mode == "ai_id_ref":
+    if eval_ai_mode == "ai_id_ref":
         if not str(candidate_json).strip():
             raise ValueError("--candidate-json is required for ai_id_ref scans.")
         selected_candidates, candidate_count = _select_candidates(
@@ -709,7 +712,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate many checkpoints against step27 metrics with one fixed candidate.")
     parser.add_argument("--motor", required=True, choices=sorted(MOTOR_REGISTRY.keys()))
     parser.add_argument("--checkpoint-glob", required=True, help="Checkpoint file, directory, or glob pattern (e.g. outputs/run/eval/actor_ep*.pth).")
-    parser.add_argument("--ai-control-mode", default="ai_id_ref", choices=["ai_id_ref", "ai_current", "ai_voltage", "foc_assist", "ai_speed"])
+    parser.add_argument(
+        "--ai-control-mode",
+        default="ai_id_ref",
+        choices=["ai_id_ref", AI_ID_REF_HYBRID_MODE, "ai_current", "ai_voltage", "foc_assist", "ai_speed"],
+    )
     parser.add_argument("--candidate-json", default="")
     parser.add_argument("--candidate-index", type=int, default=0)
     parser.add_argument("--candidate-tag", default="")

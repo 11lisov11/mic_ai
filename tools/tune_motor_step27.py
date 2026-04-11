@@ -16,6 +16,7 @@ DEFAULT_ACCEPTANCE_ENVELOPES = ROOT / "config" / "acceptance_envelopes_3motors.j
 
 from mic_ai.ai.id_ref_supervisor import AiIdRefSupervisorConfig  # noqa: E402
 from tools.step27_pipeline import (  # noqa: E402
+    AI_ID_REF_HYBRID_MODE,
     MOTOR_REGISTRY,
     SeedPerturbationSettings,
     _aggregate_rows,
@@ -395,8 +396,9 @@ def _eval_candidate(
 ) -> Dict[str, float]:
     id_ref = _id_ref_eval_params(env_cfg)
     ai_mode = str(ai_control_mode).strip().lower()
-    sup_cfg = _candidate_to_supervisor(candidate) if ai_mode == "ai_id_ref" else None
-    if ai_mode == "ai_id_ref":
+    is_id_ref_like = ai_mode in {"ai_id_ref", AI_ID_REF_HYBRID_MODE}
+    sup_cfg = _candidate_to_supervisor(candidate) if is_id_ref_like else None
+    if is_id_ref_like:
         id_ref["id_ref_alpha"] = float(candidate["id_ref_alpha"])
         id_ref["delta_id_max"] = float(candidate["delta_id_max"])
         id_ref["id_ref_gate_speed_tol_rel"] = float(candidate["id_ref_gate_speed_tol_rel"])

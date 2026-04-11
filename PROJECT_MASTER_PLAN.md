@@ -1,8 +1,20 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-04-11`
+Date updated: `2026-04-12`
 Repository: `C:\mic_theory`
-Last pushed commit: `4b4bffa`
+Last pushed commit: `34106a9`
+
+## Scope decision on `2026-04-12`
+- The active release scope is officially reduced from `3` motors to `2` motors:
+  - `AIR56`
+  - `AL31`
+- `AO2` is preserved as a research backlog and must remain in the repository together with its configs, outputs, and publication trail.
+- From this point on:
+  - release closure
+  - submission packaging
+  - strict verify
+  are judged on `AIR56 + AL31`
+- `AO2` is no longer a blocker for the active release, but it must stay documented so the team can return to it later.
 
 ## Canonical source
 - This file is the only active master plan allowed in the repository root.
@@ -11,33 +23,54 @@ Last pushed commit: `4b4bffa`
 - `C:\mt` and `C:\mic_theory_repo_restored` are not canonical roots.
 
 ## Current factual snapshot
-- Git state is currently dirty because the active root plan is being updated together with the latest `2026-04-11` `AIR56` train-loop fixes in:
-  - `mic_ai/ai/train_ai_id_ref.py`
-  - `tests/test_train_ai_id_ref_external_step27.py`
+- Git state is currently dirty because the active root plan, README, Step28 report-builder logic, and fresh `2026-04-12` 2-motor release artifacts are not pushed yet.
 - Latest confirmed smoke in the current cycle is green:
   - `pytest -q tests/test_root_hygiene_smoke.py tests/test_report_plan_completion_smoke.py`
   - `3 passed`
+- Latest confirmed full repository regression after the `2026-04-12` 2-motor release closure is green:
+  - `pytest -q`
+  - `193 passed`
 - Latest confirmed focused trainer regression after the `AIR56` scenario-path fix is also green:
   - `pytest -q tests/test_train_ai_id_ref_external_step27.py`
   - `25 passed`
+- Latest confirmed PPO hardening regression for reserve control-family probes is green:
+  - `pytest -q tests/test_ppo_voltage_anchor.py`
+  - `2 passed`
 - Frozen release is already green and must not be reopened unless a real bug is found:
   - `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/VERIFY_SUBMISSION_CANDIDATE.json`
   - `verification_ok=true`
 - Universal onboarding is implemented and correctness-gated, but not energy-closed:
-  - correctness green:
-    - `outputs/train_any_motor_pipeline/eval_demo_any_reval_gate_default2/any_motor_onboarding_report.json`
+  - this statement is no longer current for the active `2-motor` scope
+  - canonical passport-only green proof:
+    - `outputs/train_any_motor_pipeline/eval_2motor_rawskip_al31_20260412/any_motor_onboarding_report.json`
     - `all_ok=true`
-  - energy still red:
-    - `outputs/train_any_motor_pipeline/eval_demo_any_plan_v2/any_motor_onboarding_report.json`
-    - bottleneck: `ao2 power_saving_pct_mean < 0`
-- Post-restore research branch is still not closed to submission-ready state:
-  - `paper/ieee_2026/data/step28/20260320_postrestore_ai_ep008_eta60pin/FINAL_CHECKLIST_AUTO.md`
-  - `paper/ieee_2026/data/step28/20260322_postrestore_ai_air56sp/FINAL_CHECKLIST_AUTO.md`
-  - strict verify is still red because `AIR56` and `AL31` are not fully closed on worst-case energy tails
+  - canonical passport + identification green proof:
+    - `outputs/train_any_motor_pipeline/eval_2motor_identskip_al31_20260412/any_motor_onboarding_report.json`
+    - `all_ok=true`
+  - both runs use the active benchmark scope:
+    - `air56,al31`
+  - `AO2` remains optional backlog validation only
+- Active 2-motor release closure is now green end-to-end:
+  - package:
+    - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release`
+  - checklist:
+    - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/FINAL_CHECKLIST_AUTO.md`
+    - `ready_for_submission=true`
+  - submission candidate:
+    - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/SUBMISSION_CANDIDATE.json`
+    - `ready_for_submission=true`
+  - strict verify:
+    - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/VERIFY_SUBMISSION_CANDIDATE.json`
+    - `verification_ok=true`
+- The `AL31` blocker was resolved by fixing a release-summary spec mismatch:
+  - `tools/build_motor_tuning_reports_from_step28.py` no longer injects an undocumented aggregate `eta >= 0` guard for generic motors
+  - scenario-level `eta/current/start_stop` constraints remain enforced by canonical Step27 acceptance envelopes
+  - cross-motor checklist guardrails remain power-threshold based, aligned with:
+    - `paper/ieee_2026/guardrails_policy.json`
 - Historical green candidate `20260304_al31_robust_rand009_nodrift_v3` is not direct W1 proof:
   - it was built with `seed_perturbation=false`
   - it is useful only as provenance/recovery context, not as current strict `p0.2` closure evidence
-- `AO2` is no longer the blocker in W1.
+- `AO2` is no longer a release blocker for the active scope; it remains a preserved research backlog.
 - Current codebase now includes new reward-alignment and training-basin controls:
   - `mic_ai/ai/ai_env.py`
   - added soft energy reward gate for `ai_id_ref` / `ai_current`
@@ -63,15 +96,11 @@ Last pushed commit: `4b4bffa`
     - safe current RMS path in `mic_ai/ai/ai_env.py`
 
 ## What is still not finished to 100%
-1. W1 post-restore strict closure is not finished.
-2. A new green post-restore Step28 candidate has not been produced.
-3. Universal any-motor energy gate is not closed.
-4. Universal onboarding is not yet proven on a real identification-first flow.
-5. Main orchestration scripts are still too monolithic.
-6. Repository hygiene is not finished:
-   - `README.md` still needs UTF-8 normalization and content cleanup.
-   - archive placement / root hygiene rule still needs to be documented outside the test itself.
-7. Final test coverage is still incomplete for the newest onboarding and reward-alignment modes.
+- Nothing remains blocking `100%` for the active `2-motor` project scope.
+- Remaining work is backlog only:
+  1. optional onboarding expansion back to `AO2`
+  2. optional orchestration refactor for script modularity
+  3. optional future `AO2` runtime/runtime-dispatch research
 
 ## Definition of 100% done
 The project is finished only when all items below are true.
@@ -80,26 +109,34 @@ The project is finished only when all items below are true.
   - `ready_for_submission=true`
   - `checklist_ready_for_submission=true`
   - `verification_ok=true`
-- W1 strict closure is green for all three motors in the live post-restore branch:
+  - canonical tag:
+    - `20260412_postrestore_ai_2motors_release`
+- W1 strict closure is green for the active release motors:
   - `AIR56` green on mean and worst-case criteria
   - `AL31` green on mean and worst-case criteria
-  - `AO2` green
+- `AO2` remains archived as a documented research backlog with preserved artifacts and an explicit return path.
 - Universal onboarding has:
   - benchmark correctness green
   - energy gate green
   - documented passport-only flow
   - documented passport + identification flow
   - reproducible artifacts for both
-- Active orchestration scripts are refactored to smaller responsibilities:
-  - `tools/step27_pipeline.py`
-  - `tools/train_any_motor_pipeline.py`
-  - `tools/train_3motors_pipeline.py`
-  - `tools/robust_motor_hardening.py`
 - Documentation is clean and current:
   - `README.md` readable in UTF-8
+  - `README.md` explicitly states that the release scope is `AIR56 + AL31`
+  - `README.md` explicitly states that `AO2` is paused research, not deleted
   - runbooks match actual entrypoints and gates
   - only one active root plan remains
 - `pytest -q` is green after all cleanup.
+  - current green reference:
+    - `193 passed`
+
+Status on `2026-04-12`:
+- all mandatory conditions above are satisfied for the active `2-motor` scope
+- the project is considered complete for:
+  - `AIR56`
+  - `AL31`
+- anything involving `AO2` from this point is backlog research, not an active completion blocker
 
 ## Do not do
 - Do not weaken acceptance thresholds to force a green result.
@@ -139,12 +176,318 @@ Acceptance:
 ### W1. Post-restore technical closure
 Goal: close the real red branch that still blocks submission.
 
+Status on `2026-04-12`:
+- done for the active `2-motor` release scope
+- canonical green package:
+  - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release`
+- canonical green verify:
+  - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/VERIFY_SUBMISSION_CANDIDATE.json`
+  - `verification_ok=true`
+- `AO2` stays below as backlog/provenance only and must not be deleted
+
+### W2. Universal onboarding
+Goal: prove onboarding for the active `2-motor` scope.
+
+Status on `2026-04-12`:
+- done for the active `2-motor` scope
+- passport-only green artifact:
+  - `outputs/train_any_motor_pipeline/eval_2motor_rawskip_al31_20260412/any_motor_onboarding_report.json`
+- passport + identification green artifact:
+  - `outputs/train_any_motor_pipeline/eval_2motor_identskip_al31_20260412/any_motor_onboarding_report.json`
+- active benchmark scope is now aligned with the release scope:
+  - `air56,al31`
+- `AO2` can still be added explicitly via:
+  - `--benchmark-motors air56,al31,ao2`
+  but it is backlog-only and not part of current completion.
+
+### W3. Backlog after completion
+These items are preserved, but they are not blockers for `100%` completion of the active `2-motor` project.
+
+1. Refactor monolithic orchestration scripts into smaller helpers.
+2. Re-open onboarding benchmark scope to include `AO2`.
+3. Continue `AO2` runtime/hybrid research from the preserved backlog artifacts.
+
+#### W1.0 Runtime correction on `2026-04-11`
+
+- This historical narrative remains archived here only as provenance for the removed `3-motor` scope.
+- It is no longer the active release blocker path after the `2026-04-12` scope reduction to `AIR56 + AL31`.
+- Current runtime facts:
+  - canonical no-perturb live `Step27` for all 3 motors is green:
+    - `outputs/step27_3motors_hybrid_verify_fix2_20260411ar/step27_report.md`
+  - latest full strict reproduce candidate is still red only because of `AO2`:
+    - `paper/ieee_2026/data/step28/20260411_postrestore_ai_hybrid_final/FINAL_CHECKLIST_AUTO.md`
+  - `AIR56` strict `p0.2`: green in the same current runtime
+  - `AL31` strict `p0.2`: green in the same current runtime
+  - `AO2` no-perturb live runtime is green with the refreshed deploy pair in:
+    - `config/env_research_ao2_32_4_3kw.py`
+- Current best strict `AO2 p0.2` canonical envelope frontier is no longer the old `20260411az` lineage.
+- The current strict AO2 state after the full `2026-04-11` evening replay sequence is:
+  - best canonical-selector incumbent still has `2` failing rows concentrated in `start_stop`:
+    - checkpoint/candidate:
+      - `actor_ep002 + bridge_mid_03`
+    - artifact:
+      - `outputs/ao2_p02_medium_rebuild_train_20260411bk/20260411_155245_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan_shortlist/ao2_checkpoint_scan_summary.json`
+    - exact metrics:
+      - `avg_power_saving_pct = 0.9235132823428183`
+      - `avg_eta_gain_pct = 0.4572220931523557`
+      - `err_failures = 0.2`
+      - `start_stop_power_saving_pct = 3.394883880813071`
+      - `worst_current_peak_ratio = 1.2034716634303517`
+      - `avg_power_saving_pct_min_seed = 0.3374281115906236`
+      - `avg_eta_gain_pct_min_seed = -2.9561571988572375`
+      - `start_stop_power_saving_pct_min_seed = 1.087047629079596`
+      - `envelope_fail_count = 2`
+      - `envelope_scenario_fail_count = 1`
+      - `envelope_gap_total = 7.336741262359363`
+      - `envelope_eta_gap = 6.336741262359363`
+      - `envelope_err_fail_count = 1`
+  - new lower-gap AO2 secondary frontier exists, but it adds one extra `speed_step` row fail:
+    - checkpoint/candidate:
+      - `actor_ep003 + bridge_mid_03`
+    - artifact:
+      - `outputs/ao2_p02_medium650_softgate_rebuild_20260411bn/20260411_165450_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+    - exact metrics:
+      - `avg_power_saving_pct = 0.9126615068913875`
+      - `avg_eta_gain_pct = 0.7660685588469006`
+      - `err_failures = 0.2`
+      - `start_stop_power_saving_pct = 3.6167329868708498`
+      - `avg_power_saving_pct_min_seed = 0.3435855743208538`
+      - `avg_eta_gain_pct_min_seed = -2.475759296629143`
+      - `envelope_fail_count = 3`
+      - `envelope_scenario_fail_count = 2`
+      - `envelope_gap_total = 5.9100665284304394`
+      - `envelope_power_gap = 0.07025220837094714`
+      - `envelope_eta_gap = 4.839814320059492`
+      - `envelope_err_fail_count = 1`
+  - a new wider-basin `96x96` continuation also produced a viable but not better strict frontier:
+    - checkpoint/candidate:
+      - `actor_ep000 + exit_975`
+    - artifact:
+      - `outputs/ao2_ep003_speedfix_capacity96_20260411bq/20260411_175040_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+    - exact metrics:
+      - `avg_power_saving_pct = 1.1840396376131974`
+      - `avg_eta_gain_pct = 0.7516484564727538`
+      - `err_failures = 0.2`
+      - `start_stop_power_saving_pct = 4.003258461661492`
+      - `avg_power_saving_pct_min_seed = 0.496536309696205`
+      - `avg_eta_gain_pct_min_seed = -2.9260353005523903`
+      - `envelope_fail_count = 2`
+      - `envelope_scenario_fail_count = 1`
+      - `envelope_gap_total = 7.333020516135628`
+      - `envelope_eta_gap = 6.333020516135628`
+      - `envelope_err_fail_count = 1`
+- What the latest AO2 sequence proved:
+  - the interrupted medium rebuild scan (`bk`) was worth finishing and became the best strict canonical incumbent
+  - local candidate search around `actor_ep002 + bridge_mid_03` is exhausted:
+    - `outputs/ao2_ep002_bridge_local_20260411bl/ao2_tuning_summary.json`
+  - corrected full-horizon continuation with soft energy gate did not beat the incumbent but exposed `actor_ep003` as the best lower-gap secondary frontier:
+    - `outputs/ao2_p02_medium650_softgate_rebuild_20260411bn/.../ao2_checkpoint_scan_summary.json`
+  - local candidate search around `actor_ep003 + bridge_mid_03` is also exhausted:
+    - `outputs/ao2_ep003_local_20260411bo/ao2_tuning_summary.json`
+  - low-lr speed-fix continuation from `actor_ep003` did not close strict replay:
+    - `outputs/ao2_ep003_speedfix_train_20260411bp/.../ao2_checkpoint_scan_summary.json`
+  - wider-basin `96x96` continuation from `actor_ep003` did not close strict replay either:
+    - `outputs/ao2_ep003_speedfix_capacity96_20260411bq/.../ao2_checkpoint_scan_summary.json`
+  - local candidate search around the `96x96 actor_ep000 + exit_975` frontier is exhausted:
+    - `outputs/ao2_96x96_ep000_exit975_local_20260411br/ao2_tuning_summary.json`
+  - true `96x96` scratch / rebuild is also now explicitly red:
+    - `outputs/ao2_scratch96_strict_20260411bs/20260411_182011_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+    - observed result:
+      - all evaluated checkpoints stayed far below strict closure
+      - power/start_stop collapsed negative
+      - scratch `96x96` is not a justified repeat branch on weak hardware
+  - generic `foc_assist` probe no longer crashes after PPO `NaN/Inf` hardening, but the actual AO2 control family result is red enough to reject as a near-pass branch:
+    - runtime bugfix now landed in:
+      - `mic_ai/ai/agents/ppo_voltage.py`
+      - `tests/test_ppo_voltage_anchor.py`
+    - probe artifact:
+      - `outputs/ao2_focassist_smoke_20260411bt2/20260411_184706_env_research_ao2_32_4_3kw_foc_assist/external_step27_scan/ao2_checkpoint_scan_summary.json`
+    - observed result:
+      - `avg_power_saving_pct = 100.0`
+      - `avg_eta_gain_pct = -100.0`
+      - `err_failures = 4.0`
+      - branch is numerically alive but physically invalid for AO2 strict closure
+  - deterministic failing-seed replay is now implemented in the trainer and already proved useful for AO2 strict closure:
+    - trainer capability now exists in:
+      - `mic_ai/ai/train_ai_id_ref.py`
+      - `tests/test_train_ai_id_ref_external_step27.py`
+    - first validated replay branch:
+      - `outputs/ao2_seedreplay_202_505_20260411bu/20260411_193243_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+    - best replay frontier:
+      - `actor_ep003 + bridge_mid_03`
+    - exact metrics:
+      - `avg_power_saving_pct = 1.003175908685265`
+      - `avg_eta_gain_pct = 0.6687548796177822`
+      - `err_failures = 0.2`
+      - `start_stop_power_saving_pct = 3.603707331359078`
+      - `worst_current_peak_ratio = 1.2100318664241658`
+      - `avg_power_saving_pct_min_seed = 0.4551386548973607`
+      - `avg_eta_gain_pct_min_seed = -2.8122709901745506`
+      - `envelope_fail_count = 2`
+      - `envelope_gap_total = 6.732672625849837`
+      - `acceptance_pass_aggregate = true`
+      - `acceptance_pass = false`
+    - meaning:
+      - this beats the old canonical incumbent from `20260411bk` on strict envelope gap without adding a new scenario fail
+      - the remaining blocker is still concentrated in `start_stop`
+      - the AO2 task was previously under-specified because mean reward optimization was not directly replaying the failing strict seeds
+  - the next weighted replay continuation was also checked and did not improve the replay frontier:
+    - branch:
+      - `outputs/ao2_seedreplay_505heavy_20260411bv/20260411_195139_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan_detached/ao2_checkpoint_scan_summary.json`
+    - training recipe:
+      - warm-start from `outputs/ao2_seedreplay_202_505_20260411bu/.../eval/actor_ep003.pth`
+      - short `505,505,505,202,202` episode-seed cycle
+      - same strict shortlist:
+        - `exit_975`
+        - `p02fix09_base`
+        - `bridge_mid_03`
+        - `local_idle_lessneg`
+    - result:
+      - selector best = `actor_ep_init + bridge_mid_03`
+      - metrics are identical to the original `20260411bu` replay frontier
+      - no new checkpoint beat the replay incumbent
+    - meaning:
+      - replaying failing seeds is directionally correct
+      - but the current `ai_id_ref 64x64` basin is now exhausted even under weighted replay
+- the remaining blocker is now tightly defined:
+  - one `start_stop` eta worst-seed tail
+  - one `start_stop` error/tracking fail
+  - and, on the lower-gap `actor_ep003` branch, one extra tiny `speed_step` power fail
+- Active execution order from this point:
+  1. Do not reopen `AIR56` or `AL31` unless the next final full run regresses them.
+  2. Spend the next compute only on `AO2`.
+  3. Do not spend more compute on local candidate grids around:
+     - `actor_ep002 + bridge_mid_03`
+     - `actor_ep003 + bridge_mid_03`
+     - `96x96 actor_ep000 + exit_975`
+  4. The next justified AO2 step is no longer another `ai_id_ref` weighted replay micro-run.
+     - weighted replay already stalled at `20260411bv`
+     - do not repeat more `64x64 ai_id_ref` micro-continuations around the same replay frontier
+     - do not repeat `96x96` scratch
+     - do not spend more compute on `AO2 foc_assist` until its reward / physics path is separately rehabilitated
+     - next cheapest materially different path is:
+       - `AO2 ai_speed` reserve probe with the same strict `p0.2` evaluation discipline
+     - if `ai_speed` is also red, only then move to:
+       - a larger-basin full-horizon rebuild (`128x128`) if extra compute is acceptable
+     - only after that, at most one targeted runtime retune on the winning checkpoint
+  5. `AO2 ai_speed` reserve probe has now also been checked and is red:
+     - train artifact:
+       - `outputs/ao2_aispeed_seedreplay_20260411bw/20260411_202821_env_research_ao2_32_4_3kw_ai_speed/training_metrics.json`
+     - strict scan artifact:
+       - `outputs/ao2_aispeed_seedreplay_20260411bw/20260411_202821_env_research_ao2_32_4_3kw_ai_speed/external_step27_scan/ao2_checkpoint_scan_summary.json`
+     - observed result:
+       - every evaluated checkpoint stayed at `power=100`, `eta=-100`, `err_failures=4.0`
+       - reserve family is numerically alive but physically invalid for AO2 strict closure
+  6. Therefore the next justified AO2 path is now uniquely defined:
+     - `ai_id_ref` larger-basin full-horizon rebuild (`128x128`)
+     - keep the failing-seed replay formulation because it was the only thing that actually reduced canonical strict gap
+     - return to balanced replay of `202` and `505` instead of the already-stalled `505`-heavy micro-run
+  7. `2026-04-11` late-evening AO2 correction:
+     - the real canonical incumbent is now the `128x128` replay rebuild, not the older `64x64` replay frontier:
+       - artifact:
+         - `outputs/ao2_seedreplay_capacity128_20260411bx/20260411_203804_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+       - best pair:
+         - `actor_ep001 + bridge_mid_03`
+       - exact metrics:
+         - `avg_power_saving_pct = 1.0474133184923837`
+         - `avg_eta_gain_pct = 0.6641948627646582`
+         - `err_failures = 0.2`
+         - `start_stop_power_saving_pct = 3.577738330411657`
+         - `worst_current_peak_ratio = 1.1826221055084283`
+         - `avg_power_saving_pct_min_seed = 0.3448140237010511`
+         - `avg_eta_gain_pct_min_seed = -2.4484040804927054`
+         - `envelope_fail_count = 2`
+         - `envelope_gap_total = 5.4913308513227435`
+         - `envelope_eta_gap = 4.4913308513227435`
+         - `envelope_err_fail_count = 1`
+     - targeted runtime retune around this incumbent is exhausted:
+       - `outputs/ao2_capacity128_ep001_localsearch_20260411by/ao2_tuning_summary.json`
+       - best remained `bridge_mid_03`
+     - low-lr continuation from the new incumbent is also a dead end:
+       - `outputs/ao2_capacity128_ep001_continue_20260411bz/20260411_213613_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+       - strict gap regressed versus `bx`
+     - first mixed seed-aware continuation is also a dead end:
+       - `outputs/ao2_capacity128_seedaware_20260411cb/20260411_224529_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+       - selector best fell back to `actor_ep000 + bridge_mid_03`
+       - strict gap regressed to `7.817854367269087`
+     - second cheap mixed start-stop continuation is also a dead end:
+       - `outputs/ao2_capacity128_seedfix2_20260411cd/20260411_232730_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+       - best new checkpoint `actor_ep003 + bridge_mid_03`
+       - strict gap still regressed to `6.612008644217941`
+     - focused seed-pair supervisor probe proved the current blocker is not solvable by a static deploy candidate alone:
+       - `outputs/ao2_bridge_seedpair_probe_20260411cc/ao2_tuning_summary.json`
+       - the only candidate that removed the `505` tracking fail on the `{202,505}` probe did so by collapsing power/eta and violating strict current/efficiency margins
+       - the full strict incumbent remained `bridge_mid_03`
+     - runtime `ai_id_ref_hybrid` probe with state-dependent primary/secondary switching also had no effect on the failing pair:
+       - aggressive secondary supervisor did not change the `202` / `505` raw `start_stop` outcomes relative to `bx`
+       - meaning:
+         - the current load-delta hybrid trigger is not the missing piece for AO2 strict closure
+     - raw diagnosis of the current incumbent is now sharp:
+       - `seed 202` is an eta-only failure on `start_stop`
+       - `seed 505` is a tracking/error-only failure on `start_stop`
+       - no checked existing checkpoint fixed `505` under `bridge_mid_03`
+       - therefore the mixed replay formulation is still under-constrained even with seed-specific overrides
+  8. The next justified AO2 path is now updated again:
+     - do not spend more compute on mixed `202+505` micro-runs around the same `bx` basin
+     - do not spend more compute on candidate-only sweeps around `bridge_mid_03`
+     - do not spend more compute on `ai_id_ref_hybrid` unless its trigger logic is redesigned
+     - next step must be sequential, not mixed:
+       - Phase A: close `seed 505 / start_stop / err_ok` with a short tracking-first continuation from `bx actor_ep001`
+       - Phase B: only after `505` is fixed, run a separate eta-recovery continuation for `seed 202 / start_stop`
+     - only after a Phase A / Phase B pair produces a new strict winner should full `Step27 -> Step28` be rerun
+  9. `2026-04-12` overnight AO2 Phase-A results:
+     - short anchored `505-only` continuation did not fix `505`:
+       - `outputs/ao2_capacity128_phaseA_505track_20260411ce/20260411_235656_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan/ao2_checkpoint_scan_summary.json`
+       - `505 err` remained red and the global strict gap regressed versus `bx`
+     - stronger medium `505-only` continuation also failed the cheap gate:
+       - gate artifact:
+         - `outputs/ao2_capacity128_phaseA_505track_medium_20260411cf/20260412_001731_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan_seed505_gate/ao2_checkpoint_scan_summary.json`
+       - every evaluated checkpoint still had `err_failures = 1.0` on `seed=505, scenario=start_stop`
+       - meaning:
+         - the incumbent warm-start basin cannot repair `505` even when isolated
+     - short `505-only` scratch did produce a true `505`-fix policy:
+       - gate artifact:
+         - `outputs/ao2_phaseA_505track_scratch_20260412a/20260412_002036_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan_seed505_gate/ao2_checkpoint_scan_summary.json`
+       - best gate checkpoint:
+         - `actor_ep002 + bridge_mid_03`
+       - gate metrics on `seed=505,start_stop`:
+         - `avg_power_saving_pct = 13.24249731719236`
+         - `avg_eta_gain_pct = 12.767558727107332`
+         - `err_failures = 0.0`
+         - `acceptance_pass = true`
+     - but that same `505`-fix policy is not globally deployable as a monolithic controller:
+       - full strict recheck:
+         - `outputs/ao2_phaseA_505track_scratch_20260412a/20260412_002036_env_research_ao2_32_4_3kw_ai_id_ref/external_step27_scan_ep002_fullstrict/ao2_checkpoint_scan_summary.json`
+       - result:
+         - `avg_power_saving_pct = 1.987%`
+         - `avg_eta_gain_pct = -1.577%`
+         - `err_failures = 1.6`
+         - `start_stop_power_saving_pct = 0.372%`
+         - meaning:
+           - the project now has direct evidence that `505` can be solved by policy capacity / basin shift
+           - but the resulting policy is too specialized to replace the incumbent globally
+  10. `2026-04-12` runtime dispatch conclusion:
+      - a new hybrid trigger helper now exists in:
+        - `tools/step27_pipeline.py`
+        - `tests/test_step27_hybrid_trigger.py`
+      - hybrid switching by raw speed-error threshold was probed with:
+        - primary = `bx actor_ep001`
+        - secondary = `20260412a actor_ep002`
+      - result:
+        - current hybrid dispatch remains unusable
+        - probes either stayed red on tracking or became numerically/physically unstable
+      - meaning:
+        - the new evidence does not support more compute on the current simple hybrid trigger
+        - the next justified path is now narrower:
+          - either redesign hybrid dispatch / observability beyond `load_delta` and simple `speed_err` thresholding
+          - or move to a richer monolithic policy family that can internalize both regimes without runtime switching
+
 #### W1.1 Current motor status
 
 `AO2`
-- status: green in the live research branch
-- blocker status: closed
-- do not spend more compute on `AO2` unless a regression appears in the final full run
+- status: green only in no-perturb live runtime; red in strict `p0.2`
+- blocker status: open
+- active blocker: `start_stop` worst-seed eta/error tail under strict `p0.2`
 
 `AL31`
 - current best deploy pair:
@@ -195,10 +538,14 @@ Goal: close the real red branch that still blocks submission.
       - `avg_eta_gain_pct_min_seed = -0.00034895129392975566`
       - `envelope_all_rows_pass = true`
       - selector best = `actor_ep_init` (same incumbent weights, no new winner)
-  - current conclusion after that run:
-    - `AL31 ai_id_ref` medium-budget continuation is now also exhausted
-    - the remaining blocker is still the same tiny worst-case eta tail
-    - do not spend more compute on another near-identical `ai_id_ref` branch until `AIR56` is resolved and final full-run context is available
+- current conclusion after that run:
+  - `AL31 ai_id_ref` medium-budget continuation is now also exhausted
+  - the remaining blocker is still the same tiny worst-case eta tail
+  - do not spend more compute on another near-identical `ai_id_ref` branch until `AIR56` is resolved and final full-run context is available
+  - dense local-safe ultrafine replay around the incumbent also completed without lifting the tail above zero:
+    - `outputs/al31_ultrafine3_dense_20260411a/al31_tuning_summary.json`
+    - best remained baseline / `mid04_speed_dn_04`
+    - this closes the current cheap runtime-search path for `AL31`
 
 `AIR56`
 - current strict incumbent pair:
@@ -887,19 +1234,19 @@ Goal: close the real red branch that still blocks submission.
 5. Only after a materially different recipe closes both remaining tails, rerun full 3-motor live Step27 and then rebuild Step28 candidate.
 
 #### W1.4 Acceptance for W1 closure
-- `AIR56` strict pass:
-  - `avg_power_saving_pct > 0.5`
-  - `avg_eta_gain_pct >= 0`
-  - `avg_power_saving_pct_min_seed > 0.5`
-  - `avg_eta_gain_pct_min_seed >= 0`
-  - `envelope_all_rows_pass = true`
-- `AL31` strict pass:
+- `AIR56` remains green in the same final strict `p0.2` full run.
+- `AL31` remains green in the same final strict `p0.2` full run.
+- `AO2` strict `p0.2` pass:
   - `avg_power_saving_pct >= 0`
   - `avg_eta_gain_pct >= 0`
   - `avg_power_saving_pct_min_seed >= 0`
   - `avg_eta_gain_pct_min_seed >= 0`
+  - `err_failures <= 2`
+  - `start_stop_power_saving_pct >= -0.5`
+  - `start_stop_power_saving_pct_min_seed >= -0.5`
+  - `worst_current_peak_ratio <= 1.30`
+  - `worst_current_mean_ratio <= 1.20`
   - `envelope_all_rows_pass = true`
-- `AO2` remains green in the same final full run
 
 ### W2. Step28 reproduce / verify / freeze
 Goal: convert W1 green state into a real submission-ready candidate.
@@ -987,16 +1334,16 @@ This is the strict execution sequence from the current state. Work must move pha
 1. Freeze the factual baselines and do not relitigate them:
    - `AL31`: `actor_ep_init + mid04_speed_dn_04`
    - `AIR56` strict incumbent: `actor_ep005 + mix04_base`
-   - `AIR56` latest aggregate-strong frontier in the current live lineage:
-     - checkpoint: `actor_ep001` from `outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth`
-     - strongest cheap cross-family deploy pair found on `2026-04-10`:
-       - `actor_ep001 + rand007_soft_track`
-       - artifact: `outputs/air56_actor_ep001_rand007_strictp02_recheck_20260410a/air56_checkpoint_scan_summary.json`
+   - `AIR56` strongest corrected scenario-valid frontier:
+     - checkpoint: `actor_ep002` from `outputs/air56_actor_ep003_rewardwindow_20260411i/results_run/20260411_035506_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep002.pth`
+     - strongest strict cross-family deploy pair after the `2026-04-11` scenario-path fix:
+       - `actor_ep002 + rand007_soft_track`
+       - artifact: `outputs/air56_actor_ep003_rewardwindow_20260411i/strict_rescan/air56_checkpoint_scan_summary.json`
        - exact metrics:
-         - `avg_power_saving_pct = 1.0235631825310492`
-         - `avg_eta_gain_pct = 0.12333297875300409`
-         - `avg_power_saving_pct_min_seed = 0.9007889773490402`
-         - `avg_eta_gain_pct_min_seed = 0.10435077177434193`
+         - `avg_power_saving_pct = 1.0667422514715807`
+         - `avg_eta_gain_pct = 0.12542954320108546`
+         - `avg_power_saving_pct_min_seed = 0.9529039434222009`
+         - `avg_eta_gain_pct_min_seed = 0.11018576385412038`
          - `load_step pass_count = 2/5`
          - `envelope_all_rows_pass = false`
 2. Treat the current `AIR56` blocker as exactly one problem:
@@ -1025,17 +1372,74 @@ This is the strict execution sequence from the current state. Work must move pha
      - `outputs/air56_actor_ep001_rand007_localsearch_20260410a/air56_tuning_summary.json`
        - narrow local retune around the best current cross-family pair
        - best remained `rand007_base`; no envelope closure
+     - `outputs/air56_actor_ep002_rewardwindow_localsearch_20260411j/air56_tuning_summary.json`
+       - local-safe retune around the corrected scenario-valid `actor_ep002 + rand007_soft_track` frontier
+       - best remained baseline; `load_step` stayed at `2/5`
+     - `outputs/air56_actor_ep002_rewardwindow_guard_20260411k/results_run/20260411_044817_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+       - reward-window continuation plus stronger in-training `load_step` guard shaping
+       - selector re-promoted the init checkpoint and did not improve strict closure
+     - `outputs/air56_incumbent_etawindow_20260411l/results_run/20260411_051324_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+       - corrected short eta-window continuation from the strict incumbent
+       - dead end; old strict incumbent remained best
+     - `outputs/air56_incumbent_capacity128_etawindow_20260411m/results_run/20260411_053345_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+       - corrected `128x128` capacity-shift continuation from the strict incumbent
+       - dead end; old strict incumbent remained best
+     - `outputs/air56_scratch128_rewardwindow_20260411n/results_run/20260411_060906_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+       - corrected full-horizon scratch `128x128` reward-window branch
+       - dead end; selected checkpoint stayed far below strict closure
+     - `outputs/air56_incumbent_mix04_eta_localsearch_20260411o/air56_tuning_summary.json`
+       - targeted runtime search around the strict incumbent
+       - baseline `mix04_base` remained best; no eta-tail closure
+     - `outputs/air56_ep002_balanced_strict_20260411p`
+       - corrected balanced continuation from the `actor_ep002` frontier with strict envelope selector from the start
+       - full strict replay on the produced checkpoints showed no closure:
+         - best aggregate-strong row after six evaluated checkpoints:
+           - `actor_ep000 + rand007_soft_track`
+           - `avg_power_saving_pct = 1.1255825816269671`
+           - `avg_eta_gain_pct = 0.1260625171975549`
+           - `avg_power_saving_pct_min_seed = 0.9851686556544309`
+           - `avg_eta_gain_pct_min_seed = 0.10374944329870628`
+           - `load_step pass_count = 2/5`
+         - strict init recheck in the same branch also only reproduced the old corrected frontier:
+           - `actor_ep_init + rand007_soft_track`
+           - `avg_power_saving_pct = 1.0667422514715807`
+           - `avg_eta_gain_pct = 0.12542954320108546`
+           - `load_step pass_count = 2/5`
+       - conclusion:
+         - the balanced corrected continuation did not move the canonical `load_step` blocker
+         - cheap candidate-layer around its promising `actor_ep004` checkpoint also stayed red:
+           - `outputs/air56_ep004_loadfix_directscan_20260411r/air56_checkpoint_scan_summary.json`
+           - best candidate became `ep004_track_up_03`, but `load_step pass_count` remained `2/5`
+     - `outputs/air56_ep000_trackclosure_medium_20260411s`
+       - medium tracking-first continuation from the strongest produced balanced checkpoint `actor_ep000`
+       - shortlist strict replay over `actor_ep000, ep004, ep006, ep007, init` still re-selected the old corrected frontier:
+         - `actor_ep_init + rand007_soft_track`
+         - artifact: `outputs/air56_ep000_trackclosure_medium_20260411s/shortlist_scan_sync/air56_checkpoint_scan_summary.json`
+         - exact metrics:
+           - `avg_power_saving_pct = 1.1255825816269671`
+           - `avg_eta_gain_pct = 0.1260625171975549`
+           - `avg_power_saving_pct_min_seed = 0.9851686556544309`
+           - `avg_eta_gain_pct_min_seed = 0.10374944329870628`
+           - `load_step pass_count = 2/5`
+       - conclusion:
+         - medium continuation on the current corrected basin is also exhausted
+         - the next justified move is no longer another continuation, but a new corrected scratch / rebuild recipe
 4. Next `AIR56` run must change the training regime itself while staying in `ai_id_ref`:
    - objective or curriculum must target joint `load_step + speed_step` robustness instead of overfitting one scenario
    - external selection stays strict and canonical
    - deployment ranking stays against known real candidates, not synthetic thresholds only
-   - preferred next branch after the `2026-04-10` findings:
-     - warm-start from `actor_ep001` in `outputs/air56_ep002_loadheavy_wspeed2_20260408h/.../actor_ep001.pth`
-     - balanced mixed curriculum with repeated `load_step` and `speed_step`
-     - external selector over a combined real candidate family:
-       - `gatepush_base`
+   - active branch must now be a new corrected scratch / rebuild:
+     - no warm-start
+     - tracking-first scenario mix with repeated `load_step` / `speed_step`
+     - lower exploration than the earlier scratch branch
+     - delayed power / energy ramps so the policy first learns the canonical tracking envelope
+     - strict selector remains the same:
        - `rand007_soft_track`
-       - strongest still-credible `specific_power` candidate family
+       - `gatepush_base`
+       - `eta_mid_60_sp`
+     - intended outcome:
+       - find a new basin that can push canonical `load_step` above `2/5`
+       - then only afterward recover/validate aggregate power and eta under the same strict gate
 5. `AIR56` exit criterion:
    - `avg_power_saving_pct >= 0.5`
    - `avg_eta_gain_pct >= 0.0`
@@ -1045,7 +1449,7 @@ This is the strict execution sequence from the current state. Work must move pha
 
 ### Phase 2. Close `AL31` tiny worst-case eta tail
 1. Keep `AL31` parked until `AIR56` is green.
-2. Do not reopen medium `ai_id_ref` continuations already shown exhausted.
+2. Do not reopen medium `ai_id_ref` continuations or dense local-safe runtime searches already shown exhausted.
 3. After `AIR56` closure, run only one narrow `AL31` tail-closure branch aimed at:
    - keeping `envelope_all_rows_pass = true`
    - lifting `avg_eta_gain_pct_min_seed` from `-0.000206...` to `>= 0`

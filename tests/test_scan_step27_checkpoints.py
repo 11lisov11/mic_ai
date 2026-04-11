@@ -177,6 +177,19 @@ def test_load_agent_remaps_single_action_id_head_for_ai_speed(tmp_path: Path) ->
     assert tuple(loaded.net.actor_head.weight.shape) == (2, 64)
 
 
+def test_load_agent_accepts_ai_id_ref_hybrid_alias(tmp_path: Path) -> None:
+    ckpt = tmp_path / "actor_ep000.pth"
+    inferred_keys = build_feature_keys(True, False)
+    agent = PPOVoltageAgent(feature_keys=inferred_keys, action_dim=1, device="cpu", hidden_sizes=(64, 64))
+    import torch
+
+    torch.save(agent.net.state_dict(), ckpt)
+
+    loaded = _load_agent(ckpt, feature_keys=inferred_keys, ai_control_mode="ai_id_ref_hybrid")
+    assert loaded.action_dim == 1
+    assert loaded.feature_keys == inferred_keys
+
+
 def test_resolve_feature_keys_supports_episode_eta_checkpoint() -> None:
     import torch
 

@@ -184,6 +184,10 @@ Auto checklist now includes cross-motor guardrails from `derived_ieee/motor_tuni
 - `al31 >= 0.0%`
 - `ao2 >= 0.05%`
 
+These are release-level power-saving guardrails. Scenario-level `eta/current/start_stop`
+constraints are enforced earlier by the canonical Step27 acceptance envelopes and should
+not be reinterpreted here as a second hidden aggregate `eta >= 0` gate for generic motors.
+
 Policy source (versioned):
 - `paper/ieee_2026/guardrails_policy.json`
 

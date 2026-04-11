@@ -9,6 +9,30 @@ import torch
 from torch import nn
 
 
+def _sanitize_np_array(values: np.ndarray, *, nan: float = 0.0, posinf: float = 0.0, neginf: float = 0.0) -> np.ndarray:
+    arr = np.asarray(values, dtype=np.float32)
+    return np.nan_to_num(arr, nan=nan, posinf=posinf, neginf=neginf)
+
+
+def _sanitize_tensor(
+    tensor: torch.Tensor,
+    *,
+    nan: float = 0.0,
+    posinf: float = 0.0,
+    neginf: float = 0.0,
+    min_value: float | None = None,
+    max_value: float | None = None,
+) -> torch.Tensor:
+    out = torch.nan_to_num(tensor, nan=nan, posinf=posinf, neginf=neginf)
+    if min_value is not None or max_value is not None:
+        out = torch.clamp(
+            out,
+            min=min_value if min_value is not None else None,
+            max=max_value if max_value is not None else None,
+        )
+    return out
+
+
 def _mlp(in_dim: int, hidden_sizes: Tuple[int, ...] = (128, 128)) -> nn.Sequential:
     layers: List[nn.Module] = []
     last = in_dim
@@ -107,8 +131,7 @@ class PPOVoltageAgent:
             param.requires_grad_(False)
 
     def _to_tensor(self, obs: Dict[str, float]) -> torch.Tensor:
-        arr = np.array([obs.get(k, 0.0) for k in self.feature_keys], dtype=np.float32)
-        arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
+        arr = _sanitize_np_array([obs.get(k, 0.0) for k in self.feature_keys])
         return torch.as_tensor(arr, device=self.device, dtype=torch.float32)
 
     def act(self, obs: Dict[str, float]) -> Tuple[np.ndarray, float, float]:
@@ -116,32 +139,40 @@ class PPOVoltageAgent:
         state_t = self._to_tensor(obs).unsqueeze(0)
         with torch.no_grad():
             mu, std, value = self.net(state_t)
+            mu = _sanitize_tensor(mu, nan=0.0, posinf=1.0, neginf=-1.0, min_value=-1.0, max_value=1.0)
+            std = _sanitize_tensor(std, nan=0.1, posinf=10.0, neginf=1e-6, min_value=1e-6, max_value=10.0)
+            value = _sanitize_tensor(value, nan=0.0, posinf=0.0, neginf=0.0)
         if self.action_std_override is not None:
             std = torch.ones_like(std) * self.action_std_override
         dist = torch.distributions.Normal(mu, std)
         action = dist.sample()
         logprob = dist.log_prob(action).sum(dim=-1)
         action = torch.clamp(action, -1.0, 1.0)
-        return action.squeeze(0).cpu().numpy().astype(np.float32), float(logprob.item()), float(value.item())
+        action_np = _sanitize_np_array(action.squeeze(0).cpu().numpy(), nan=0.0, posinf=1.0, neginf=-1.0)
+        logprob_val = float(np.nan_to_num(float(logprob.item()), nan=0.0, posinf=0.0, neginf=0.0))
+        value_val = float(np.nan_to_num(float(value.item()), nan=0.0, posinf=0.0, neginf=0.0))
+        return action_np.astype(np.float32), logprob_val, value_val
 
     def store(self, state: Dict[str, float], action: np.ndarray, logprob: float, reward: float, done: bool, value: float) -> None:
-        state_arr = np.asarray([state.get(k, 0.0) for k in self.feature_keys], dtype=np.float32)
-        state_arr = np.nan_to_num(state_arr, nan=0.0, posinf=0.0, neginf=0.0)
+        state_arr = _sanitize_np_array([state.get(k, 0.0) for k in self.feature_keys])
+        action_arr = _sanitize_np_array(action, nan=0.0, posinf=1.0, neginf=-1.0)
         self.buffer.append(
             Transition(
                 state=state_arr,
-                action=np.asarray(action, dtype=np.float32),
-                logprob=float(logprob),
-                reward=float(reward),
-                done=float(done),
-                value=float(value),
+                action=action_arr,
+                logprob=float(np.nan_to_num(float(logprob), nan=0.0, posinf=0.0, neginf=0.0)),
+                reward=float(np.nan_to_num(float(reward), nan=0.0, posinf=0.0, neginf=0.0)),
+                done=float(np.nan_to_num(float(done), nan=0.0, posinf=1.0, neginf=0.0)),
+                value=float(np.nan_to_num(float(value), nan=0.0, posinf=0.0, neginf=0.0)),
             )
         )
 
     def _compute_returns_advantages(self, last_value: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
-        rewards = [tr.reward for tr in self.buffer]
-        dones = [tr.done for tr in self.buffer]
-        values = [tr.value for tr in self.buffer] + [last_value]
+        rewards = [float(np.nan_to_num(tr.reward, nan=0.0, posinf=0.0, neginf=0.0)) for tr in self.buffer]
+        dones = [float(np.nan_to_num(tr.done, nan=0.0, posinf=1.0, neginf=0.0)) for tr in self.buffer]
+        values = [float(np.nan_to_num(tr.value, nan=0.0, posinf=0.0, neginf=0.0)) for tr in self.buffer] + [
+            float(np.nan_to_num(last_value, nan=0.0, posinf=0.0, neginf=0.0))
+        ]
         advantages = []
         gae = 0.0
         for step in reversed(range(len(rewards))):
@@ -149,7 +180,7 @@ class PPOVoltageAgent:
             gae = delta + self.gamma * self.gae_lambda * (1.0 - dones[step]) * gae
             advantages.insert(0, gae)
         returns = [adv + val for adv, val in zip(advantages, values[:-1])]
-        return np.array(returns, dtype=np.float32), np.array(advantages, dtype=np.float32)
+        return _sanitize_np_array(returns), _sanitize_np_array(advantages)
 
     def update(self, last_value: float = 0.0) -> Dict[str, float]:
         if not self.buffer:
@@ -159,14 +190,14 @@ class PPOVoltageAgent:
                 "anchor_loss": self.last_anchor_loss,
             }
 
-        states = np.stack([tr.state for tr in self.buffer], axis=0)
-        actions = np.stack([tr.action for tr in self.buffer], axis=0)
-        old_logprobs = np.array([tr.logprob for tr in self.buffer], dtype=np.float32)
+        states = _sanitize_np_array(np.stack([tr.state for tr in self.buffer], axis=0))
+        actions = _sanitize_np_array(np.stack([tr.action for tr in self.buffer], axis=0), nan=0.0, posinf=1.0, neginf=-1.0)
+        old_logprobs = _sanitize_np_array([tr.logprob for tr in self.buffer])
         returns, advantages = self._compute_returns_advantages(last_value=last_value)
 
         adv_mean = advantages.mean()
         adv_std = advantages.std() + 1e-8
-        advantages = (advantages - adv_mean) / adv_std
+        advantages = _sanitize_np_array((advantages - adv_mean) / adv_std)
 
         dataset_size = len(self.buffer)
         minibatch_size = max(1, int(dataset_size * self.minibatch_frac))
@@ -182,19 +213,23 @@ class PPOVoltageAgent:
                 adv_t = torch.as_tensor(advantages[batch_idx], device=self.device)
 
                 mu, std, values = self.net(s_t)
+                mu = _sanitize_tensor(mu, nan=0.0, posinf=1.0, neginf=-1.0, min_value=-1.0, max_value=1.0)
+                std = _sanitize_tensor(std, nan=0.1, posinf=10.0, neginf=1e-6, min_value=1e-6, max_value=10.0)
+                values = _sanitize_tensor(values, nan=0.0, posinf=0.0, neginf=0.0)
                 dist = torch.distributions.Normal(mu, std)
-                logprob = dist.log_prob(a_t).sum(dim=-1)
-                entropy = dist.entropy().sum(dim=-1).mean()
+                logprob = _sanitize_tensor(dist.log_prob(a_t).sum(dim=-1), nan=0.0, posinf=0.0, neginf=0.0)
+                entropy = _sanitize_tensor(dist.entropy().sum(dim=-1).mean(), nan=0.0, posinf=0.0, neginf=0.0)
 
-                ratio = torch.exp(logprob - old_log)
+                ratio = _sanitize_tensor(torch.exp(logprob - old_log), nan=1.0, posinf=1.0, neginf=1.0)
                 clipped_ratio = torch.clamp(ratio, 1.0 - self.clip_eps, 1.0 + self.clip_eps)
-                policy_loss = -(torch.min(ratio * adv_t, clipped_ratio * adv_t)).mean()
+                policy_loss = _sanitize_tensor(-(torch.min(ratio * adv_t, clipped_ratio * adv_t)).mean(), nan=0.0, posinf=0.0, neginf=0.0)
 
-                value_loss = nn.functional.mse_loss(values, ret_t)
+                value_loss = _sanitize_tensor(nn.functional.mse_loss(values, ret_t), nan=0.0, posinf=0.0, neginf=0.0)
                 if self.actor_anchor_net is not None and self.actor_anchor_coef > 0.0:
                     with torch.no_grad():
                         anchor_mu, _, _ = self.actor_anchor_net(s_t)
-                    anchor_loss = nn.functional.mse_loss(mu, anchor_mu)
+                        anchor_mu = _sanitize_tensor(anchor_mu, nan=0.0, posinf=1.0, neginf=-1.0, min_value=-1.0, max_value=1.0)
+                    anchor_loss = _sanitize_tensor(nn.functional.mse_loss(mu, anchor_mu), nan=0.0, posinf=0.0, neginf=0.0)
                 else:
                     anchor_loss = torch.zeros((), device=self.device)
                 loss = (

@@ -84,34 +84,34 @@ ai_drift_ranges = {
 
 # Step27/Step28 AI evaluation defaults (sensorless MIC).
 ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth"
-ai_eval_id_ref_alpha = 0.0848
-ai_eval_delta_id_max = 0.0343
+ai_eval_id_ref_alpha = 0.17846020589159092
+ai_eval_delta_id_max = 0.1110071160878588
 ai_eval_id_ref_relative = True
 ai_eval_id_ref_allow_positive_delta = True
-ai_eval_id_ref_gate_speed_tol_rel = 0.1285
-ai_eval_id_ref_gate_min_scale = 0.1465
-ai_eval_id_ref_gate_exponent = 1.02
+ai_eval_id_ref_gate_speed_tol_rel = 0.11574043239110934
+ai_eval_id_ref_gate_min_scale = 0.16952234767485264
+ai_eval_id_ref_gate_exponent = 1.1018946738279602
 
-# AO2 live pair promoted from aligned supervisor continuation (2026-03-18):
-# checkpoint: outputs/ao2_envelope_ft_round6_alignedsup_long_20260318a/.../actor_ep003.pth
-# canonical envelope source: outputs/ao2_envelope_ft_round6_alignedsup_long_20260318a/.../ao2_checkpoint_scan_summary.json
+# AO2 live pair refreshed on the current runtime (2026-04-11):
+# checkpoint: outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth
+# candidate source: outputs/ao2_ep003_mididle_fix_20260411ap/ao2_tuning_summary.json
 ai_eval_supervisor_enabled = True
 ai_eval_sup_objective = "p_in"
-ai_eval_sup_speed_tol_rel = 0.1225
+ai_eval_sup_speed_tol_rel = 0.1028302317457757
 ai_eval_sup_speed_tol_abs = 0.0
 ai_eval_sup_omega_min = 0.1
-ai_eval_sup_update = 26
-ai_eval_sup_dither = 0.0108
-ai_eval_sup_step = 0.0051
-ai_eval_sup_bias_max = 0.1415
+ai_eval_sup_update = 19
+ai_eval_sup_dither = 0.0344178847240374
+ai_eval_sup_step = 0.013785822224478425
+ai_eval_sup_bias_max = 0.22758164165553707
 ai_eval_sup_shaft_eps = 10.0
 ai_eval_sup_reset_decay = 0.98
-ai_eval_sup_idle_enable = False
-ai_eval_sup_idle_omega_min = 0.05
-ai_eval_sup_idle_action = -0.25
+ai_eval_sup_idle_enable = True
+ai_eval_sup_idle_omega_min = 0.06
+ai_eval_sup_idle_action = -0.5
 ai_eval_sup_idle_blend = 0.10
-ai_eval_sup_idle_exit_boost = 0
-ai_eval_sup_idle_exit_action = 0.90
+ai_eval_sup_idle_exit_boost = 7
+ai_eval_sup_idle_exit_action = 0.97
 ai_eval_sup_idle_bias_decay = 0.98
 
 __all__ = ["ENV"]

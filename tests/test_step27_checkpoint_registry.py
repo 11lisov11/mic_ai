@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from types import SimpleNamespace
 from pathlib import Path
 
-from tools.step27_pipeline import _resolve_checkpoint
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.step27_pipeline import _is_ai_id_ref_like_mode, _resolve_checkpoint
 
 
 def test_resolve_checkpoint_fallback_to_registry(tmp_path: Path, monkeypatch) -> None:
@@ -47,3 +52,9 @@ def test_resolve_checkpoint_prefers_registry_path(tmp_path: Path, monkeypatch) -
         registry_path=str(registry),
     )
     assert got == ckpt_registry.resolve()
+
+
+def test_ai_id_ref_like_mode_accepts_hybrid_alias() -> None:
+    assert _is_ai_id_ref_like_mode("ai_id_ref") is True
+    assert _is_ai_id_ref_like_mode("ai_id_ref_hybrid") is True
+    assert _is_ai_id_ref_like_mode("ai_current") is False

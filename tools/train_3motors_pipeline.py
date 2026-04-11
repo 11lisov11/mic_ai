@@ -383,6 +383,7 @@ def _base_train_kwargs(args: argparse.Namespace, *, seed: int) -> Dict[str, obje
         "w_mag": float(args.w_mag),
         "w_shaft": float(args.w_shaft),
         "w_eta": float(args.w_eta),
+        "w_eta_episode": float(args.w_eta_episode),
         "eta_clip": float(args.eta_clip),
         "id_ref_alpha": float(args.id_ref_alpha),
         "id_ref_rate_limit": None if args.id_ref_rate_limit is None else float(args.id_ref_rate_limit),
@@ -412,6 +413,8 @@ def _base_train_kwargs(args: argparse.Namespace, *, seed: int) -> Dict[str, obje
         "sigma_decay_episodes": int(args.sigma_decay_episodes),
         "power_warmup_episodes": int(args.power_warmup_episodes),
         "power_ramp_episodes": int(args.power_ramp_episodes),
+        "energy_warmup_episodes": int(args.energy_warmup_episodes),
+        "energy_ramp_episodes": int(args.energy_ramp_episodes),
         "eval_interval": int(args.eval_interval),
         "eval_scenarios": str(args.eval_scenarios),
         "eval_dt": None if args.eval_dt is None else float(args.eval_dt),
@@ -421,6 +424,7 @@ def _base_train_kwargs(args: argparse.Namespace, *, seed: int) -> Dict[str, obje
         "eval_error_tol_abs": float(args.eval_error_tol_abs),
         "eval_use_total_power": bool(args.eval_use_total_power),
         "include_energy_obs": bool(args.include_energy_obs),
+        "include_episode_eta_obs": bool(args.include_episode_eta_obs),
         "update_every_episodes": int(args.update_every_episodes),
         "output_dir": None if not str(args.ai_output_dir).strip() else str(args.ai_output_dir),
         "results_root": None if not str(args.results_root).strip() else str(args.results_root),
@@ -487,6 +491,7 @@ def main() -> None:
     parser.add_argument("--w-mag", type=float, default=0.0)
     parser.add_argument("--w-shaft", type=float, default=2.0)
     parser.add_argument("--w-eta", type=float, default=1.0)
+    parser.add_argument("--w-eta-episode", type=float, default=0.0)
     parser.add_argument("--eta-clip", type=float, default=1.2)
     parser.add_argument("--id-ref-alpha", type=float, default=1.0)
     parser.add_argument("--id-ref-rate-limit", type=float, default=None)
@@ -501,6 +506,8 @@ def main() -> None:
     parser.add_argument("--sigma-decay-episodes", type=int, default=100)
     parser.add_argument("--power-warmup-episodes", type=int, default=0)
     parser.add_argument("--power-ramp-episodes", type=int, default=50)
+    parser.add_argument("--energy-warmup-episodes", type=int, default=0)
+    parser.add_argument("--energy-ramp-episodes", type=int, default=0)
     parser.add_argument("--eval-interval", type=int, default=0)
     parser.add_argument("--eval-scenarios", default="speed_step,ramp,load_step")
     parser.add_argument("--eval-dt", type=float, default=None)
@@ -511,6 +518,7 @@ def main() -> None:
     parser.add_argument("--eval-use-total-power", action="store_true")
     parser.add_argument("--include-energy-obs", dest="include_energy_obs", action="store_true", default=True)
     parser.add_argument("--no-include-energy-obs", dest="include_energy_obs", action="store_false")
+    parser.add_argument("--include-episode-eta-obs", dest="include_episode_eta_obs", action="store_true", default=False)
     parser.add_argument("--update-every-episodes", type=int, default=1)
     parser.add_argument("--accept-max-speed-error", type=float, default=30.0)
     parser.add_argument("--accept-min-eta-energy", type=float, default=0.0)

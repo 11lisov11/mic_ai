@@ -1,0 +1,236 @@
+{
+  "created_utc": "2026-04-11T22:38:11.503421+00:00",
+  "step28_dir": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release",
+  "ieee_root": "paper/ieee_2026",
+  "release_tag": "20260412_postrestore_ai_2motors_release",
+  "release_dir": "paper/ieee_2026/data/release/20260412_postrestore_ai_2motors_release",
+  "require_publication_assets": false,
+  "require_release_assets": false,
+  "required_files_missing": [],
+  "optional_files_missing": [
+    "paper/ieee_2026/data/release/20260412_postrestore_ai_2motors_release/promotion_manifest.json",
+    "paper/ieee_2026/data/release/20260412_postrestore_ai_2motors_release/release_snapshot.json"
+  ],
+  "hashed_files_count": 31,
+  "aggregate_sha256": "db77c1f8c234d68f9013d1e49b37158b7232c5e59198427eb13f28ef476ee35a",
+  "lock_ok": true,
+  "files": [
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/fig_ieee_pi_foc_mic_power.pdf",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 16767,
+      "sha256": "f21ea8da4bee0a671af43f7cce1d28b9cf713311fa94d2d0db590af2047ee642"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/fig_ieee_pi_foc_mic_power.png",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 120494,
+      "sha256": "e2b6310d0ebaab69088e252c8db959764e755b0999cf3b66a8196ea2280b58ed"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/fig_ieee_pi_foc_mic_power.svg",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 55029,
+      "sha256": "d69fc91c74a1220a28c279cca580f7b9b797dc744711fe7d5f4d4fb9b03812b8"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/ieee_pi_foc_mic_stats.csv",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 2005,
+      "sha256": "7d58a9f44f6ea171c95c3cd94e21a3cbed4556a4d427643b06e08c729c490871"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/ieee_pi_foc_mic_stats.md",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 1471,
+      "sha256": "42ebb2cdff1a6a4f04787239b6fa10faee71e972064504d0cb2796af74eed81c"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/motor_tuning_acceptance_summary.csv",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 526,
+      "sha256": "d5a33eeb148bd732d342884d25c3ffaba97a73c48b4e8365ab160247912db269"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/derived_ieee/motor_tuning_acceptance_summary.json",
+      "group": "derived_ieee",
+      "required": true,
+      "size_bytes": 1082,
+      "sha256": "b738c5c4aa6a7e010af2cce52b898fa7da5d40b792ab8909c55ede0079f48ba7"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode1_foc_encoder_vs_mic_sensorless/step27_air56_acceptance.json",
+      "group": "step28_mode:mode1_foc_encoder_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 463,
+      "sha256": "71048975f0da2eb65d1dd2e933211bacf52497c35419a25cb5e29f20c0d1e8bb"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode1_foc_encoder_vs_mic_sensorless/step27_final_pi_vs_foc_vs_mic.csv",
+      "group": "step28_mode:mode1_foc_encoder_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 1613,
+      "sha256": "94776b302fe48fb44cf9abce3f29990de90fef0a74fe106065b6ee49c3225004"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode1_foc_encoder_vs_mic_sensorless/step27_per_seed_metrics.csv",
+      "group": "step28_mode:mode1_foc_encoder_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 7474,
+      "sha256": "f24dd8a57aea60e5c87f42393f904896d54b9de1c2f5559075d5ea4c3711dfda"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode1_foc_encoder_vs_mic_sensorless/step27_report.md",
+      "group": "step28_mode:mode1_foc_encoder_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 1583,
+      "sha256": "6ba0b3c0f8cc3ee5580eb547457807ee7f9614ad596d577b6794cfc76b8dfb6f"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode1_foc_encoder_vs_mic_sensorless/step27_reproducibility.json",
+      "group": "step28_mode:mode1_foc_encoder_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 155,
+      "sha256": "d72c6cd1ae8769068d51a7995fdc4f4a6be634887b2d0eb36bfbdfca3f1d88df"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode1_foc_encoder_vs_mic_sensorless/step27_stats_motor_controller.csv",
+      "group": "step28_mode:mode1_foc_encoder_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 2502,
+      "sha256": "d3d3f14350c30b99ae2ab312e089a6f273c8290027b7abe5a1bff1f6eb8f4cde"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode2_foc_sensorless_vs_mic_sensorless/step27_air56_acceptance.json",
+      "group": "step28_mode:mode2_foc_sensorless_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 463,
+      "sha256": "71048975f0da2eb65d1dd2e933211bacf52497c35419a25cb5e29f20c0d1e8bb"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode2_foc_sensorless_vs_mic_sensorless/step27_final_pi_vs_foc_vs_mic.csv",
+      "group": "step28_mode:mode2_foc_sensorless_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 1613,
+      "sha256": "94776b302fe48fb44cf9abce3f29990de90fef0a74fe106065b6ee49c3225004"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode2_foc_sensorless_vs_mic_sensorless/step27_per_seed_metrics.csv",
+      "group": "step28_mode:mode2_foc_sensorless_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 7474,
+      "sha256": "f24dd8a57aea60e5c87f42393f904896d54b9de1c2f5559075d5ea4c3711dfda"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode2_foc_sensorless_vs_mic_sensorless/step27_report.md",
+      "group": "step28_mode:mode2_foc_sensorless_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 1583,
+      "sha256": "6ba0b3c0f8cc3ee5580eb547457807ee7f9614ad596d577b6794cfc76b8dfb6f"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode2_foc_sensorless_vs_mic_sensorless/step27_reproducibility.json",
+      "group": "step28_mode:mode2_foc_sensorless_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 155,
+      "sha256": "d72c6cd1ae8769068d51a7995fdc4f4a6be634887b2d0eb36bfbdfca3f1d88df"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/mode2_foc_sensorless_vs_mic_sensorless/step27_stats_motor_controller.csv",
+      "group": "step28_mode:mode2_foc_sensorless_vs_mic_sensorless",
+      "required": true,
+      "size_bytes": 2502,
+      "sha256": "d3d3f14350c30b99ae2ab312e089a6f273c8290027b7abe5a1bff1f6eb8f4cde"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/package_manifest.json",
+      "group": "step28_root",
+      "required": true,
+      "size_bytes": 3319,
+      "sha256": "379ba473055d061d555adea8ecc2f49671815bb6b2e205f6a3826f41e5eeb7d5"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/passport/passport_compare_3motors.csv",
+      "group": "passport",
+      "required": true,
+      "size_bytes": 2410,
+      "sha256": "1f8878af98b1b9f34d2ecd7d087a06187f2ee0a423b9ae6318b29e28e45dd05f"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/passport/passport_compare_3motors.json",
+      "group": "passport",
+      "required": true,
+      "size_bytes": 4651,
+      "sha256": "7b25be4a91731409159235434d0314cbfc37fa45d4788252830a5a07b4877fd5"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/passport/passport_compare_3motors.md",
+      "group": "passport",
+      "required": true,
+      "size_bytes": 569,
+      "sha256": "25c9476991eb9adcb3b3ab0feee6340810922d285d28879cbeb6c6f54c60383e"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/step28_ieee_summary.csv",
+      "group": "step28_root",
+      "required": true,
+      "size_bytes": 1532,
+      "sha256": "c14488c95037010cd4d60ee2490c66274e10bced7a6899fc6e891c262fe12699"
+    },
+    {
+      "path": "paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/step28_ieee_summary.md",
+      "group": "step28_root",
+      "required": true,
+      "size_bytes": 1313,
+      "sha256": "ed734bfb9a325e95a3550100cbeccc17d42aa344d2f161c261987ea052e8b4ce"
+    },
+    {
+      "path": "paper/ieee_2026/fig/fig1_mic_methodology.png",
+      "group": "publication_assets",
+      "required": false,
+      "size_bytes": 263062,
+      "sha256": "389c99158cc04bf4da7cffa2a065eeb9b60f29a0161337c4e1d1535a3e97c947"
+    },
+    {
+      "path": "paper/ieee_2026/fig/fig2_pi_foc_mic_power.pdf",
+      "group": "publication_assets",
+      "required": false,
+      "size_bytes": 17807,
+      "sha256": "b87fad5bea296252b30f52cd9c005e38bbc4212448fda58868ed5ab551ab2898"
+    },
+    {
+      "path": "paper/ieee_2026/fig/fig3_air56_working_characteristics.pdf",
+      "group": "publication_assets",
+      "required": false,
+      "size_bytes": 36739,
+      "sha256": "148e9f34d23c7c3016e9b3f3b2766d79df0e3bc89443ac8cb8aa8ffc39e2ace2"
+    },
+    {
+      "path": "paper/ieee_2026/fig/fig4_cross_motor_robustness.pdf",
+      "group": "publication_assets",
+      "required": false,
+      "size_bytes": 49462,
+      "sha256": "50bc62b345c51b923378bd40a0d04ddfd4b8f393eb3b17910fb9fe4a0d1ec32b"
+    },
+    {
+      "path": "paper/ieee_2026/fig/fig5_training_to_foc.pdf",
+      "group": "publication_assets",
+      "required": false,
+      "size_bytes": 36443,
+      "sha256": "760931d25995818276ff6a90d132c9c1263f928dc799007e62395cd27d2bfd60"
+    },
+    {
+      "path": "paper/ieee_2026/manuscript.md",
+      "group": "publication_assets",
+      "required": false,
+      "size_bytes": 5106,
+      "sha256": "9a73ff950013d28d9f47b81267663a64fbee90768ba672e2ae9cf5123342e6b9"
+    }
+  ]
+}

@@ -86,3 +86,67 @@ def test_build_motor_tuning_reports_from_step28_smoke(tmp_path: Path) -> None:
     assert len(rows) == 3
     air56 = [r for r in rows if str(r.get("motor")) == "air56"][0]
     assert bool(air56.get("acceptance_pass", False)) is True
+
+
+def test_build_motor_tuning_reports_generic_acceptance_uses_power_and_err_guardrail(tmp_path: Path) -> None:
+    step28 = tmp_path / "step28_pkg"
+    m1 = step28 / "mode1_foc_encoder_vs_mic_sensorless"
+    m2 = step28 / "mode2_foc_sensorless_vs_mic_sensorless"
+    m1.mkdir(parents=True, exist_ok=True)
+    m2.mkdir(parents=True, exist_ok=True)
+
+    rows_mode1 = [
+        {
+            "motor": "al31",
+            "controller": "MIC",
+            "samples": 5,
+            "avg_power_saving_pct_mean": 1.0,
+            "avg_power_saving_pct_min": 0.3,
+            "avg_eta_gain_pct_mean": 0.01,
+            "avg_eta_gain_pct_min": -0.0002,
+            "err_failures_mean": 0.0,
+            "err_failures_max": 0.0,
+            "start_stop_power_saving_pct_mean": 2.0,
+            "start_stop_power_saving_pct_min": 1.0,
+        }
+    ]
+    rows_mode2 = [
+        {
+            "motor": "al31",
+            "controller": "MIC",
+            "samples": 5,
+            "avg_power_saving_pct_mean": 0.9,
+            "avg_power_saving_pct_min": 0.2,
+            "avg_eta_gain_pct_mean": 0.02,
+            "avg_eta_gain_pct_min": -0.0001,
+            "err_failures_mean": 0.0,
+            "err_failures_max": 0.0,
+            "start_stop_power_saving_pct_mean": 2.1,
+            "start_stop_power_saving_pct_min": 1.1,
+        }
+    ]
+    pd.DataFrame(rows_mode1).to_csv(m1 / "step27_stats_motor_controller.csv", index=False)
+    pd.DataFrame(rows_mode2).to_csv(m2 / "step27_stats_motor_controller.csv", index=False)
+
+    out_dir = tmp_path / "derived"
+    cmd = [
+        sys.executable,
+        "tools/build_motor_tuning_reports_from_step28.py",
+        "--step28-dir",
+        str(step28),
+        "--out-dir",
+        str(out_dir),
+        "--motors",
+        "al31",
+    ]
+    subprocess.run(cmd, check=True, cwd=Path(__file__).resolve().parents[1])
+
+    payload = json.loads((out_dir / "motor_tuning_acceptance_summary.json").read_text(encoding="utf-8"))
+    rows = list(payload.get("rows", []))
+    assert len(rows) == 1
+    al31 = rows[0]
+    assert al31["motor"] == "al31"
+    assert float(al31["avg_eta_gain_pct_min"]) < 0.0
+    assert bool(al31["mean_pass"]) is True
+    assert bool(al31["worst_case_pass"]) is True
+    assert bool(al31["acceptance_pass"]) is True

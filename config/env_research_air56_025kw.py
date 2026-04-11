@@ -88,36 +88,76 @@ ai_drift_ranges = {
 }
 
 # Step27/Step28 AI evaluation defaults (sensorless MIC).
-# Promoted strict pair:
-#   checkpoint = outputs/air56_ep003_tailfocus_micro2_20260322/results_run/20260322_131130_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep005.pth
-#   candidate  = outputs/tmp_air56_merged_strict_candidates_20260326.json#mix04_base
-ai_eval_checkpoint_path = "outputs/air56_ep003_tailfocus_micro2_20260322/results_run/20260322_131130_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep005.pth"
-ai_eval_id_ref_alpha = 0.1825
-ai_eval_delta_id_max = 0.1078
+# Primary strict pair:
+#   checkpoint = outputs/air56_ep002_loadheavy_wspeed2_20260408h/.../actor_ep001.pth
+#   candidate  = outputs/tmp_air56_rand007_soft_track_single_20260326.json#rand007_soft_track
+#
+# AIR56 final strict closure uses an online hybrid:
+#   primary pair stays active by default
+#   secondary pair is latched after an observed positive load-torque step
+#   secondary checkpoint = outputs/air56_scratch96_trackpower_20260411t/.../actor_ep002.pth
+#   secondary candidate  = outputs/tmp_air56_scratch96_ep002_speedfix_20260411u.json#s96_track_trim_01
+ai_eval_checkpoint_path = "outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth"
+ai_eval_id_ref_alpha = 0.183153
+ai_eval_delta_id_max = 0.10797
 ai_eval_id_ref_relative = True
 ai_eval_id_ref_allow_positive_delta = True
-ai_eval_id_ref_gate_speed_tol_rel = 0.1224
-ai_eval_id_ref_gate_min_scale = 0.125
-ai_eval_id_ref_gate_exponent = 0.9512
+ai_eval_id_ref_gate_speed_tol_rel = 0.12339
+ai_eval_id_ref_gate_min_scale = 0.124645
+ai_eval_id_ref_gate_exponent = 0.950817
 
 ai_eval_supervisor_enabled = True
 ai_eval_sup_objective = "p_in"
-ai_eval_sup_speed_tol_rel = 0.0766
+ai_eval_sup_speed_tol_rel = 0.076795
 ai_eval_sup_speed_tol_abs = 0.0
 ai_eval_sup_omega_min = 0.0612
 ai_eval_sup_update = 18
-ai_eval_sup_dither = 0.0250
-ai_eval_sup_step = 0.00974
-ai_eval_sup_bias_max = 0.14534
+ai_eval_sup_dither = 0.02522
+ai_eval_sup_step = 0.009735
+ai_eval_sup_bias_max = 0.14548
 ai_eval_sup_shaft_eps = 10.0
 ai_eval_sup_reset_decay = 0.9886974417190302
 ai_eval_sup_objective_clip = 10.0
 ai_eval_sup_idle_enable = True
-ai_eval_sup_idle_omega_min = 0.0612
-ai_eval_sup_idle_action = -0.609
+ai_eval_sup_idle_omega_min = 0.061385
+ai_eval_sup_idle_action = -0.610559
 ai_eval_sup_idle_blend = 1.0
 ai_eval_sup_idle_exit_boost = 4
-ai_eval_sup_idle_exit_action = 0.8897
-ai_eval_sup_idle_bias_decay = 0.9502
+ai_eval_sup_idle_exit_action = 0.890732
+ai_eval_sup_idle_bias_decay = 0.949888
+
+ai_eval_hybrid_enabled = True
+ai_eval_hybrid_load_delta_threshold = 0.05
+ai_eval_hybrid_positive_only = True
+ai_eval_hybrid_latch_steps = 0
+
+ai_eval_hybrid_secondary_checkpoint_path = "outputs/air56_scratch96_trackpower_20260411t/results_run/20260411_085713_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep002.pth"
+ai_eval_hybrid_secondary_id_ref_alpha = 0.1844
+ai_eval_hybrid_secondary_delta_id_max = 0.1089
+ai_eval_hybrid_secondary_id_ref_relative = True
+ai_eval_hybrid_secondary_id_ref_allow_positive_delta = True
+ai_eval_hybrid_secondary_id_ref_gate_speed_tol_rel = 0.1239
+ai_eval_hybrid_secondary_id_ref_gate_min_scale = 0.1238
+ai_eval_hybrid_secondary_id_ref_gate_exponent = 0.9495
+
+ai_eval_hybrid_secondary_supervisor_enabled = True
+ai_eval_hybrid_secondary_sup_objective = "p_in"
+ai_eval_hybrid_secondary_sup_speed_tol_rel = 0.07692
+ai_eval_hybrid_secondary_sup_speed_tol_abs = 0.0
+ai_eval_hybrid_secondary_sup_omega_min = 0.0612
+ai_eval_hybrid_secondary_sup_update = 20
+ai_eval_hybrid_secondary_sup_dither = 0.0205
+ai_eval_hybrid_secondary_sup_step = 0.0075
+ai_eval_hybrid_secondary_sup_bias_max = 0.115
+ai_eval_hybrid_secondary_sup_shaft_eps = 10.0
+ai_eval_hybrid_secondary_sup_reset_decay = 0.9886974417190302
+ai_eval_hybrid_secondary_sup_objective_clip = 10.0
+ai_eval_hybrid_secondary_sup_idle_enable = True
+ai_eval_hybrid_secondary_sup_idle_omega_min = 0.061385
+ai_eval_hybrid_secondary_sup_idle_action = -0.610559
+ai_eval_hybrid_secondary_sup_idle_blend = 1.0
+ai_eval_hybrid_secondary_sup_idle_exit_boost = 4
+ai_eval_hybrid_secondary_sup_idle_exit_action = 0.890732
+ai_eval_hybrid_secondary_sup_idle_bias_decay = 0.949888
 
 __all__ = ["ENV"]

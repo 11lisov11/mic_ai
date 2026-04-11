@@ -62,3 +62,9 @@ def test_train_any_motor_pipeline_dry_smoke(tmp_path: Path) -> None:
     assert "generate_config" in names
     assert "train_policy" in names
     assert "validate_benchmarks" in names
+
+    benchmark_plan = out_root / "smoke" / "benchmark_validation_plan.json"
+    assert benchmark_plan.exists()
+    plan_rows = json.loads(benchmark_plan.read_text(encoding="utf-8"))
+    motors = sorted({str(row.get("motor", "")) for row in plan_rows if isinstance(row, dict)})
+    assert motors == ["air56", "al31"]

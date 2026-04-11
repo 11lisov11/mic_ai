@@ -1,7 +1,16 @@
 # Any-Motor Onboarding
 
 ## Goal
-Train MIC AI for a new motor from passport data (and optional identification data), then validate the trained policy on benchmark motors (`air56`, `al31`, `ao2`) without retraining those benchmarks.
+Train MIC AI for a new motor from passport data (and optional identification data), then validate the trained policy on benchmark motors without retraining those benchmarks.
+
+Active default benchmark scope:
+- `air56`
+- `al31`
+
+`AO2` is preserved as backlog research and can still be included explicitly with:
+```bash
+--benchmark-motors air56,al31,ao2
+```
 
 ## One-command flow
 ```bash
@@ -15,6 +24,7 @@ Pipeline now includes:
 - optional multi-attempt training (`--max-train-attempts`);
 - benchmark parameter search (`id_ref_alpha`, `delta_id_max`) without retraining;
 - acceptance gate on benchmark metrics (enabled by default).
+- default benchmark list aligned with the active 2-motor release scope.
 
 ## Input passport JSON
 Minimal required fields:
@@ -60,6 +70,9 @@ Default acceptance gate:
 
 Optional energy gate (disabled by default):
 - `--accept-power-saving-mean-min <value>` enables threshold on `power_saving_pct_mean`.
+
+For the active 2-motor release scope, the default onboarding gate is evaluated on `air56,al31`.
+To re-open `AO2` research during onboarding validation, pass `--benchmark-motors air56,al31,ao2`.
 
 You can tune thresholds and search grid:
 ```bash

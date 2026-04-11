@@ -1,120 +1,114 @@
-# MIC_AI - цифровой двойник асинхронного электропривода
+# MIC_AI
 
-Репозиторий содержит модель асинхронного двигателя, базовый FOC и алгоритмы MIC (AI) для снижения энергопотребления при сохранении точности управления. Основная цель - воспроизводимые симуляции и корректные графики для научной публикации.
+Repository for the MIC/AI motor-control research stack, reproducibility pipelines, and IEEE/PGUPS publication artifacts.
 
-Материалы статьи (Markdown, DOCX, рисунки): `paper/pgups_2026/`.
+## Current Release Scope
 
-## Что внутри
+As of `2026-04-12`, the active release scope is:
 
-- Цифровой двойник АД и инвертора
-- Базовый регулятор FOC
-- MIC-регулирование на базе AI (в том числе rule-based режим)
-- Инструменты для сравнения FOC vs MIC и построения графиков
+- `AIR56`
+- `AL31`
 
-## Быстрый старт
+`AO2` is **not removed** from the repository.
+It is kept as a research backlog and a preserved experimental branch so the team can return to it later without losing the accumulated work.
 
-Установка зависимостей:
+Operational rule:
 
-```bash
-python -m pip install -r requirements.txt
-```
+- release and submission closure are currently evaluated on `AIR56 + AL31`
+- `AO2` remains available in `config/`, `outputs/`, `paper/`, and the training/evaluation tools as a suspended research track
+- do not delete or overwrite `AO2` artifacts when preparing 2-motor release candidates
 
-Сравнение FOC vs MIC без RL-чекпойнтов (rule-based MIC):
+## What Is In Scope Now
 
-```bash
-python -m mic_ai.tools.drive_characteristics_ai \
-  --env-config config/env_demo_true_motor1_nominal.py \
-  --mic-id-ref-low 1.0 \
-  --mic-id-ref-high 1.4 \
-  --mic-id-ref-speed-tol-rel 0.05 \
-  --mic-id-ref-omega-min 0.1 \
-  --omega-ref-pu 0.8 \
-  --load-points 6 \
-  --t-end 2.0 \
-  --dt 0.001 \
-  --window-frac 0.25 \
-  --speed-tol 0.05 \
-  --out-dir outputs/drive_characteristics_nominal_rule
-```
+- strict post-restore release closure for `AIR56 + AL31`
+- `Step27 -> Step28 -> verify` reproducibility for the 2-motor release slice
+- publication/package artifacts for the 2-motor release slice
+- onboarding and engineering cleanup that do not depend on `AO2` closure
 
-Сравнение с RL (опционально, если есть чекпойнт):
+## What Is Out Of Scope For The Current Release
 
-```bash
-python -m mic_ai.tools.drive_characteristics_ai \
-  --env-config config/env_demo_true_motor1.py \
-  --ai-checkpoint path/to/best_actor.pth \
-  --ai-mode ai_id_ref \
-  --ai-id-relative \
-  --delta-id-max 0.1 \
-  --omega-ref-pu 0.8 \
-  --load-values 0.5 \
-  --t-end 1.2 \
-  --dt 0.001 \
-  --window-frac 0.25 \
-  --speed-tol 0.05 \
-  --out-dir outputs/drive_characteristics
-```
+- strict `AO2` closure under the old 3-motor requirement
+- reopening the 2-motor release to chase `AO2` unless the scope is explicitly changed again
 
-Дополнительные инструкции: `docs/analysis_tools_ru.md`.
+## AO2 Status
 
-## Физические конфиги (v2)
+`AO2` is preserved as research groundwork.
 
-Для более реалистичной модели (потери инвертора/железа, dead-time, насыщение) доступны:
+Current state:
 
-- `config/env_demo_true_motor1_physical.py`
-- `config/env_demo_true_motor2_physical.py`
+- there is a valid research trail showing that `seed 505 / start_stop` can be fixed by a dedicated policy
+- that fix is not yet globally deployable as a single controller
+- current simple runtime dispatch is not sufficient
 
-Тренировочные скрипты (`mic_ai/ai/train_ai_id_ref.py`, `mic_ai/ai/train_ai_voltage.py`) берут диапазоны рандомизации из конфига, если заданы `ai_omega_ref_pu_range` / `ai_load_mult_range`.
+This means:
 
-## Принятые метрики
+- `AO2` is paused, not discarded
+- later work can resume either through a richer policy family or a redesigned runtime dispatch
 
-- Активная электрическая мощность: `P_эл(t) = v_a i_a + v_b i_b + v_c i_c`
-- RMS-ток статора: `I_rms(t) = sqrt((i_a^2 + i_b^2 + i_c^2) / 3)`
-- Механическая мощность: `P_мех(t) = omega(t) * M_эл(t)`
+## Main Entry Points
 
-## Публикация (PGUPS)
+- [step27_pipeline.py](C:/mic_theory/tools/step27_pipeline.py): benchmark and acceptance runs
+- [reproduce_ieee_step28.py](C:/mic_theory/tools/reproduce_ieee_step28.py): end-to-end IEEE reproduce/package pipeline
+- [train_any_motor_pipeline.py](C:/mic_theory/tools/train_any_motor_pipeline.py): universal onboarding pipeline
+- [train_3motors_pipeline.py](C:/mic_theory/tools/train_3motors_pipeline.py): multi-motor training pipeline
+- [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active master plan
 
-- Исходник статьи: `paper/pgups_2026/article_mic_ieee_vak_pgups.md`
-- Рисунки: `paper/pgups_2026/fig/`
-- Готовый DOCX: `paper/pgups_2026/СТАТЬЯ_MIC_ПГУПС_2026.docx`
-- Данные и трассы для воспроизведения результатов: `paper/pgups_2026/data/`
+## Quick Start
 
-Пересборка рисунков/таблиц статьи (без RL-чекпойнтов, по сохраненным трассам):
+Install dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
-python -m pip install -r requirements-paper.txt
-python tools/multi_motor_study_report.py --export-paper
-python tools/validate_pgups_study.py
 ```
 
-То же самое одним скриптом:
-
-- Windows (PowerShell): `scripts/reproduce_pgups_paper.ps1`
-- Linux/macOS (bash): `scripts/reproduce_pgups_paper.sh`
-
-Пересборка DOCX из Markdown (требуются доп. зависимости):
+Run the active 2-motor strict reproduce flow:
 
 ```bash
-python -m pip install -r requirements-paper.txt
-python tools/build_publication_from_markdown.py --src-md paper/pgups_2026/article_mic_ieee_vak_pgups.md --out-docx paper/pgups_2026/СТАТЬЯ_MIC_ПГУПС_2026.docx
+python tools/reproduce_ieee_step28.py ^
+  --motors air56,al31 ^
+  --mic-mode ai ^
+  --ai-control-mode ai_id_ref ^
+  --strict-verify ^
+  --package-tag 20260412_postrestore_ai_2motors_release
 ```
 
-## Структура репозитория
+Latest strict-verified 2-motor package:
 
-- `config/` - конфигурации среды и параметров двигателя
-- `mic_ai/` - основной пакет (AI, метрики, инструменты)
-- `models/` - математическая модель двигателя/инвертора
-- `control/` - алгоритмы управления (FOC, V/f, варианты MIC)
-- `simulation/` - окружение симуляции
-- `tests/` - тесты (используются в CI)
-- `paper/` - материалы публикации (статья, рисунки)
-- `outputs/` - вычислительные артефакты/результаты прогонов (игнорируются в git)
-- `results_run/` - локальные прогоны обучения (игнорируются в git)
-- `archive/` - локальный архив/легаси (игнорируется в git)
+- [20260412_postrestore_ai_2motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release)
+- verify artifact: [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
 
-## Примечания
+Latest onboarding proofs for the active 2-motor scope:
 
-- RL-чекпойнты в репозиторий не включены.
-- Лицензия: MIT (см. `LICENSE`).
-- Для цитирования репозитория в научных работах: `CITATION.cff`.
+- passport-only green run:
+  - [any_motor_onboarding_report.json](C:/mic_theory/outputs/train_any_motor_pipeline/eval_2motor_rawskip_al31_20260412/any_motor_onboarding_report.json)
+- passport + identification green run:
+  - [any_motor_onboarding_report.json](C:/mic_theory/outputs/train_any_motor_pipeline/eval_2motor_identskip_al31_20260412/any_motor_onboarding_report.json)
+
+Run the underlying Step27 benchmark only:
+
+```bash
+python tools/step27_pipeline.py ^
+  --motors air56,al31 ^
+  --mic-mode ai ^
+  --ai-control-mode ai_id_ref ^
+  --seed-perturbation ^
+  --seed-perturb-level 0.2 ^
+  --out-dir outputs/step27_2motors_current
+```
+
+## Repository Structure
+
+- `config/`: motor and environment configs
+- `mic_ai/`: AI, metrics, training, runtime tools
+- `tools/`: orchestration and reproducibility scripts
+- `tests/`: regression and smoke tests
+- `paper/`: publication and submission artifacts
+- `outputs/`: experimental and reproduce artifacts
+- `docs/`: documentation and archived planning materials
+
+## Notes
+
+- RL checkpoints are not fully stored in git history.
+- `AO2` artifacts are intentionally retained even though the current release scope is 2 motors.
+- The onboarding pipeline default benchmark scope is also `air56,al31`; add `ao2` explicitly only when resuming backlog research.
+- The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over older archived plans.

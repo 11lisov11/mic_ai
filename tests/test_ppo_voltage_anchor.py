@@ -43,3 +43,30 @@ def test_ppo_voltage_actor_anchor_penalizes_policy_drift() -> None:
 
     assert metrics["anchor_loss"] > 0.0
     assert agent.last_anchor_loss > 0.0
+
+
+def test_ppo_voltage_update_sanitizes_nan_transition_data() -> None:
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    agent = PPOVoltageAgent(
+        feature_keys=["omega_norm", "iq_norm"],
+        action_dim=2,
+        device="cpu",
+        hidden_sizes=(8, 8),
+        lr=1e-3,
+        entropy_coef=0.0,
+        train_epochs=1,
+        minibatch_frac=1.0,
+    )
+
+    obs = {"omega_norm": float("nan"), "iq_norm": float("inf")}
+    action = np.array([float("nan"), float("inf")], dtype=np.float32)
+    agent.store(obs, action, logprob=float("nan"), reward=float("nan"), done=False, value=float("nan"))
+    agent.store({"omega_norm": 0.1, "iq_norm": -0.2}, np.array([0.0, 0.0], dtype=np.float32), logprob=0.0, reward=0.0, done=True, value=0.0)
+
+    metrics = agent.update(last_value=float("nan"))
+
+    assert np.isfinite(metrics["actor_loss"])
+    assert np.isfinite(metrics["value_loss"])
+    assert np.isfinite(metrics["anchor_loss"])

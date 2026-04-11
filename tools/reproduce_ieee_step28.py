@@ -27,6 +27,11 @@ def main() -> None:
     parser.add_argument("--scenarios", default="speed_step,ramp,load_step,start_stop")
     parser.add_argument("--seed-perturb-level", type=float, default=0.2)
     parser.add_argument("--mic-mode", choices=["ai", "rule"], default="rule")
+    parser.add_argument(
+        "--ai-control-mode",
+        choices=["ai_id_ref", "ai_id_ref_hybrid", "ai_current", "ai_voltage", "foc_assist", "ai_speed"],
+        default="ai_id_ref",
+    )
     parser.add_argument("--checkpoint-registry", default="config/checkpoint_registry.json")
     parser.add_argument("--skip-air56-tune", dest="skip_air56_tune", action="store_true")
     parser.add_argument("--no-skip-air56-tune", dest="skip_air56_tune", action="store_false")
@@ -100,6 +105,8 @@ def main() -> None:
         str(args.scenarios),
         "--mic-mode",
         str(args.mic_mode),
+        "--ai-control-mode",
+        str(args.ai_control_mode),
         "--checkpoint-registry",
         str(args.checkpoint_registry),
         "--seed-perturbation",
