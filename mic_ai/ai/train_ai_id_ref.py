@@ -129,6 +129,7 @@ def _parse_scenario_reward_overrides(text: str | None) -> Dict[str, Dict[str, fl
         "w_shaft",
         "w_eta",
         "w_eta_episode",
+        "reward_start_frac",
         "terminal_energy_bonus",
         "ai_id_speed_tol",
         "ai_id_speed_tol_rel",
@@ -153,6 +154,59 @@ def _parse_scenario_reward_overrides(text: str | None) -> Dict[str, Dict[str, fl
         if row:
             normalized[scenario] = row
     return normalized or None
+
+
+def _estimate_scenario_activation_steps(scenario_name: str, *, t_end: float, dt: float) -> int | None:
+    name = str(scenario_name or "").strip().split(":", 1)[0]
+    t_end = float(max(t_end, 0.0))
+    dt = float(max(dt, 1e-9))
+    if not name:
+        return None
+    event_time: float | None = None
+    if name == "speed_step":
+        event_time = 0.1 * t_end
+    elif name == "ramp":
+        event_time = 0.6 * t_end
+    elif name == "load_step":
+        event_time = 0.3 * t_end
+    elif name == "load_profile":
+        event_time = 0.2 * t_end
+    elif name == "start_stop":
+        event_time = 0.2 * t_end
+    elif name == "hold":
+        event_time = 0.0
+    if event_time is None:
+        return None
+    return int(math.ceil(max(event_time, 0.0) / dt))
+
+
+def _collect_underhorizon_scenarios(
+    scenarios: List[str],
+    *,
+    episode_steps: int,
+    t_end: float,
+    dt: float,
+) -> List[Dict[str, float | int | str]]:
+    warnings: List[Dict[str, float | int | str]] = []
+    seen: set[str] = set()
+    for scenario_name in scenarios:
+        scenario_key = str(scenario_name or "").strip()
+        if not scenario_key or scenario_key in seen:
+            continue
+        seen.add(scenario_key)
+        required_steps = _estimate_scenario_activation_steps(scenario_key, t_end=t_end, dt=dt)
+        if required_steps is None or int(episode_steps) >= int(required_steps):
+            continue
+        warnings.append(
+            {
+                "scenario": scenario_key,
+                "episode_steps": int(episode_steps),
+                "required_steps": int(required_steps),
+                "episode_horizon_s": float(int(episode_steps) * float(dt)),
+                "required_horizon_s": float(int(required_steps) * float(dt)),
+            }
+        )
+    return warnings
 
 
 def _normalize_range(value: object | None) -> tuple[float, float] | None:
@@ -659,10 +713,9 @@ def build_env(
     )
 
     base_env = InductionMotorEnv(env_cfg)
-    base_env.omega_ref_func = lambda _t, ref=omega_ref: ref
-    if load_torque is None:
-        base_env.load_torque_func = lambda _t: getattr(env_cfg.sim, "load_torque", 0.0)
-    else:
+    if bool(override_omega_ref):
+        base_env.omega_ref_func = lambda _t, ref=omega_ref: ref
+    if load_torque is not None:
         base_env.load_torque_func = lambda _t, load=load_torque: float(load)
 
     env = MicAiAIEnv(base_env, ai_cfg, curiosity=None, world_model=None, world_input_keys=feature_keys, world_target_keys=["omega_norm"])
@@ -710,6 +763,7 @@ def _apply_scenario_reward_overrides(
     base_w_shaft: float,
     base_w_eta: float,
     base_w_eta_episode: float,
+    base_reward_start_frac: float,
     base_terminal_energy_bonus: float,
     base_ai_id_speed_tol: float,
     base_ai_id_speed_tol_rel: float | None,
@@ -727,6 +781,7 @@ def _apply_scenario_reward_overrides(
         "w_shaft": float(override.get("w_shaft", base_w_shaft)),
         "w_eta": float(override.get("w_eta", base_w_eta)),
         "w_eta_episode": float(override.get("w_eta_episode", base_w_eta_episode)),
+        "reward_start_frac": float(np.clip(override.get("reward_start_frac", base_reward_start_frac), 0.0, 1.0)),
         "terminal_energy_bonus": float(override.get("terminal_energy_bonus", base_terminal_energy_bonus)),
         "ai_id_speed_tol": float(override.get("ai_id_speed_tol", base_ai_id_speed_tol)),
         "ai_id_speed_tol_rel": None
@@ -1027,6 +1082,30 @@ def train(
     ckpt_dir = (checkpoint_root / env_name).resolve()
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+    if scenarios:
+        train_env_cfg = getattr(env, "_train_env_cfg", None)
+        sim_cfg = getattr(train_env_cfg, "sim", None)
+        if sim_cfg is not None:
+            underhorizon = _collect_underhorizon_scenarios(
+                scenarios,
+                episode_steps=int(episode_steps),
+                t_end=float(getattr(sim_cfg, "t_end", 0.0) or 0.0),
+                dt=float(getattr(sim_cfg, "dt", 0.0) or 0.0),
+            )
+            if underhorizon:
+                print(
+                    "[train_ai_id_ref] warning: episode horizon is shorter than scenario activation for {}".format(
+                        ", ".join(
+                            "{}(steps {} < {})".format(
+                                row["scenario"],
+                                row["episode_steps"],
+                                row["required_steps"],
+                            )
+                            for row in underhorizon
+                        )
+                    )
+                )
+
     mode_tag = str(control_mode).lower()
     run_dir = results_root_path / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{env_name}_{mode_tag}"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -1096,6 +1175,7 @@ def train(
             base_w_shaft=float(w_shaft),
             base_w_eta=float(w_eta) * float(energy_scale),
             base_w_eta_episode=float(w_eta_episode) * float(energy_scale),
+            base_reward_start_frac=0.0,
             base_terminal_energy_bonus=float(base_terminal_energy_bonus) * float(energy_scale),
             base_ai_id_speed_tol=float(ai_id_speed_tol),
             base_ai_id_speed_tol_rel=None if ai_id_speed_tol_rel is None else float(ai_id_speed_tol_rel),
@@ -1107,12 +1187,25 @@ def train(
             base_id_ref_gate_exponent=float(id_ref_gate_exponent),
             scenario_reward_overrides=scenario_reward_overrides,
         )
+        sim_cfg = getattr(getattr(env.base_env, "env", None), "sim", None)
+        scenario_t_end = float(getattr(sim_cfg, "t_end", 0.0) or 0.0)
+        reward_start_frac_eff = float(effective_weights["reward_start_frac"])
+        reward_masked_steps = 0
 
         while not done and steps < int(episode_steps):
             action, logp, value = agent.act(obs)
             env_action, gate_open = _apply_train_supervisor_action(action, obs=obs, supervisor=train_supervisor)
             obs_next, reward, done, info = env.step(env_action)
             info_dict = info if isinstance(info, dict) else {}
+            progress = 0.0
+            t_now = info_dict.get("t")
+            if t_now is not None and scenario_t_end > 0.0:
+                progress = float(np.clip(float(t_now) / scenario_t_end, 0.0, 1.0))
+            else:
+                progress = float(np.clip(float(steps + 1) / max(int(episode_steps), 1), 0.0, 1.0))
+            if progress < reward_start_frac_eff:
+                reward = 0.0
+                reward_masked_steps += 1
             if train_supervisor is not None:
                 train_supervisor.update(
                     float(info_dict.get("p_in_pos", 0.0)),
@@ -1166,6 +1259,9 @@ def train(
             "w_shaft_eff": float(effective_weights["w_shaft"]),
             "w_eta_eff": float(effective_weights["w_eta"]),
             "w_eta_episode_eff": float(effective_weights["w_eta_episode"]),
+            "reward_start_frac_eff": float(reward_start_frac_eff),
+            "reward_masked_steps": float(reward_masked_steps),
+            "reward_masked_frac": float(reward_masked_steps / max(steps, 1)),
             "terminal_energy_bonus_eff": float(effective_weights["terminal_energy_bonus"]),
             "ai_id_speed_tol_eff": float(effective_weights["ai_id_speed_tol"]),
             "ai_id_speed_tol_rel_eff": effective_weights["ai_id_speed_tol_rel"],

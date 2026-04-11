@@ -16,7 +16,9 @@ from mic_ai.ai.train_ai_id_ref import (
     _apply_env_reward_overrides,
     _apply_scenario_reward_overrides,
     _adapt_checkpoint_state_dict_for_model,
+    _collect_underhorizon_scenarios,
     _curriculum_scale,
+    _estimate_scenario_activation_steps,
     _infer_hidden_sizes_from_state_dict,
     _parse_hidden_sizes,
     _parse_scenario_reward_overrides,
@@ -27,6 +29,82 @@ from mic_ai.ai.train_ai_id_ref import (
     train,
 )
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
+
+
+def test_estimate_scenario_activation_steps_matches_scenario_timings() -> None:
+    assert _estimate_scenario_activation_steps("speed_step", t_end=2.0, dt=5e-4) == 400
+    assert _estimate_scenario_activation_steps("load_step", t_end=2.0, dt=5e-4) == 1200
+    assert _estimate_scenario_activation_steps("start_stop", t_end=2.0, dt=5e-4) == 800
+    assert _estimate_scenario_activation_steps("ramp", t_end=2.0, dt=5e-4) == 2400
+    assert _estimate_scenario_activation_steps("hold:0.8", t_end=2.0, dt=5e-4) == 0
+
+
+def test_collect_underhorizon_scenarios_flags_short_episode_horizon() -> None:
+    rows = _collect_underhorizon_scenarios(
+        ["load_step", "speed_step", "load_step", "hold:0.8"],
+        episode_steps=150,
+        t_end=2.0,
+        dt=5e-4,
+    )
+    assert rows == [
+        {
+            "scenario": "load_step",
+            "episode_steps": 150,
+            "required_steps": 1200,
+            "episode_horizon_s": pytest.approx(0.075),
+            "required_horizon_s": pytest.approx(0.6),
+        },
+        {
+            "scenario": "speed_step",
+            "episode_steps": 150,
+            "required_steps": 400,
+            "episode_horizon_s": pytest.approx(0.075),
+            "required_horizon_s": pytest.approx(0.2),
+        },
+    ]
+
+
+def test_build_env_respects_scenario_functions_when_overrides_disabled() -> None:
+    env = build_env(
+        env_config_path="config/env_research_air56_025kw.py",
+        episode_steps=200,
+        control_mode="ai_id_ref",
+        w_speed=1.0,
+        w_power=1.0,
+        w_current=None,
+        w_smooth=0.05,
+        w_mag=0.0,
+        w_shaft=0.0,
+        w_eta=0.0,
+        w_eta_episode=0.0,
+        eta_clip=1.2,
+        override_load_torque=False,
+        override_omega_ref=False,
+        ai_id_ref_relative=False,
+        delta_id_max=0.3,
+        id_ref_alpha=1.0,
+        id_ref_rate_limit=None,
+        ai_id_speed_tol=0.5,
+        ai_id_speed_tol_rel=None,
+        id_ref_gate_speed_tol=None,
+        id_ref_gate_speed_tol_rel=None,
+        id_ref_gate_min_scale=0.0,
+        id_ref_gate_exponent=1.0,
+        load_torque=None,
+        omega_ref_override=None,
+        feature_keys=["omega_norm"],
+    )
+    env.set_scenario("load_step")
+    env.reset()
+    t_end = float(getattr(env.base_env.env.sim, "t_end", 0.0))
+    load_before = float(env.base_env.load_torque_func(0.0))
+    load_after = float(env.base_env.load_torque_func(0.31 * t_end))
+    omega_before = float(env.base_env.omega_ref_func(0.0))
+    omega_after = float(env.base_env.omega_ref_func(0.31 * t_end))
+    assert load_before == pytest.approx(0.0)
+    assert load_after > 0.0
+    assert omega_before > 0.0
+    assert omega_after == pytest.approx(omega_before)
 
 
 def test_run_external_step27_selection_promotes_selected_checkpoint(
@@ -752,7 +830,7 @@ def test_apply_env_reward_overrides_mutates_env_cfg(tmp_path: Path) -> None:
 
 def test_parse_scenario_reward_overrides_from_json_file(tmp_path: Path) -> None:
     payload = {
-        "load_step": {"w_speed": 3.0, "w_power": 4.0, "ai_id_speed_tol_rel": 0.04},
+        "load_step": {"w_speed": 3.0, "w_power": 4.0, "ai_id_speed_tol_rel": 0.04, "reward_start_frac": 0.3},
         "speed_step": {"w_speed": 2.4, "terminal_energy_bonus": 1.25},
     }
     path = tmp_path / "scenario_overrides.json"
@@ -764,6 +842,7 @@ def test_parse_scenario_reward_overrides_from_json_file(tmp_path: Path) -> None:
     assert parsed["load_step"]["w_speed"] == pytest.approx(3.0)
     assert parsed["load_step"]["w_power"] == pytest.approx(4.0)
     assert parsed["load_step"]["ai_id_speed_tol_rel"] == pytest.approx(0.04)
+    assert parsed["load_step"]["reward_start_frac"] == pytest.approx(0.3)
     assert parsed["speed_step"]["w_speed"] == pytest.approx(2.4)
     assert parsed["speed_step"]["terminal_energy_bonus"] == pytest.approx(1.25)
 
@@ -810,6 +889,7 @@ def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) 
         base_w_shaft=0.5,
         base_w_eta=0.3,
         base_w_eta_episode=0.1,
+        base_reward_start_frac=0.0,
         base_terminal_energy_bonus=0.8,
         base_ai_id_speed_tol=0.5,
         base_ai_id_speed_tol_rel=None,
@@ -821,6 +901,7 @@ def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) 
             "load_step": {
                 "w_speed": 3.0,
                 "w_power": 4.0,
+                "reward_start_frac": 0.35,
                 "terminal_energy_bonus": 1.6,
                 "ai_id_speed_tol": 0.35,
                 "ai_id_speed_tol_rel": 0.04,
@@ -836,6 +917,7 @@ def test_apply_scenario_reward_overrides_mutates_id_ref_weights(tmp_path: Path) 
     assert eff["w_shaft"] == pytest.approx(0.5)
     assert eff["w_eta"] == pytest.approx(0.3)
     assert eff["w_eta_episode"] == pytest.approx(0.1)
+    assert eff["reward_start_frac"] == pytest.approx(0.35)
     assert eff["terminal_energy_bonus"] == pytest.approx(1.6)
     assert eff["ai_id_speed_tol"] == pytest.approx(0.35)
     assert eff["ai_id_speed_tol_rel"] == pytest.approx(0.04)

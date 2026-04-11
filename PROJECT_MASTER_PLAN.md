@@ -11,10 +11,15 @@ Last pushed commit: `4b4bffa`
 - `C:\mt` and `C:\mic_theory_repo_restored` are not canonical roots.
 
 ## Current factual snapshot
-- Git state is currently dirty only because the active root plan is being updated with the latest `2026-04-11` AIR56 findings and the new `AIR56` scenario-specific training controls.
+- Git state is currently dirty because the active root plan is being updated together with the latest `2026-04-11` `AIR56` train-loop fixes in:
+  - `mic_ai/ai/train_ai_id_ref.py`
+  - `tests/test_train_ai_id_ref_external_step27.py`
 - Latest confirmed smoke in the current cycle is green:
   - `pytest -q tests/test_root_hygiene_smoke.py tests/test_report_plan_completion_smoke.py`
   - `3 passed`
+- Latest confirmed focused trainer regression after the `AIR56` scenario-path fix is also green:
+  - `pytest -q tests/test_train_ai_id_ref_external_step27.py`
+  - `25 passed`
 - Frozen release is already green and must not be reopened unless a real bug is found:
   - `paper/ieee_2026/data/step28/20260303_ai_config_locked_nodrift/VERIFY_SUBMISSION_CANDIDATE.json`
   - `verification_ok=true`
@@ -451,6 +456,142 @@ Goal: close the real red branch that still blocks submission.
       - stronger tracking weight improved the branch relative to the failed `w_speed=1.0` variant
       - but it still did not move `AIR56` beyond the same `load_step = 2/5` barrier
       - therefore the cheap/medium continuation layer around the current `actor_ep002` frontier is now exhausted
+  - important `2026-04-11` correction to the research record:
+    - old `ai_id_ref` scenario-based AIR56 conclusions must be treated carefully because the train path had a real bug:
+      - `train_ai_id_ref.build_env()` was still forcing constant `omega_ref_func` / `load_torque_func`
+      - so runs launched with `--scenarios ...` were not actually training on those scenario functions
+    - the same pass also exposed a second validity issue:
+      - many old short AIR56 branches used `episode_steps = 150`
+      - for `AIR56` with `dt = 5e-4` and `t_end = 2.0`, that horizon is only `0.075 s`
+      - it does not even reach the canonical scenario events:
+        - `speed_step = 400 steps`
+        - `start_stop = 800 steps`
+        - `load_step = 1200 steps`
+        - `ramp = 2400 steps`
+    - current execution rule:
+      - do not use pre-fix short-horizon `ai_id_ref` scenario runs as strong negative evidence against scenario-aware AIR56 training
+  - first corrected full-horizon scenario-valid baseline continuation is now completed:
+    - run:
+      - `outputs/air56_actor_ep001_true_loadstep_base_20260411g/results_run/20260411_031456_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - training recipe:
+      - `episodes = 4`
+      - `episode_steps = 2400`
+      - scenarios cycled through `load_step,speed_step,start_stop,load_step`
+      - no per-scenario reward overrides yet
+    - result:
+      - new valid selected checkpoint appeared instead of simply reselecting the warm-start incumbent:
+        - `actor_ep003 + eta_mid_60_sp`
+      - exact metrics:
+        - `avg_power_saving_pct = 1.0290197779245958`
+        - `avg_eta_gain_pct = 0.11979755825249683`
+        - `avg_power_saving_pct_min_seed = 0.8996974381452388`
+        - `avg_eta_gain_pct_min_seed = 0.09611936947062083`
+        - `load_step pass_count = 2/5`
+    - conclusion:
+      - corrected scenario-aware training is now proven capable of producing a new AIR56 checkpoint
+      - but canonical `load_step` closure still did not move past `2/5`
+  - candidate-layer around that corrected scenario-valid checkpoint is already exhausted:
+    - run:
+      - `outputs/air56_actor_ep003_true_loadstep_localsearch_20260411h/air56_tuning_summary.json`
+    - result:
+      - best remained the checkpoint baseline `eta_mid_60_sp`
+      - no targeted candidate lifted `load_step` above `2/5`
+  - train/eval window-alignment branch with new `reward_start_frac` support is also now completed:
+    - code path:
+      - `mic_ai/ai/train_ai_id_ref.py`
+      - per-scenario overrides now also support:
+        - `reward_start_frac`
+    - train run:
+      - `outputs/air56_actor_ep003_rewardwindow_20260411i`
+    - strict posthoc rescan:
+      - `outputs/air56_actor_ep003_rewardwindow_20260411i/strict_rescan/air56_checkpoint_scan_summary.json`
+    - result:
+      - best strict row:
+        - `actor_ep001 + gatepush_base`
+      - exact metrics:
+        - `avg_power_saving_pct = 1.0788537208274063`
+        - `avg_eta_gain_pct = 0.11715761270042757`
+        - `avg_power_saving_pct_min_seed = 0.9734497591340208`
+        - `avg_eta_gain_pct_min_seed = 0.09295894213616207`
+        - `load_step pass_count = 2/5`
+      - new useful checkpoint inside this branch:
+        - `actor_ep002 + rand007_soft_track`
+        - `avg_power_saving_pct = 1.0667422514715807`
+        - `avg_eta_gain_pct = 0.12542954320108546`
+        - `avg_power_saving_pct_min_seed = 0.9529039434222009`
+        - `avg_eta_gain_pct_min_seed = 0.11018576385412038`
+        - `load_step pass_count = 2/5`
+        - `load_step power_saving_pct_min = -0.07395594720649434`
+    - conclusion:
+      - late-window reward alignment alone does not close AIR56
+      - but it does produce a new checkpoint with a better `load_step` floor than the corrected-scenario baseline
+  - targeted local-safe retune around the new reward-window checkpoint is now exhausted:
+    - run:
+      - `outputs/air56_actor_ep002_rewardwindow_localsearch_20260411j/air56_tuning_summary.json`
+    - checkpoint under test:
+      - `outputs/air56_actor_ep003_rewardwindow_20260411i/results_run/20260411_035506_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep002.pth`
+    - result:
+      - best remained baseline `rw_ep002_rand007_base`
+      - exact metrics:
+        - `avg_power_saving_pct = 1.0667422514715807`
+        - `avg_eta_gain_pct = 0.12542954320108546`
+        - `avg_power_saving_pct_min_seed = 0.9529039434222009`
+        - `avg_eta_gain_pct_min_seed = 0.11018576385412038`
+        - `load_step pass_count = 2/5`
+    - conclusion:
+      - the candidate-layer on top of the new reward-window checkpoint is already exhausted
+      - next justified AIR56 step is again training-level, not another local-search recycle
+  - reward-window branch with stronger in-training load-step guardrail shaping is now also closed as a dead end:
+    - run:
+      - `outputs/air56_actor_ep002_rewardwindow_guard_20260411k/results_run/20260411_044817_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - training changed:
+      - warm-start from the new reward-window checkpoint `actor_ep002`
+      - kept full horizon `2400`
+      - added `load_step` overrides:
+        - `reward_start_frac = 0.55`
+        - `w_speed = 3.0`
+        - `ai_id_speed_tol = 0.40`
+        - `id_ref_gate_speed_tol_rel = 0.10`
+        - `id_ref_gate_min_scale = 0.05`
+        - `id_ref_gate_exponent = 1.35`
+      - built-in external selector was already run in canonical mode (`--external-step27-use-envelope-acceptance`)
+    - result:
+      - selector re-promoted the warm-start init checkpoint:
+        - `actor_ep_init + rand007_soft_track`
+      - exact metrics stayed identical to the previous reward-window frontier:
+        - `avg_power_saving_pct = 1.0667422514715807`
+        - `avg_eta_gain_pct = 0.12542954320108546`
+        - `avg_power_saving_pct_min_seed = 0.9529039434222009`
+        - `avg_eta_gain_pct_min_seed = 0.11018576385412038`
+        - `load_step pass_count = 2/5`
+    - conclusion:
+      - stronger in-training load-step guardrail shaping did not improve the frontier
+      - this reward-window checkpoint lineage is now exhausted at both candidate and short continuation levels
+  - corrected scenario-aware continuation from the strict incumbent is also now closed as a dead end:
+    - run:
+      - `outputs/air56_incumbent_etawindow_20260411l/results_run/20260411_051324_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/external_step27_scan/air56_checkpoint_scan_summary.json`
+    - training changed:
+      - warm-start from strict incumbent `actor_ep005 + mix04_base`
+      - full horizon `2400`
+      - candidate set expanded to:
+        - `mix04_base`
+        - `rand007_soft_track`
+        - `eta_mid_60_sp`
+      - `load_step` late-window eta-focused override:
+        - `reward_start_frac = 0.55`
+        - `w_eta = 1.5`
+        - `w_eta_episode = 0.2`
+    - result:
+      - selector again re-promoted `actor_ep_init + mix04_base`
+      - exact metrics remained the old incumbent baseline:
+        - `avg_power_saving_pct = 0.6147884835796003`
+        - `avg_eta_gain_pct = 0.0013968558560217836`
+        - `avg_power_saving_pct_min_seed = 0.5151508570179902`
+        - `avg_eta_gain_pct_min_seed = -0.019478794161115198`
+        - `envelope_all_rows_pass = true`
+    - conclusion:
+      - after the scenario-path fix, short eta-window continuation from the strict incumbent still does not move the negative eta tail
+      - the strict incumbent lineage is now also exhausted for cheap corrected scenario-aware continuation
   - historical `speedfix_ft actor_ep015` basin is also now ruled out for the current strict objective:
     - `outputs/air56_speedfix_actor015_candidategrid_20260326/air56_tuning_summary.json`
     - best candidate remained `mix04_base`
@@ -488,9 +629,34 @@ Goal: close the real red branch that still blocks submission.
       - conclusion:
         - semantic remap mattered, but only enough to make `foc_assist` "less bad"
         - it is still nowhere near strict closure and is not a justified next medium-budget branch
-  - the incumbent and reltrack frontiers therefore remain complementary:
-    - incumbent is envelope-clean but eta-tail red
-    - reltrack frontier nearly closes eta-tail but still drops one `speed_step` row
+  - current AIR56 conclusion after the `2026-04-11` corrections:
+    - the active frontier is no longer the old reltrack-only story
+    - there are now three relevant AIR56 states:
+      - strict incumbent:
+        - envelope-clean
+        - eta-tail red
+      - corrected scenario-valid checkpoint `actor_ep003 + eta_mid_60_sp`:
+        - proves scenario-aware training now works after the train-path fix
+        - still `load_step = 2/5`
+      - reward-window checkpoint `actor_ep002 + rand007_soft_track`:
+        - currently the best corrected-train frontier for `load_step power_saving_pct_min`
+        - still `load_step = 2/5`
+    - what is now exhausted:
+      - candidate-layer around the corrected scenario-valid checkpoint
+      - candidate-layer around the reward-window checkpoint
+      - short continuation from the reward-window checkpoint with stronger in-training `load_step` guardrails
+      - short corrected scenario-aware eta-window continuation from the strict incumbent
+    - next AIR56 step must therefore be materially different:
+      - either capacity-shift continuation from the strict incumbent on the corrected scenario path
+      - or corrected full-horizon scratch / rebuild on the `AIR56` recipe
+      - keep full `2400`-step horizon
+      - keep full `5-seed` strict external selection
+    - do not spend more compute on:
+      - another candidate-only search around `actor_ep003`
+      - another candidate-only search around `actor_ep002`
+      - another short continuation on `actor_ep002` with the same `64x64/128x128` reward-window recipe
+      - another short incumbent eta-window continuation with the same `64x64` hidden-size regime
+      - another short-horizon scenario run
 
 #### W1.2 New code status
 - reward alignment change added in `mic_ai/ai/ai_env.py`:
@@ -515,6 +681,9 @@ Goal: close the real red branch that still blocks submission.
   - code is implemented locally and tested
   - unit/regression tests are green
   - important trainer/eval bugs were fixed:
+    - `train_ai_id_ref.build_env()` no longer overwrites scenario-defined `omega_ref_func` / `load_torque_func` when `--scenarios` is used
+    - `train_ai_id_ref` now warns when `episode_steps` is shorter than the selected scenario activation horizon
+    - `train_ai_id_ref` now supports per-scenario `reward_start_frac` so training reward can be aligned to the late evaluation window instead of rewarding startup transients
     - `train_ai_id_ref.build_env()` now really propagates reward-gate / terminal-bonus knobs from env-config into `AiEnvConfig`
     - warm-start loading now supports appended observation features by zero-padding new input columns
     - warm-start loading now also supports wider hidden layers by zero-padding overlapping slices into expanded tensors
