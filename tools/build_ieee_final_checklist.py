@@ -3,8 +3,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Dict, List, Mapping
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.step27_artifacts import STEP27_MOTOR_ACCEPTANCE_JSON, find_acceptance_json
 
 
 MODE_DIRS = (
@@ -22,7 +29,7 @@ MODE_FILES = (
     "step27_per_seed_metrics.csv",
     "step27_stats_motor_controller.csv",
     "step27_final_pi_vs_foc_vs_mic.csv",
-    "step27_air56_acceptance.json",
+    STEP27_MOTOR_ACCEPTANCE_JSON,
     "step27_reproducibility.json",
     "step27_report.md",
 )
@@ -119,12 +126,19 @@ def build_checklist(
         lines.append(f"### {mode}")
         local_ok = True
         for rel in MODE_FILES:
-            ok = _check_exists(mode_dir / rel)
+            path = mode_dir / rel
+            if rel == STEP27_MOTOR_ACCEPTANCE_JSON:
+                path = find_acceptance_json(mode_dir)
+                ok = path.exists()
+                rendered_rel = f"{mode}/{path.name}"
+            else:
+                ok = _check_exists(path)
+                rendered_rel = f"{mode}/{rel}"
             local_ok = local_ok and ok
-            lines.append(f"- {_mark(ok)} `{mode}/{rel}`")
+            lines.append(f"- {_mark(ok)} `{rendered_rel}`")
         mode_ok = mode_ok and local_ok
 
-        acc_path = mode_dir / "step27_air56_acceptance.json"
+        acc_path = find_acceptance_json(mode_dir)
         if acc_path.exists():
             acc = _read_json(acc_path)
             mean_pass = bool(acc.get("mean_pass", False))

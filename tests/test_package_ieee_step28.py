@@ -48,7 +48,11 @@ def test_package_ieee_step28_strict(tmp_path: Path) -> None:
     assert (pkg / "step28_ieee_summary.csv").exists()
     assert (pkg / "step28_ieee_summary.md").exists()
     assert (pkg / "mode1_foc_encoder_vs_mic_sensorless" / "step27_final_pi_vs_foc_vs_mic.csv").exists()
+    assert (pkg / "mode1_foc_encoder_vs_mic_sensorless" / "step27_motor_acceptance.json").exists()
+    assert (pkg / "mode1_foc_encoder_vs_mic_sensorless" / "step27_air56_acceptance.json").exists()
     assert (pkg / "mode2_foc_sensorless_vs_mic_sensorless" / "step27_final_pi_vs_foc_vs_mic.csv").exists()
+    assert (pkg / "mode2_foc_sensorless_vs_mic_sensorless" / "step27_motor_acceptance.json").exists()
+    assert (pkg / "mode2_foc_sensorless_vs_mic_sensorless" / "step27_air56_acceptance.json").exists()
     assert (pkg / "package_manifest.json").exists()
 
 

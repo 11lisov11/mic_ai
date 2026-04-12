@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
@@ -15,6 +16,116 @@ def _run(cmd: List[str], *, cwd: Path, dry_run: bool, executed: List[List[str]])
     if dry_run:
         return
     subprocess.run(cmd, check=True, cwd=cwd)
+
+
+@dataclass(frozen=True)
+class ReproducePaths:
+    root: Path
+    out_root: Path
+    mode1_dir: Path
+    mode2_dir: Path
+    package_root: Path
+    package_dir: Path
+
+
+def _resolve_paths(*, root: Path, out_root_arg: str, package_root_arg: str, package_tag: str) -> ReproducePaths:
+    out_root = (root / str(out_root_arg)).resolve()
+    package_root = (root / str(package_root_arg)).resolve()
+    return ReproducePaths(
+        root=root,
+        out_root=out_root,
+        mode1_dir=out_root / "mode1_foc_encoder_vs_mic_sensorless",
+        mode2_dir=out_root / "mode2_foc_sensorless_vs_mic_sensorless",
+        package_root=package_root,
+        package_dir=package_root / package_tag,
+    )
+
+
+def _python_cmd(script: str, *args: str) -> List[str]:
+    return [sys.executable, script, *args]
+
+
+def _build_step27_base_cmd(args: argparse.Namespace) -> List[str]:
+    cmd = _python_cmd(
+        "tools/step27_pipeline.py",
+        "--motors",
+        str(args.motors),
+        "--seeds",
+        str(args.seeds),
+        "--scenarios",
+        str(args.scenarios),
+        "--mic-mode",
+        str(args.mic_mode),
+        "--ai-control-mode",
+        str(args.ai_control_mode),
+        "--checkpoint-registry",
+        str(args.checkpoint_registry),
+        "--seed-perturbation",
+        "--seed-perturb-level",
+        str(float(args.seed_perturb_level)),
+    )
+    if bool(args.skip_air56_tune):
+        cmd.append("--skip-air56-tune")
+    return cmd
+
+
+def _build_step27_mode_cmd(
+    base_cmd: List[str],
+    *,
+    out_dir: Path,
+    foc_feedback_mode: str,
+    mic_feedback_mode: str,
+) -> List[str]:
+    return list(base_cmd) + [
+        "--out-dir",
+        str(out_dir),
+        "--foc-feedback-mode",
+        str(foc_feedback_mode),
+        "--mic-feedback-mode",
+        str(mic_feedback_mode),
+    ]
+
+
+def _build_passport_cmd(args: argparse.Namespace, *, passport_out_root: Path, passport_tag: str) -> List[str]:
+    return _python_cmd(
+        "tools/build_against_passport_table.py",
+        "--motors",
+        str(args.motors),
+        "--checkpoint-registry",
+        str(args.checkpoint_registry),
+        "--out-root",
+        str(passport_out_root),
+        "--tag",
+        str(passport_tag),
+    )
+
+
+def _build_package_cmd(
+    args: argparse.Namespace,
+    *,
+    root: Path,
+    step28_out: Path,
+    package_root: Path,
+    package_tag: str,
+    passport_dir: Path | None,
+) -> List[str]:
+    cmd = _python_cmd(
+        "scripts/package_ieee_step28.py",
+        "--step28-out",
+        str(step28_out),
+        "--dest-root",
+        str(package_root),
+        "--tag",
+        str(package_tag),
+    )
+    if bool(args.strict_package):
+        cmd.append("--strict")
+    theory_csv = str(args.theory_csv).strip()
+    if theory_csv:
+        cmd.extend(["--theory-csv", str((root / theory_csv).resolve())])
+    if passport_dir is not None:
+        cmd.extend(["--passport-dir", str(passport_dir)])
+    return cmd
 
 
 def main() -> None:
@@ -84,68 +195,56 @@ def main() -> None:
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    out_root = (root / str(args.out_root)).resolve()
-    out_root.mkdir(parents=True, exist_ok=True)
-    mode1_dir = out_root / "mode1_foc_encoder_vs_mic_sensorless"
-    mode2_dir = out_root / "mode2_foc_sensorless_vs_mic_sensorless"
-
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     package_tag = str(args.package_tag).strip() or timestamp
+    paths = _resolve_paths(
+        root=root,
+        out_root_arg=str(args.out_root),
+        package_root_arg=str(args.package_root),
+        package_tag=package_tag,
+    )
+    paths.out_root.mkdir(parents=True, exist_ok=True)
 
     executed: List[List[str]] = []
 
-    base_cmd = [
-        sys.executable,
-        "tools/step27_pipeline.py",
-        "--motors",
-        str(args.motors),
-        "--seeds",
-        str(args.seeds),
-        "--scenarios",
-        str(args.scenarios),
-        "--mic-mode",
-        str(args.mic_mode),
-        "--ai-control-mode",
-        str(args.ai_control_mode),
-        "--checkpoint-registry",
-        str(args.checkpoint_registry),
-        "--seed-perturbation",
-        "--seed-perturb-level",
-        str(float(args.seed_perturb_level)),
-    ]
-    if bool(args.skip_air56_tune):
-        base_cmd.append("--skip-air56-tune")
+    base_cmd = _build_step27_base_cmd(args)
+    _run(
+        _build_step27_mode_cmd(
+            base_cmd,
+            out_dir=paths.mode1_dir,
+            foc_feedback_mode="encoder",
+            mic_feedback_mode="sensorless",
+        ),
+        cwd=root,
+        dry_run=bool(args.dry_run),
+        executed=executed,
+    )
+    _run(
+        _build_step27_mode_cmd(
+            base_cmd,
+            out_dir=paths.mode2_dir,
+            foc_feedback_mode="sensorless",
+            mic_feedback_mode="sensorless",
+        ),
+        cwd=root,
+        dry_run=bool(args.dry_run),
+        executed=executed,
+    )
 
-    mode1_cmd = list(base_cmd) + [
-        "--out-dir",
-        str(mode1_dir),
-        "--foc-feedback-mode",
-        "encoder",
-        "--mic-feedback-mode",
-        "sensorless",
-    ]
-    mode2_cmd = list(base_cmd) + [
-        "--out-dir",
-        str(mode2_dir),
-        "--foc-feedback-mode",
-        "sensorless",
-        "--mic-feedback-mode",
-        "sensorless",
-    ]
-    _run(mode1_cmd, cwd=root, dry_run=bool(args.dry_run), executed=executed)
-    _run(mode2_cmd, cwd=root, dry_run=bool(args.dry_run), executed=executed)
-
-    summary_cmd = [
-        sys.executable,
-        "tools/build_step28_ieee_summary.py",
-        "--mode1-dir",
-        str(mode1_dir),
-        "--mode2-dir",
-        str(mode2_dir),
-        "--out-dir",
-        str(out_root),
-    ]
-    _run(summary_cmd, cwd=root, dry_run=bool(args.dry_run), executed=executed)
+    _run(
+        _python_cmd(
+            "tools/build_step28_ieee_summary.py",
+            "--mode1-dir",
+            str(paths.mode1_dir),
+            "--mode2-dir",
+            str(paths.mode2_dir),
+            "--out-dir",
+            str(paths.out_root),
+        ),
+        cwd=root,
+        dry_run=bool(args.dry_run),
+        executed=executed,
+    )
 
     passport_dir: Path | None = None
     passport_dir_arg = str(args.passport_dir).strip()
@@ -154,43 +253,29 @@ def main() -> None:
     elif bool(args.build_passport):
         passport_tag = str(args.passport_tag).strip() or package_tag
         passport_out_root = (root / str(args.passport_out_root)).resolve()
-        passport_cmd = [
-            sys.executable,
-            "tools/build_against_passport_table.py",
-            "--motors",
-            str(args.motors),
-            "--checkpoint-registry",
-            str(args.checkpoint_registry),
-            "--out-root",
-            str(passport_out_root),
-            "--tag",
-            passport_tag,
-        ]
-        _run(passport_cmd, cwd=root, dry_run=bool(args.dry_run), executed=executed)
+        _run(
+            _build_passport_cmd(args, passport_out_root=passport_out_root, passport_tag=passport_tag),
+            cwd=root,
+            dry_run=bool(args.dry_run),
+            executed=executed,
+        )
         passport_dir = passport_out_root / passport_tag
 
-    package_cmd = [
-        sys.executable,
-        "scripts/package_ieee_step28.py",
-        "--step28-out",
-        str(out_root),
-        "--dest-root",
-        str((root / str(args.package_root)).resolve()),
-        "--tag",
-        package_tag,
-    ]
-    if bool(args.strict_package):
-        package_cmd.append("--strict")
+    _run(
+        _build_package_cmd(
+            args,
+            root=root,
+            step28_out=paths.out_root,
+            package_root=paths.package_root,
+            package_tag=package_tag,
+            passport_dir=passport_dir,
+        ),
+        cwd=root,
+        dry_run=bool(args.dry_run),
+        executed=executed,
+    )
 
-    theory_csv = str(args.theory_csv).strip()
-    if theory_csv:
-        package_cmd.extend(["--theory-csv", str((root / theory_csv).resolve())])
-    if passport_dir is not None:
-        package_cmd.extend(["--passport-dir", str(passport_dir)])
-
-    _run(package_cmd, cwd=root, dry_run=bool(args.dry_run), executed=executed)
-
-    package_dir = (root / str(args.package_root)).resolve() / package_tag
+    package_dir = paths.package_dir
     if bool(args.build_figures_tables):
         figs_cmd = [
             sys.executable,
@@ -392,14 +477,14 @@ def main() -> None:
 
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "out_root": str(out_root),
+        "out_root": str(paths.out_root),
         "package_dir": str(package_dir),
         "package_tag": package_tag,
         "passport_dir": str(passport_dir) if passport_dir is not None else "",
         "dry_run": bool(args.dry_run),
         "executed_commands": executed,
     }
-    manifest_path = out_root / "step28_reproduce_manifest.json"
+    manifest_path = paths.out_root / "step28_reproduce_manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[reproduce-step28] manifest: {manifest_path}", flush=True)
     if not bool(args.dry_run):

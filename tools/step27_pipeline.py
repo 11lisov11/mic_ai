@@ -56,6 +56,10 @@ from tools.common_utils import parse_csv_list as _parse_csv_list_shared
 from tools.common_utils import parse_int_list as _parse_int_list_shared
 from tools.common_utils import std as _std_shared
 from tools.common_utils import write_csv as _write_csv_shared
+from tools.step27_artifacts import (
+    STEP27_AIR56_ACCEPTANCE_JSON_LEGACY,
+    STEP27_MOTOR_ACCEPTANCE_JSON,
+)
 
 
 @dataclass(frozen=True)
@@ -2058,7 +2062,9 @@ def main() -> None:
                 "start_stop_power_saving_pct_min": float(air56_row["start_stop_power_saving_pct_min"]),
             },
         }
-    _json_dump(out_dir / "step27_air56_acceptance.json", air56_accept)
+    acceptance_json = out_dir / STEP27_MOTOR_ACCEPTANCE_JSON
+    _json_dump(acceptance_json, air56_accept)
+    _json_dump(out_dir / STEP27_AIR56_ACCEPTANCE_JSON_LEGACY, air56_accept)
 
     table_sha = _sha256_rows(per_seed_rows)
     reproducibility = {
@@ -2097,7 +2103,8 @@ def main() -> None:
             "per_seed_json": str(per_seed_json),
             "stats_motor_controller_csv": str(stats_motor_csv),
             "final_pi_vs_foc_vs_mic_csv": str(stats_global_csv),
-            "air56_acceptance_json": str((out_dir / "step27_air56_acceptance.json")),
+            "motor_acceptance_json": str(acceptance_json),
+            "air56_acceptance_json_legacy": str((out_dir / STEP27_AIR56_ACCEPTANCE_JSON_LEGACY)),
             "reproducibility_json": str(reproducibility_path),
             "report_markdown": str((out_dir / "step27_report.md")),
             "run_manifest_json": str((out_dir / "step27_run_manifest.json")),

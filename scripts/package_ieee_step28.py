@@ -9,6 +9,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.step27_artifacts import (
+    STEP27_AIR56_ACCEPTANCE_JSON_LEGACY,
+    STEP27_MOTOR_ACCEPTANCE_JSON,
+    existing_acceptance_jsons,
+)
+
 
 ROOT_FILES = (
     "step28_ieee_summary.csv",
@@ -19,7 +29,6 @@ MODE_FILES = (
     "step27_per_seed_metrics.csv",
     "step27_stats_motor_controller.csv",
     "step27_final_pi_vs_foc_vs_mic.csv",
-    "step27_air56_acceptance.json",
     "step27_reproducibility.json",
     "step27_report.md",
     "step27_seed_perturbations.csv",
@@ -38,6 +47,31 @@ def _copy_file(src: Path, dst: Path, copied: List[str], missing: List[str]) -> N
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
     copied.append(str(dst))
+
+
+def _copy_acceptance_files(mode_src: Path, mode_dst: Path, copied: List[str], missing: List[str]) -> None:
+    acceptance_paths = existing_acceptance_jsons(mode_src)
+    if not acceptance_paths:
+        missing.append(str(mode_src / STEP27_MOTOR_ACCEPTANCE_JSON))
+        return
+
+    primary_payload = acceptance_paths[0].read_text(encoding="utf-8")
+    target_primary = mode_dst / STEP27_MOTOR_ACCEPTANCE_JSON
+    target_primary.parent.mkdir(parents=True, exist_ok=True)
+    target_primary.write_text(primary_payload, encoding="utf-8")
+    copied.append(str(target_primary))
+
+    target_legacy = mode_dst / STEP27_AIR56_ACCEPTANCE_JSON_LEGACY
+    if not target_legacy.exists():
+        target_legacy.write_text(primary_payload, encoding="utf-8")
+        copied.append(str(target_legacy))
+
+    for src_path in acceptance_paths:
+        dst_path = mode_dst / src_path.name
+        if dst_path.exists():
+            continue
+        shutil.copy2(src_path, dst_path)
+        copied.append(str(dst_path))
 
 
 def main() -> None:
@@ -77,6 +111,7 @@ def main() -> None:
         mode_dst = package_dir / mode
         for rel in MODE_FILES:
             _copy_file(mode_src / rel, mode_dst / rel, copied, missing)
+        _copy_acceptance_files(mode_src, mode_dst, copied, missing)
         if args.include_runs:
             runs_src = mode_src / "runs"
             runs_dst = mode_dst / "runs"

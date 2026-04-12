@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 from tools.common_utils import json_load as _json_load_shared
 from tools.common_utils import read_csv as _read_csv_shared
 from tools.common_utils import write_csv as _write_csv_shared
+from tools.step27_artifacts import find_acceptance_json
 
 
 def _read_csv(path: Path) -> List[Dict[str, str]]:
@@ -36,7 +37,7 @@ def _fmt(v: float) -> str:
 def _collect_mode(mode_name: str, mode_dir: Path) -> Dict[str, object]:
     global_rows = _read_csv(mode_dir / "step27_final_pi_vs_foc_vs_mic.csv")
     motor_rows = _read_csv(mode_dir / "step27_stats_motor_controller.csv")
-    acceptance = _read_json(mode_dir / "step27_air56_acceptance.json")
+    acceptance = _read_json(find_acceptance_json(mode_dir))
     reproducibility = _read_json(mode_dir / "step27_reproducibility.json")
 
     idx_global = {str(r["controller"]): r for r in global_rows}

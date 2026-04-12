@@ -4,9 +4,16 @@ import argparse
 import csv
 import hashlib
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Set, Tuple
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.step27_artifacts import STEP27_MOTOR_ACCEPTANCE_JSON, existing_acceptance_jsons
 
 
 MODE_DIRS = (
@@ -24,7 +31,7 @@ MODE_REQUIRED = (
     "step27_per_seed_metrics.csv",
     "step27_stats_motor_controller.csv",
     "step27_final_pi_vs_foc_vs_mic.csv",
-    "step27_air56_acceptance.json",
+    STEP27_MOTOR_ACCEPTANCE_JSON,
     "step27_reproducibility.json",
     "step27_report.md",
 )
@@ -153,9 +160,34 @@ def build_lock(
 
     # Step28 mode subfolders.
     for mode in MODE_DIRS:
+        mode_dir = step28_dir / mode
         for rel in MODE_REQUIRED:
+            if rel == STEP27_MOTOR_ACCEPTANCE_JSON:
+                acceptance_paths = existing_acceptance_jsons(mode_dir)
+                if acceptance_paths:
+                    for path in acceptance_paths:
+                        _add_path(
+                            path=path,
+                            group=f"step28_mode:{mode}",
+                            required=True,
+                            files=files,
+                            missing_required=missing_required,
+                            missing_optional=missing_optional,
+                            repo_root=repo_root,
+                        )
+                else:
+                    _add_path(
+                        path=mode_dir / rel,
+                        group=f"step28_mode:{mode}",
+                        required=True,
+                        files=files,
+                        missing_required=missing_required,
+                        missing_optional=missing_optional,
+                        repo_root=repo_root,
+                    )
+                continue
             _add_path(
-                path=step28_dir / mode / rel,
+                path=mode_dir / rel,
                 group=f"step28_mode:{mode}",
                 required=True,
                 files=files,

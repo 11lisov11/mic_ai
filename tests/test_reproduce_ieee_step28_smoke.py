@@ -38,12 +38,16 @@ def test_reproduce_ieee_step28_smoke(tmp_path: Path) -> None:
     assert (out_root / "step28_ieee_summary.csv").exists()
     assert (out_root / "step28_ieee_summary.md").exists()
     assert (out_root / "mode1_foc_encoder_vs_mic_sensorless" / "step27_final_pi_vs_foc_vs_mic.csv").exists()
+    assert (out_root / "mode1_foc_encoder_vs_mic_sensorless" / "step27_motor_acceptance.json").exists()
     assert (out_root / "mode2_foc_sensorless_vs_mic_sensorless" / "step27_final_pi_vs_foc_vs_mic.csv").exists()
+    assert (out_root / "mode2_foc_sensorless_vs_mic_sensorless" / "step27_motor_acceptance.json").exists()
 
     pkg_dir = pkg_root / "smoke01"
     assert (pkg_dir / "step28_ieee_summary.csv").exists()
     assert (pkg_dir / "step28_ieee_summary.md").exists()
     assert (pkg_dir / "package_manifest.json").exists()
+    assert (pkg_dir / "mode1_foc_encoder_vs_mic_sensorless" / "step27_motor_acceptance.json").exists()
+    assert (pkg_dir / "mode2_foc_sensorless_vs_mic_sensorless" / "step27_motor_acceptance.json").exists()
     assert (pkg_dir / "passport" / "passport_compare_3motors.csv").exists()
     assert (pkg_dir / "passport" / "passport_compare_3motors.md").exists()
     assert (pkg_dir / "passport" / "passport_compare_3motors.json").exists()

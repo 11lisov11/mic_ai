@@ -108,5 +108,11 @@ Full repository regression must remain green before final push:
 Nothing below is required for project completion anymore.
 
 1. Expand universal onboarding proofs from the current release slice to a broader AO2-specific productization path.
-2. Refactor monolithic orchestration scripts into smaller helpers.
-3. Replace legacy `step27_air56_acceptance.json` naming with a generic artifact name in a backward-compatible way.
+
+Completed on `2026-04-12` after main project closure:
+
+- monolithic `tools/reproduce_ieee_step28.py` was split into path/command builders without behavior change
+- `step27_air56_acceptance.json` now has a backward-compatible generic successor:
+  - `step27_motor_acceptance.json`
+  - packaging/checklist/freeze/summary tools accept both names
+  - new packages emit the generic file while preserving the legacy alias
