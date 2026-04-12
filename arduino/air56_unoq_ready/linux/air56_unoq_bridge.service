@@ -1,0 +1,17 @@
+[Unit]
+Description=AIR56 UNO Q Linux bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mic_theory
+ExecStart=/usr/bin/python3 /opt/mic_theory/tools/air56_unoq_bridge.py --transport serial --serial-port /dev/ttyHS0 --baud 921600 --config /opt/mic_theory/config/env_research_air56_025kw.py --mode hybrid --crc --disable-on-fault
+Restart=always
+RestartSec=1
+Nice=-10
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=20
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,13 @@
-﻿# UNO Q Deployment Plan (Linux AI + STM PWM)
+# UNO Q Deployment Plan (Linux AI + STM PWM)
 
 UNO Q hardware note: the board couples a Linux-capable Qualcomm Dragonwing QRB2210 MPU
 with an STM32U585 MCU for real-time control, so the Linux/STM split below maps directly
 to the target hardware.
+
+Ready AIR56 package:
+
+- [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready)
+- dedicated bridge: [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py)
 
 ## 1) Split of responsibilities
 - Linux (QRB2210): runs AI policy at low rate (50-200 Hz). Output is id_ref (flux reference) or delta_id_ref.
@@ -95,3 +100,4 @@ Ensure telemetry provides these or allow Linux to compute:
 - Protocol: `arduino/uno_q_protocol.h` (packed structs + CRC16).
 - Safety gates and slew limit: `arduino/uno_q_control.h`.
 - LUT headers (generated): `arduino/id_ref_lut_motor1.h`, `arduino/id_ref_lut_motor2.h`.
+
