@@ -137,6 +137,7 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
         out_dir.mkdir(parents=True, exist_ok=True)
         assert (eval_dir / "actor_ep_init.pth").exists()
         assert (eval_dir / "actor_ep_init.pth").read_bytes() == b"init"
+        assert kwargs["config_path"].endswith("env_backlog_ao2_nameplate_foc_tuned.py")
         assert kwargs["ai_control_mode"] == "ai_current"
         assert kwargs["feature_keys"] == ["omega_norm", "eta_episode_norm"]
         assert kwargs["min_avg_power_saving_pct"] == pytest.approx(0.5)
@@ -174,6 +175,7 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     payload = _run_external_step27_selection(
         run_dir=run_dir,
         motor="ao2",
+        config_path="config/env_backlog_ao2_nameplate_foc_tuned.py",
         ai_control_mode="ai_current",
         candidate_json=str(candidate_json),
         candidate_index=0,
@@ -210,6 +212,7 @@ def test_run_external_step27_selection_promotes_selected_checkpoint(
     assert payload["selected_checkpoint"] == str(selected_ckpt.resolve())
     assert payload["promoted_checkpoint"] == str(promoted.resolve())
     assert payload["ai_control_mode"] == "ai_current"
+    assert payload["config_path"].endswith("env_backlog_ao2_nameplate_foc_tuned.py")
     assert payload["seeds"] == [101, 202, 303]
     assert payload["scenarios"] == ["speed_step", "ramp", "load_step", "start_stop"]
     assert payload["min_avg_power_saving_pct"] == pytest.approx(0.5)
@@ -244,6 +247,7 @@ def test_run_external_step27_selection_allows_missing_candidate_json_for_non_id_
     def _fake_scan_checkpoints(**kwargs):
         out_dir = Path(kwargs["out_dir"])
         out_dir.mkdir(parents=True, exist_ok=True)
+        assert kwargs["config_path"].endswith("env_demo_true_motor1.py")
         assert kwargs["ai_control_mode"] == "foc_assist"
         assert kwargs["candidate_json"] == ""
         summary = {
@@ -264,6 +268,7 @@ def test_run_external_step27_selection_allows_missing_candidate_json_for_non_id_
     payload = _run_external_step27_selection(
         run_dir=run_dir,
         motor="air56",
+        config_path="config/env_demo_true_motor1.py",
         ai_control_mode="foc_assist",
         candidate_json=None,
         candidate_index=0,
@@ -295,6 +300,7 @@ def test_run_external_step27_selection_allows_missing_candidate_json_for_non_id_
     )
 
     assert payload["candidate_json"] is None
+    assert payload["config_path"].endswith("env_demo_true_motor1.py")
     assert payload["ai_control_mode"] == "foc_assist"
     assert Path(str(payload["promoted_checkpoint"])).exists()
     assert payload["candidate_tags"] == []

@@ -35,6 +35,37 @@ class PI:
         return u
 
 
+def apply_field_weakening_id_ref(
+    *,
+    enabled: bool,
+    current_id_ref: float,
+    base_id_ref: float,
+    v_mag: float,
+    v_limit: float | None,
+    id_min: float,
+    trigger_ratio: float,
+    relax_ratio: float,
+    dec_step: float,
+    relax_step: float,
+) -> float:
+    id_now = float(current_id_ref)
+    id_base = float(max(base_id_ref, 0.0))
+    if not bool(enabled):
+        return id_base
+    v_lim = None if v_limit is None else float(v_limit)
+    if v_lim is None or v_lim <= 1e-9:
+        return id_base
+    id_min = float(max(0.0, min(id_min, id_base)))
+    trigger = float(max(0.0, trigger_ratio))
+    relax = float(max(0.0, min(relax_ratio, trigger)))
+    v_ratio = float(max(0.0, v_mag / v_lim))
+    if v_ratio >= trigger:
+        return float(max(id_min, id_now - float(max(dec_step, 0.0))))
+    if v_ratio <= relax and id_now < id_base:
+        return float(min(id_base, id_now + float(max(relax_step, 0.0))))
+    return float(max(id_min, min(id_base, id_now)))
+
+
 class FocController:
     def __init__(self, params: FocParams, motor_params: MotorParams, dt: float):
         self.params = params
@@ -52,6 +83,8 @@ class FocController:
         self.last_iq_ref = 0.0
         self.last_id_ref = 0.0
         self.max_di_dt = 500.0  # A/s
+        base_id_ref = float(params.id_ref if params.id_ref is not None else 0.5 * NAMEPLATE_I_N)
+        self._fw_id_ref = max(base_id_ref, 0.0)
 
     def reset(self) -> None:
         self.pi_id.reset()
@@ -61,6 +94,8 @@ class FocController:
         self.omega_syn = 0.0
         self.last_iq_ref = 0.0
         self.last_id_ref = 0.0
+        base_id_ref = float(self.params.id_ref if self.params.id_ref is not None else 0.5 * NAMEPLATE_I_N)
+        self._fw_id_ref = max(base_id_ref, 0.0)
 
     def step(
         self,
@@ -90,7 +125,8 @@ class FocController:
         i_q_ref = self.pi_speed.step(e_speed)
         if self.params.iq_limit is not None:
             i_q_ref = max(-self.params.iq_limit, min(self.params.iq_limit, i_q_ref))
-        i_d_ref = self.params.id_ref if self.params.id_ref is not None else 0.5 * NAMEPLATE_I_N
+        id_base = float(self.params.id_ref if self.params.id_ref is not None else 0.5 * NAMEPLATE_I_N)
+        i_d_ref = float(self._fw_id_ref if bool(getattr(self.params, "field_weakening_enable", False)) else id_base)
 
         # ограничиваем скорость изменения ссылок
         max_delta = self.max_di_dt * self.dt
@@ -104,6 +140,27 @@ class FocController:
 
         v_d = self.pi_id.step(e_id)
         v_q = self.pi_iq.step(e_iq)
+
+        if self.params.v_limit is not None and bool(getattr(self.params, "field_weakening_enable", False)):
+            fw_id_ref = apply_field_weakening_id_ref(
+                enabled=bool(getattr(self.params, "field_weakening_enable", False)),
+                current_id_ref=float(i_d_ref),
+                base_id_ref=float(id_base),
+                v_mag=math.hypot(v_d, v_q),
+                v_limit=self.params.v_limit,
+                id_min=float(getattr(self.params, "field_weakening_id_min", 0.0)),
+                trigger_ratio=float(getattr(self.params, "field_weakening_trigger_ratio", 0.98)),
+                relax_ratio=float(getattr(self.params, "field_weakening_relax_ratio", 0.92)),
+                dec_step=float(getattr(self.params, "field_weakening_dec_step", 0.05)),
+                relax_step=float(getattr(self.params, "field_weakening_relax_step", 0.02)),
+            )
+            if abs(fw_id_ref - float(i_d_ref)) > 1e-12:
+                i_d_ref = max(self.last_id_ref - max_delta, min(self.last_id_ref + max_delta, float(fw_id_ref)))
+                self.last_id_ref = i_d_ref
+                e_id = i_d_ref - i_d
+                v_d = self.pi_id.step(e_id)
+                v_q = self.pi_iq.step(e_iq)
+            self._fw_id_ref = float(i_d_ref)
 
         # при необходимости ограничиваем результирующее напряжение по модулю
         if self.params.v_limit is not None:
@@ -129,4 +186,4 @@ class FocController:
         return v_d, v_q, theta_e, omega_syn, info
 
 
-__all__ = ["FocController", "PI"]
+__all__ = ["FocController", "PI", "apply_field_weakening_id_ref"]

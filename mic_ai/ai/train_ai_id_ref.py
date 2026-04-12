@@ -435,6 +435,7 @@ def _run_external_step27_selection(
     *,
     run_dir: Path,
     motor: str,
+    config_path: str | None = None,
     ai_control_mode: str = "ai_id_ref",
     candidate_json: str | None,
     candidate_index: int,
@@ -481,6 +482,7 @@ def _run_external_step27_selection(
     candidate_json_arg = "" if candidate_json is None else str(candidate_json)
     summary = scan_checkpoints(
         motor=str(motor),
+        config_path=None if config_path is None else str(config_path),
         ai_control_mode=str(ai_control_mode),
         checkpoint_glob=str((run_dir / "eval").resolve()),
         candidate_json=candidate_json_arg,
@@ -523,6 +525,7 @@ def _run_external_step27_selection(
     payload: Dict[str, object] = {
         "enabled": True,
         "motor": str(motor),
+        "config_path": None if config_path is None else str(Path(str(config_path)).resolve()),
         "ai_control_mode": str(ai_control_mode),
         "scan_summary_json": str((scan_out_dir / f"{motor}_checkpoint_scan_summary.json").resolve()),
         "scan_rows_json": str((scan_out_dir / f"{motor}_checkpoint_scan.json").resolve()),
@@ -1420,6 +1423,7 @@ def train(
         external_step27_selection = _run_external_step27_selection(
             run_dir=run_dir,
             motor=external_step27_motor_name,
+            config_path=str(env_config),
             ai_control_mode=str(control_mode).lower(),
             candidate_json=None if external_step27_candidate_path is None else str(external_step27_candidate_path),
             candidate_index=int(external_step27_candidate_index),

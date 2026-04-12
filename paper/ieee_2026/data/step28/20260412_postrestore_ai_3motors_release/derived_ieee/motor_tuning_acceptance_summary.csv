@@ -1,0 +1,4 @@
+motor,avg_power_saving_pct_mean,avg_power_saving_pct_min,avg_eta_gain_pct_mean,avg_eta_gain_pct_min,err_failures_mean,err_failures_max,start_stop_power_saving_pct_mean,start_stop_power_saving_pct_min,mean_pass,worst_case_pass,acceptance_pass
+air56,1.0235631825310492,0.9007889773490402,0.123332978753004,0.1043507717743419,0.6,1.0,1.83460534987264,1.527873160396831,True,True,True
+al31,1.0482255792898605,0.3880779822114183,0.0065847670812257,-0.0002060151986144,0.0,0.0,3.897135110315648,1.1903073214278082,True,True,True
+ao2,0.4756327972195923,0.3555318656212447,2.9546136064418205,0.8501016150291529,0.0,0.0,0.0,0.0,True,True,True

@@ -97,6 +97,12 @@ class FocParams:
     id_ref: float = 0.0
     iq_limit: float | None = None
     v_limit: float | None = None
+    field_weakening_enable: bool = False
+    field_weakening_id_min: float = 0.0
+    field_weakening_trigger_ratio: float = 0.98
+    field_weakening_relax_ratio: float = 0.92
+    field_weakening_dec_step: float = 0.05
+    field_weakening_relax_step: float = 0.02
 
 
 @dataclass(frozen=True)

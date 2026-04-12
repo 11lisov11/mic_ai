@@ -2,48 +2,42 @@
 
 Repository for the MIC/AI motor-control research stack, reproducibility pipelines, and IEEE/PGUPS publication artifacts.
 
-## Current Release Scope
+## Current Status
 
-As of `2026-04-12`, the active release scope is:
+As of `2026-04-12`, the full `3-motor` project is closed:
 
 - `AIR56`
 - `AL31`
+- `AO2`
 
-`AO2` is **not removed** from the repository.
-It is kept as a research backlog and a preserved experimental branch so the team can return to it later without losing the accumulated work.
+Canonical strict-verified release:
 
-Operational rule:
+- [20260412_postrestore_ai_3motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release)
+- verify artifact: [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
+- `verification_ok = true`
 
-- release and submission closure are currently evaluated on `AIR56 + AL31`
-- `AO2` remains available in `config/`, `outputs/`, `paper/`, and the training/evaluation tools as a suspended research track
-- do not delete or overwrite `AO2` artifacts when preparing 2-motor release candidates
+Historical milestone kept for provenance:
 
-## What Is In Scope Now
+- [20260412_postrestore_ai_2motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release)
 
-- strict post-restore release closure for `AIR56 + AL31`
-- `Step27 -> Step28 -> verify` reproducibility for the 2-motor release slice
-- publication/package artifacts for the 2-motor release slice
-- onboarding and engineering cleanup that do not depend on `AO2` closure
+## AO2 Resolution
 
-## What Is Out Of Scope For The Current Release
+`AO2` is no longer a suspended backlog branch.
 
-- strict `AO2` closure under the old 3-motor requirement
-- reopening the 2-motor release to chase `AO2` unless the scope is explicitly changed again
+The final closure path was:
 
-## AO2 Status
+- diagnose the physical mismatch of the old `AO2` runtime config
+- rebuild `AO2` around a nameplate-first operating point
+- add optional `field_weakening` support to FOC
+- retune the live `AO2` config and keep the tuned AI actor
+- verify the result under strict `Step27/Step28` `p0.2`
 
-`AO2` is preserved as research groundwork.
+The diagnostic trail is intentionally kept in the repository:
 
-Current state:
-
-- there is a valid research trail showing that `seed 505 / start_stop` can be fixed by a dedicated policy
-- that fix is not yet globally deployable as a single controller
-- current simple runtime dispatch is not sufficient
-
-This means:
-
-- `AO2` is paused, not discarded
-- later work can resume either through a richer policy family or a redesigned runtime dispatch
+- [env_backlog_ao2_nameplate_first.py](C:/mic_theory/config/env_backlog_ao2_nameplate_first.py)
+- [env_backlog_ao2_nameplate_foc_tuned.py](C:/mic_theory/config/env_backlog_ao2_nameplate_foc_tuned.py)
+- [diagnose_motor_nominal_consistency.py](C:/mic_theory/tools/diagnose_motor_nominal_consistency.py)
+- [ao2 fw strict pass](C:/mic_theory/outputs/ao2_fw_grid_20260412af/fw_c/ao2_checkpoint_scan_summary.json)
 
 ## Main Entry Points
 
@@ -51,7 +45,7 @@ This means:
 - [reproduce_ieee_step28.py](C:/mic_theory/tools/reproduce_ieee_step28.py): end-to-end IEEE reproduce/package pipeline
 - [train_any_motor_pipeline.py](C:/mic_theory/tools/train_any_motor_pipeline.py): universal onboarding pipeline
 - [train_3motors_pipeline.py](C:/mic_theory/tools/train_3motors_pipeline.py): multi-motor training pipeline
-- [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active master plan
+- [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
 
 ## Quick Start
 
@@ -61,44 +55,42 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
-Run the active 2-motor strict reproduce flow:
+Run the strict 3-motor reproduce flow:
 
 ```bash
 python tools/reproduce_ieee_step28.py ^
-  --motors air56,al31 ^
+  --motors air56,al31,ao2 ^
   --mic-mode ai ^
   --ai-control-mode ai_id_ref ^
   --strict-verify ^
-  --package-tag 20260412_postrestore_ai_2motors_release
+  --package-tag 20260412_postrestore_ai_3motors_release
 ```
 
-Latest strict-verified 2-motor package:
-
-- [20260412_postrestore_ai_2motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release)
-- verify artifact: [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
-
-Latest onboarding proofs for the active 2-motor scope:
-
-- passport-only green run:
-  - [any_motor_onboarding_report.json](C:/mic_theory/outputs/train_any_motor_pipeline/eval_2motor_rawskip_al31_20260412/any_motor_onboarding_report.json)
-- passport + identification green run:
-  - [any_motor_onboarding_report.json](C:/mic_theory/outputs/train_any_motor_pipeline/eval_2motor_identskip_al31_20260412/any_motor_onboarding_report.json)
-
-Run the underlying Step27 benchmark only:
+Run the underlying strict Step27 benchmark only:
 
 ```bash
 python tools/step27_pipeline.py ^
-  --motors air56,al31 ^
+  --motors air56,al31,ao2 ^
   --mic-mode ai ^
   --ai-control-mode ai_id_ref ^
   --seed-perturbation ^
   --seed-perturb-level 0.2 ^
-  --out-dir outputs/step27_2motors_current
+  --out-dir outputs/step27_3motors_current
 ```
+
+## Validation Snapshot
+
+- strict 3-motor `Step28` verify: green
+- `AO2` motor acceptance in the release package: green
+  - [motor_tuning_acceptance_summary.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/derived_ieee/motor_tuning_acceptance_summary.json)
+- latest focused regression after AO2 FOC/hybrid fixes:
+  - `python -m pytest -q tests/test_step27_report_markdown.py tests/test_step27_hybrid_trigger.py tests/test_vector_foc_field_weakening.py tests/test_scan_step27_checkpoints.py tests/test_train_ai_id_ref_external_step27.py tests/test_diagnose_motor_nominal_consistency.py`
+  - `60 passed`
 
 ## Repository Structure
 
 - `config/`: motor and environment configs
+- `control/`: low-level controllers including FOC
 - `mic_ai/`: AI, metrics, training, runtime tools
 - `tools/`: orchestration and reproducibility scripts
 - `tests/`: regression and smoke tests
@@ -109,6 +101,6 @@ python tools/step27_pipeline.py ^
 ## Notes
 
 - RL checkpoints are not fully stored in git history.
-- `AO2` artifacts are intentionally retained even though the current release scope is 2 motors.
-- The onboarding pipeline default benchmark scope is also `air56,al31`; add `ao2` explicitly only when resuming backlog research.
-- The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over older archived plans.
+- The canonical `AO2` live config is now [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py).
+- The canonical checkpoint registry is [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json).
+- The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over archived plans.

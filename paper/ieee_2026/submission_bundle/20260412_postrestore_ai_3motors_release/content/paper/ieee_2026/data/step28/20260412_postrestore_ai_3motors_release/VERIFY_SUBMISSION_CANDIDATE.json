@@ -1,0 +1,25 @@
+{
+  "generated_utc": "2026-04-12T12:46:34.869249+00:00",
+  "step28_dir": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release",
+  "ieee_root": "C:\\mic_theory\\paper\\ieee_2026",
+  "tag": "20260412_postrestore_ai_3motors_release",
+  "guardrails_policy": "C:\\mic_theory\\paper\\ieee_2026\\guardrails_policy.json",
+  "allow_dirty": true,
+  "checklist_ready_for_submission": true,
+  "release_manifest_ok": true,
+  "manuscript_template_ok": true,
+  "verification_ok": true,
+  "artifacts": {
+    "checklist_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\FINAL_CHECKLIST_AUTO.md",
+    "candidate_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\SUBMISSION_CANDIDATE.md",
+    "candidate_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\SUBMISSION_CANDIDATE.json",
+    "release_manifest_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\RELEASE_COMMIT_MANIFEST.md",
+    "release_manifest_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\RELEASE_COMMIT_MANIFEST.json",
+    "dossier_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\IEEE_SUBMISSION_DOSSIER.md",
+    "dossier_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\IEEE_SUBMISSION_DOSSIER.json",
+    "manuscript_consistency_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\MANUSCRIPT_CONSISTENCY_REPORT.md",
+    "manuscript_consistency_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\MANUSCRIPT_CONSISTENCY_REPORT.json",
+    "manuscript_template_md": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\MANUSCRIPT_TEMPLATE_REPORT.md",
+    "manuscript_template_json": "C:\\mic_theory\\paper\\ieee_2026\\data\\step28\\20260412_postrestore_ai_3motors_release\\MANUSCRIPT_TEMPLATE_REPORT.json"
+  }
+}

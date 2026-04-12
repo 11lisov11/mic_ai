@@ -1,0 +1,53 @@
+{
+  "env_config": "config\\env_research_ao2_32_4_3kw.py",
+  "ai_checkpoint": "C:\\mic_theory\\outputs\\ao2_tuned_rampfocus_pilot_20260412m\\shared\\checkpoints\\env_backlog_ao2_nameplate_foc_tuned\\best_actor.pth",
+  "mic_policy": "ai",
+  "mic_id_ref": null,
+  "mic_id_ref_low": null,
+  "mic_id_ref_high": null,
+  "mic_id_ref_speed_tol_rel": 0.05,
+  "mic_id_ref_omega_min": 0.1,
+  "omega_ref_pu": 1.0,
+  "ai_mode": "ai_id_ref",
+  "omega_nom_source": "nameplate",
+  "omega_nominal": 149.7492498211135,
+  "m_nom": 20.03348934023857,
+  "loads": [
+    4.0066978680477146,
+    8.013395736095429,
+    12.020093604143142,
+    16.026791472190858,
+    20.03348934023857
+  ],
+  "load_values": [
+    4.0066978680477146,
+    8.013395736095429,
+    12.020093604143142,
+    16.026791472190858,
+    20.03348934023857
+  ],
+  "speed_pu": [
+    0.3,
+    0.5,
+    0.7,
+    0.9
+  ],
+  "dt": 0.001,
+  "t_end": 1.5,
+  "window_frac": 0.25,
+  "voltage_scale": null,
+  "i_max": null,
+  "foc_kp_speed": null,
+  "foc_ki_speed": null,
+  "speed_tol_rel": 0.05,
+  "speed_tol_abs": null,
+  "ai_id_relative": false,
+  "delta_id_max": 0.3,
+  "export_abc_traces": false,
+  "plot_style": "vak_ru",
+  "plot_formats": [
+    "png",
+    "pdf",
+    "svg"
+  ]
+}

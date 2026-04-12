@@ -2,6 +2,13 @@
 
 This folder stores publication-ready artifacts for the IEEE submission workflow.
 
+## Latest strict-verified packages
+
+- current canonical 3-motor release:
+  - `paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release`
+- historical 2-motor release milestone:
+  - `paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release`
+
 Core structure:
 - `paper/ieee_2026/manuscript.md` - manuscript scaffold synchronized with frozen step28 packages.
 - `paper/ieee_2026/fig/` - promoted publication figures (see `paper/ieee_2026/fig/README.md`).

@@ -252,6 +252,7 @@ def _write_progress_summary(
 def _scan_state_signature(
     *,
     motor: str,
+    config_path: str,
     checkpoint_glob: str,
     ai_control_mode: str,
     candidate_json: str,
@@ -264,6 +265,7 @@ def _scan_state_signature(
 ) -> Dict[str, object]:
     return {
         "motor": str(motor),
+        "config_path": str(config_path),
         "checkpoint_glob": str(checkpoint_glob),
         "ai_control_mode": str(ai_control_mode),
         "candidate_json": str(candidate_json),
@@ -318,6 +320,7 @@ def _skip_row(ckpt: Path, reason: str) -> Dict[str, object]:
 def scan_checkpoints(
     *,
     motor: str,
+    config_path: str | None = None,
     checkpoint_glob: str,
     candidate_json: str = "",
     ai_control_mode: str = "ai_id_ref",
@@ -376,7 +379,7 @@ def scan_checkpoints(
         acceptance_envelopes_path = Path(acceptance_envelopes).expanduser().resolve()
 
     env_cfg, _, _ = _load_env_and_agent(
-        MOTOR_REGISTRY[str(motor)].config_path,
+        str(config_path or MOTOR_REGISTRY[str(motor)].config_path),
         foc_disable_lut=bool(foc_disable_lut),
         require_agent=False,
         motor_key=str(motor),
@@ -408,6 +411,7 @@ def scan_checkpoints(
 
     signature = _scan_state_signature(
         motor=str(motor),
+        config_path="" if config_path is None else str(config_path),
         checkpoint_glob=str(checkpoint_glob),
         ai_control_mode=ai_mode,
         candidate_json=str(candidate_json),
@@ -711,6 +715,7 @@ def scan_checkpoints(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate many checkpoints against step27 metrics with one fixed candidate.")
     parser.add_argument("--motor", required=True, choices=sorted(MOTOR_REGISTRY.keys()))
+    parser.add_argument("--config-path", default="", help="Optional explicit env config path. Overrides registry config for the selected motor.")
     parser.add_argument("--checkpoint-glob", required=True, help="Checkpoint file, directory, or glob pattern (e.g. outputs/run/eval/actor_ep*.pth).")
     parser.add_argument(
         "--ai-control-mode",
@@ -757,6 +762,7 @@ def main() -> None:
 
     scan_checkpoints(
         motor=str(args.motor),
+        config_path=None if not str(args.config_path).strip() else str(args.config_path),
         checkpoint_glob=str(args.checkpoint_glob),
         ai_control_mode=str(args.ai_control_mode),
         candidate_json=str(args.candidate_json),

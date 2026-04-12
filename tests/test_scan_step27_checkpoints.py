@@ -279,6 +279,69 @@ def test_scan_checkpoints_skips_missing_checkpoint(tmp_path: Path, monkeypatch: 
     assert summary["skipped_rows"][0]["skip_reason"] == "missing_file"
 
 
+def test_scan_checkpoints_uses_explicit_config_path_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ckpt = tmp_path / "actor_ep000.pth"
+    ckpt.write_bytes(b"checkpoint")
+
+    candidate_json = tmp_path / "candidate.json"
+    candidate_json.write_text(
+        json.dumps([{"tag": "base_current"}], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    seen: dict[str, object] = {}
+    monkeypatch.setattr(
+        "tools.scan_step27_checkpoints._collect_checkpoint_paths",
+        lambda _pattern: [ckpt],
+    )
+
+    def _fake_load_env_and_agent(config_path, **kwargs):
+        seen["config_path"] = config_path
+        return object(), None, None
+
+    monkeypatch.setattr(
+        "tools.scan_step27_checkpoints._load_env_and_agent",
+        _fake_load_env_and_agent,
+    )
+    monkeypatch.setattr(
+        "tools.scan_step27_checkpoints._select_candidate",
+        lambda *args, **kwargs: (_base_candidate(), 1),
+    )
+    monkeypatch.setattr(
+        "tools.scan_step27_checkpoints._load_agent",
+        lambda path: object(),
+    )
+    monkeypatch.setattr(
+        "tools.scan_step27_checkpoints._eval_candidate",
+        lambda **kwargs: {
+            "avg_power_saving_pct": 1.0,
+            "avg_eta_gain_pct": 2.0,
+            "err_failures": 0.0,
+            "start_stop_power_saving_pct": 3.0,
+            "worst_current_peak_ratio": 1.0,
+            "worst_current_mean_ratio": 1.0,
+            "avg_power_saving_pct_min_seed": 1.0,
+            "avg_eta_gain_pct_min_seed": 2.0,
+            "err_failures_max_seed": 0.0,
+            "start_stop_power_saving_pct_min_seed": 3.0,
+        },
+    )
+
+    summary = scan_checkpoints(
+        motor="ao2",
+        config_path="config/env_backlog_ao2_nameplate_foc_tuned.py",
+        checkpoint_glob=str(ckpt),
+        candidate_json=str(candidate_json),
+        seeds=[101],
+        scenarios=["speed_step"],
+        out_dir=tmp_path / "scan_out_cfg",
+        top_k=3,
+    )
+
+    assert seen["config_path"] == "config/env_backlog_ao2_nameplate_foc_tuned.py"
+    assert summary["best"]["checkpoint_name"] == "actor_ep000.pth"
+
+
 def test_scan_checkpoints_prefers_envelope_passing_row(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ckpt_bad = tmp_path / "actor_ep000.pth"
     ckpt_good = tmp_path / "actor_ep001.pth"
@@ -745,6 +808,7 @@ def test_scan_checkpoints_resume_reuses_saved_state(tmp_path: Path, monkeypatch:
     state_path = out_dir / "ao2_checkpoint_scan_state.json"
     signature = _scan_state_signature(
         motor="ao2",
+        config_path="",
         ai_control_mode="ai_id_ref",
         checkpoint_glob="unused",
         candidate_json=str(candidate_json),

@@ -1,55 +1,59 @@
 from __future__ import annotations
 
+import math
 from dataclasses import replace
 
-from config.env import create_default_env, estimate_motor_params_from_nameplate
+from config.env import create_default_env, estimate_id_ref_from_nameplate, estimate_motor_params_from_nameplate
 
 
 _base = create_default_env()
 
 NAMEPLATE_AO2_32_4_3KW = {
-    "P_n": 3.00 * 1000.0,  # W
-    "U_ll": 380.0,  # V
-    "I_n": 7.20,  # A
+    "P_n": 3.00 * 1000.0,
+    "U_ll": 380.0,
+    "I_n": 7.20,
     "cos_phi_n": 0.82,
     "eta_n": 0.84,
-    "f_n": 50.0,  # Hz
-    "p": 2,  # pole pairs (4-pole)
-    "n_rated": 1430.0,  # rpm
+    "f_n": 50.0,
+    "p": 2,
+    "n_rated": 1430.0,
     "connection": "Y",
     "J": 0.075,
 }
 
-_motor_est = estimate_motor_params_from_nameplate(NAMEPLATE_AO2_32_4_3KW)
-_motor = replace(
-    _motor_est,
-    # Electrical dynamics tuned into a stable region for long scenario rollouts.
-    Rs=1.80,
-    Rr=1.60,
-    Lm=0.18,
-    Ls_sigma=0.06,
-    Lr_sigma=0.06,
-    J=0.020,
-    B=1.5e-3,
-)
-
-_load_torque = 1.0
+_motor = estimate_motor_params_from_nameplate(NAMEPLATE_AO2_32_4_3KW)
+_omega_nom = 2.0 * math.pi * float(NAMEPLATE_AO2_32_4_3KW["n_rated"]) / 60.0
+_torque_nom = float(NAMEPLATE_AO2_32_4_3KW["P_n"]) / max(_omega_nom, 1e-6)
+_omega_sync_rpm = 60.0 * float(NAMEPLATE_AO2_32_4_3KW["f_n"]) / max(int(NAMEPLATE_AO2_32_4_3KW["p"]), 1)
+_omega_rated_pu = float(NAMEPLATE_AO2_32_4_3KW["n_rated"]) / max(_omega_sync_rpm, 1e-6)
+_id_ref_nameplate = float(estimate_id_ref_from_nameplate(NAMEPLATE_AO2_32_4_3KW, k_m=0.35))
 
 _sim = replace(
     _base.sim,
     t_end=2.0,
-    # NOTE: This motor model + default PI gains are tuned around dt=1e-3.
-    # Smaller dt significantly degrades speed tracking in our current setup.
     dt=1e-3,
     save_prefix="research_ao2_32_4_3kw",
-    scenario_name="speed_step",
-    load_torque=float(_load_torque),
+    scenario_name=f"speed_step:{_omega_rated_pu}",
+    load_torque=0.25 * _torque_nom,
 )
 
 _foc = replace(
     _base.foc,
-    id_ref=1.80,
-    iq_limit=12.0,
+    # Nameplate-first AO2 branch tuned on 2026-04-12.
+    kp_id=2.0,
+    ki_id=200.0,
+    kp_iq=2.0,
+    ki_iq=200.0,
+    kp_speed=0.1,
+    ki_speed=1.0,
+    id_ref=7.0,
+    iq_limit=10.0,
+    field_weakening_enable=True,
+    field_weakening_id_min=4.5,
+    field_weakening_trigger_ratio=0.98,
+    field_weakening_relax_ratio=0.92,
+    field_weakening_dec_step=0.05,
+    field_weakening_relax_step=0.03,
 )
 
 _inverter = replace(
@@ -68,7 +72,9 @@ loss_core_psi_exp = 0.0
 
 id_ref_lut_path = None
 
-ai_omega_ref_pu_range = (0.3, 1.1)
+ao2_omega_rated_pu = _omega_rated_pu
+ao2_id_ref_nameplate = _id_ref_nameplate
+ai_omega_ref_pu_range = (0.3, float(_omega_rated_pu))
 ai_load_mult_range = (0.5, 1.6)
 ai_drift_every_episodes = 1
 ai_drift_params = ("Rs", "Rr", "Lm", "Ls_sigma", "Lr_sigma", "J", "B")
@@ -82,36 +88,35 @@ ai_drift_ranges = {
     "B": (0.6, 1.8),
 }
 
-# Step27/Step28 AI evaluation defaults (sensorless MIC).
-ai_eval_checkpoint_path = "outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth"
-ai_eval_id_ref_alpha = 0.17846020589159092
-ai_eval_delta_id_max = 0.1110071160878588
+# AO2 live pair refreshed on the calibrated nameplate-first branch (2026-04-12):
+# checkpoint: outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth
+# strict artifact: outputs/ao2_fw_grid_20260412af/fw_c/ao2_checkpoint_scan_summary.json
+ai_eval_checkpoint_path = "outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth"
+ai_eval_id_ref_alpha = 0.1728
+ai_eval_delta_id_max = 0.1074
 ai_eval_id_ref_relative = True
 ai_eval_id_ref_allow_positive_delta = True
 ai_eval_id_ref_gate_speed_tol_rel = 0.11574043239110934
 ai_eval_id_ref_gate_min_scale = 0.16952234767485264
 ai_eval_id_ref_gate_exponent = 1.1018946738279602
 
-# AO2 live pair refreshed on the current runtime (2026-04-11):
-# checkpoint: outputs/ai_id_ref/checkpoints/env_research_ao2_32_4_3kw/best_actor.pth
-# candidate source: outputs/ao2_ep003_mididle_fix_20260411ap/ao2_tuning_summary.json
 ai_eval_supervisor_enabled = True
 ai_eval_sup_objective = "p_in"
 ai_eval_sup_speed_tol_rel = 0.1028302317457757
 ai_eval_sup_speed_tol_abs = 0.0
 ai_eval_sup_omega_min = 0.1
 ai_eval_sup_update = 19
-ai_eval_sup_dither = 0.0344178847240374
-ai_eval_sup_step = 0.013785822224478425
-ai_eval_sup_bias_max = 0.22758164165553707
+ai_eval_sup_dither = 0.0279
+ai_eval_sup_step = 0.01125
+ai_eval_sup_bias_max = 0.1865
 ai_eval_sup_shaft_eps = 10.0
 ai_eval_sup_reset_decay = 0.98
 ai_eval_sup_idle_enable = True
-ai_eval_sup_idle_omega_min = 0.06
-ai_eval_sup_idle_action = -0.5
+ai_eval_sup_idle_omega_min = 0.05
+ai_eval_sup_idle_action = -0.46
 ai_eval_sup_idle_blend = 0.10
 ai_eval_sup_idle_exit_boost = 7
-ai_eval_sup_idle_exit_action = 0.97
-ai_eval_sup_idle_bias_decay = 0.98
+ai_eval_sup_idle_exit_action = 0.978
+ai_eval_sup_idle_bias_decay = 0.982
 
 __all__ = ["ENV"]

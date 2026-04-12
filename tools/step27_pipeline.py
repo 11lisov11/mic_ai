@@ -562,6 +562,14 @@ def _resolve_ai_id_ref_hybrid_bundle(env_cfg: object) -> Dict[str, object] | Non
         "latch_steps": int(getattr(env_cfg, "ai_eval_hybrid_latch_steps", 0)),
         "speed_err_threshold_rel": float(getattr(env_cfg, "ai_eval_hybrid_speed_err_threshold_rel", 0.0)),
         "speed_err_threshold_abs": float(getattr(env_cfg, "ai_eval_hybrid_speed_err_threshold_abs", 0.0)),
+        "speed_trigger_max_omega_ref_pu": float(getattr(env_cfg, "ai_eval_hybrid_speed_trigger_max_omega_ref_pu", 0.0)),
+        "speed_trigger_max_omega_pu": float(getattr(env_cfg, "ai_eval_hybrid_speed_trigger_max_omega_pu", 0.0)),
+        "voltage_trigger_threshold": float(getattr(env_cfg, "ai_eval_hybrid_voltage_trigger_threshold", 0.0)),
+        "voltage_trigger_min_omega_ref_pu": float(
+            getattr(env_cfg, "ai_eval_hybrid_voltage_trigger_min_omega_ref_pu", 0.0)
+        ),
+        "voltage_trigger_min_omega_pu": float(getattr(env_cfg, "ai_eval_hybrid_voltage_trigger_min_omega_pu", 0.0)),
+        "voltage_trigger_require_speed": bool(getattr(env_cfg, "ai_eval_hybrid_voltage_trigger_require_speed", False)),
     }
     _try_set_attr(env_cfg, "_ai_eval_hybrid_bundle_cache", bundle)
     return bundle
@@ -573,10 +581,19 @@ def _hybrid_should_activate_secondary(
     new_load: float,
     omega_ref: float,
     omega: float,
+    omega_ref_pu: float | None = None,
+    omega_pu: float | None = None,
+    voltage_ratio: float | None = None,
     load_delta_threshold: float,
     positive_only: bool,
     speed_err_threshold_rel: float,
     speed_err_threshold_abs: float,
+    speed_trigger_max_omega_ref_pu: float = 0.0,
+    speed_trigger_max_omega_pu: float = 0.0,
+    voltage_trigger_threshold: float = 0.0,
+    voltage_trigger_min_omega_ref_pu: float = 0.0,
+    voltage_trigger_min_omega_pu: float = 0.0,
+    voltage_trigger_require_speed: bool = False,
 ) -> bool:
     load_delta = float(new_load) - float(prev_load)
     load_trigger = False
@@ -593,8 +610,23 @@ def _hybrid_should_activate_secondary(
         omega_ref_abs = abs(float(omega_ref))
         err_limit = max(speed_err_abs, speed_err_rel * max(omega_ref_abs, 1e-6))
         speed_trigger = abs(float(omega_ref) - float(omega)) >= err_limit
+        if speed_trigger and float(max(0.0, speed_trigger_max_omega_ref_pu)) > 0.0 and omega_ref_pu is not None:
+            speed_trigger = abs(float(omega_ref_pu)) <= float(max(0.0, speed_trigger_max_omega_ref_pu))
+        if speed_trigger and float(max(0.0, speed_trigger_max_omega_pu)) > 0.0 and omega_pu is not None:
+            speed_trigger = abs(float(omega_pu)) <= float(max(0.0, speed_trigger_max_omega_pu))
 
-    return bool(load_trigger or speed_trigger)
+    voltage_trigger = False
+    voltage_threshold = float(max(0.0, voltage_trigger_threshold))
+    if voltage_threshold > 0.0 and voltage_ratio is not None:
+        voltage_trigger = float(voltage_ratio) >= voltage_threshold
+        if voltage_trigger and float(max(0.0, voltage_trigger_min_omega_ref_pu)) > 0.0 and omega_ref_pu is not None:
+            voltage_trigger = abs(float(omega_ref_pu)) >= float(max(0.0, voltage_trigger_min_omega_ref_pu))
+        if voltage_trigger and float(max(0.0, voltage_trigger_min_omega_pu)) > 0.0 and omega_pu is not None:
+            voltage_trigger = abs(float(omega_pu)) >= float(max(0.0, voltage_trigger_min_omega_pu))
+        if voltage_trigger and bool(voltage_trigger_require_speed):
+            voltage_trigger = bool(speed_trigger)
+
+    return bool(load_trigger or speed_trigger or voltage_trigger)
 
 
 def _sample_supervisor_candidate(
@@ -806,6 +838,15 @@ def _simulate_ai_hybrid(
     latch_steps = int(hybrid_bundle.get("latch_steps", 0))
     speed_err_threshold_rel = float(max(0.0, float(hybrid_bundle.get("speed_err_threshold_rel", 0.0))))
     speed_err_threshold_abs = float(max(0.0, float(hybrid_bundle.get("speed_err_threshold_abs", 0.0))))
+    speed_trigger_max_omega_ref_pu = float(max(0.0, float(hybrid_bundle.get("speed_trigger_max_omega_ref_pu", 0.0))))
+    speed_trigger_max_omega_pu = float(max(0.0, float(hybrid_bundle.get("speed_trigger_max_omega_pu", 0.0))))
+    voltage_trigger_threshold = float(max(0.0, float(hybrid_bundle.get("voltage_trigger_threshold", 0.0))))
+    voltage_trigger_min_omega_ref_pu = float(
+        max(0.0, float(hybrid_bundle.get("voltage_trigger_min_omega_ref_pu", 0.0)))
+    )
+    voltage_trigger_min_omega_pu = float(max(0.0, float(hybrid_bundle.get("voltage_trigger_min_omega_pu", 0.0))))
+    voltage_trigger_require_speed = bool(hybrid_bundle.get("voltage_trigger_require_speed", False))
+    foc_v_limit = float(getattr(getattr(env_cfg, "foc", None), "v_limit", 0.0) or 0.0)
 
     steps = int(max(t_end / dt, 1))
     t = np.zeros(steps, dtype=float)
@@ -873,16 +914,31 @@ def _simulate_ai_hybrid(
                 gate_open=gate_open,
             )
 
+        controller_params = getattr(getattr(env.base_env, "controller", None), "params", None)
+        v_limit = float(getattr(controller_params, "v_limit", foc_v_limit) or foc_v_limit or 0.0)
+        voltage_ratio = None
+        if v_limit > 0.0 and v_abc.size:
+            voltage_ratio = float(np.max(np.abs(v_abc)) / max(v_limit, 1e-6))
+
         new_load = float(obs.get("load_torque_norm", prev_load))
         trigger = _hybrid_should_activate_secondary(
             prev_load=prev_load,
             new_load=new_load,
             omega_ref=omega_ref[k],
             omega=omega[k],
+            omega_ref_pu=(omega_ref[k] / max(omega_nom, 1e-6)),
+            omega_pu=(omega[k] / max(omega_nom, 1e-6)),
+            voltage_ratio=voltage_ratio,
             load_delta_threshold=load_delta_threshold,
             positive_only=positive_only,
             speed_err_threshold_rel=speed_err_threshold_rel,
             speed_err_threshold_abs=speed_err_threshold_abs,
+            speed_trigger_max_omega_ref_pu=speed_trigger_max_omega_ref_pu,
+            speed_trigger_max_omega_pu=speed_trigger_max_omega_pu,
+            voltage_trigger_threshold=voltage_trigger_threshold,
+            voltage_trigger_min_omega_ref_pu=voltage_trigger_min_omega_ref_pu,
+            voltage_trigger_min_omega_pu=voltage_trigger_min_omega_pu,
+            voltage_trigger_require_speed=voltage_trigger_require_speed,
         )
         if (not active_secondary) and trigger:
             active_secondary = True
@@ -1457,6 +1513,7 @@ def _build_report_markdown(
     reproducibility: Dict[str, object],
 ) -> str:
     lines: List[str] = []
+    include_air56_section = "air56" in {str(m).strip().lower() for m in motors}
     lines.append("# Step27 Pipeline Report")
     lines.append("")
     lines.append(f"- Motors: `{','.join(motors)}`")
@@ -1468,22 +1525,23 @@ def _build_report_markdown(
             _format_num(seed_perturbation.level),
         )
     )
-    lines.append("")
-    lines.append("## AIR56 Acceptance Criteria")
-    lines.append("")
-    lines.append(
-        "- avg_power_saving_pct > `{}`; avg_eta_gain_pct >= `{}`; err_failures <= `{}`; start_stop >= `{}`".format(
-            acceptance.min_avg_power_saving_pct,
-            acceptance.min_avg_eta_gain_pct,
-            acceptance.max_err_failures,
-            acceptance.min_start_stop_power_saving_pct,
+    if include_air56_section:
+        lines.append("")
+        lines.append("## AIR56 Acceptance Criteria")
+        lines.append("")
+        lines.append(
+            "- avg_power_saving_pct > `{}`; avg_eta_gain_pct >= `{}`; err_failures <= `{}`; start_stop >= `{}`".format(
+                acceptance.min_avg_power_saving_pct,
+                acceptance.min_avg_eta_gain_pct,
+                acceptance.max_err_failures,
+                acceptance.min_start_stop_power_saving_pct,
+            )
         )
-    )
-    lines.append(f"- Mean pass: `{air56_accept.get('mean_pass', False)}`")
-    lines.append(f"- Worst-case pass: `{air56_accept.get('worst_case_pass', False)}`")
-    lines.append("")
+        lines.append(f"- Mean pass: `{air56_accept.get('mean_pass', False)}`")
+        lines.append(f"- Worst-case pass: `{air56_accept.get('worst_case_pass', False)}`")
+        lines.append("")
 
-    if tuning is not None:
+    if include_air56_section and tuning is not None:
         selected = dict(tuning.get("selected_metrics", {}))
         lines.append("## AIR56 Tuned Candidate")
         lines.append("")
