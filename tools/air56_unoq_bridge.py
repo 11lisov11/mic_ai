@@ -151,29 +151,77 @@ def _resolve_existing_file(path_text: str, label: str, *, root: Path = ROOT) -> 
     return path
 
 
+def _finite_float(value: object, field: str) -> float:
+    out = float(value)
+    if not math.isfinite(out):
+        raise ValueError(f"{field} must be finite: {out}")
+    return out
+
+
 def _validate_runtime_args(args: argparse.Namespace) -> None:
     if int(args.baud) <= 0:
         raise ValueError("--baud must be positive")
-    if float(args.serial_timeout) <= 0.0:
+    serial_timeout = _finite_float(args.serial_timeout, "--serial-timeout")
+    if serial_timeout <= 0.0:
         raise ValueError("--serial-timeout must be positive")
-    if int(args.fault_mask) < 0 or int(args.fault_mask) > 0xFFFF:
+    fault_mask = int(args.fault_mask)
+    if fault_mask < 0 or fault_mask > 0xFFFF:
         raise ValueError("--fault-mask must be in uint16 range")
-    if float(args.id_min) > float(args.id_max):
+    id_min = _finite_float(args.id_min, "--id-min")
+    id_max = _finite_float(args.id_max, "--id-max")
+    if id_min < 0.0:
+        raise ValueError("--id-min must be non-negative")
+    if id_min > id_max:
         raise ValueError("--id-min must be <= --id-max")
-    if float(args.cmd_rate_limit_a_per_s) < 0.0:
+    cmd_rate_limit = _finite_float(args.cmd_rate_limit_a_per_s, "--cmd-rate-limit-a-per-s")
+    if cmd_rate_limit < 0.0:
         raise ValueError("--cmd-rate-limit-a-per-s must be non-negative")
-    if args.load_est_gain is not None and float(args.load_est_gain) < 0.0:
-        raise ValueError("--load-est-gain must be non-negative")
+    if args.load_est_gain is not None:
+        load_est_gain = _finite_float(args.load_est_gain, "--load-est-gain")
+        if load_est_gain < 0.0:
+            raise ValueError("--load-est-gain must be non-negative")
     if int(args.log_every) < 0:
         raise ValueError("--log-every must be non-negative")
 
 
 def _validate_id_ref_window(*, id_ref_base: float, id_min: float, id_max: float) -> None:
-    base = float(id_ref_base)
-    lo = float(id_min)
-    hi = float(id_max)
+    base = _finite_float(id_ref_base, "id_ref_base")
+    lo = _finite_float(id_min, "id_min")
+    hi = _finite_float(id_max, "id_max")
+    if lo < 0.0:
+        raise ValueError("--id-min must be non-negative")
+    if lo > hi:
+        raise ValueError("--id-min must be <= --id-max")
     if base < lo or base > hi:
         raise ValueError("FOC base id_ref must be inside --id-min/--id-max")
+
+
+def _validate_id_ref_params(params: Air56IdRefParams) -> None:
+    _validate_id_ref_window(
+        id_ref_base=params.id_ref_base,
+        id_min=params.id_ref_min,
+        id_max=params.id_ref_max,
+    )
+    alpha = _finite_float(params.id_ref_alpha, "id_ref_alpha")
+    if alpha < 0.0 or alpha > 1.0:
+        raise ValueError("id_ref_alpha must be in [0, 1]")
+    delta_id_max = _finite_float(params.delta_id_max, "delta_id_max")
+    if delta_id_max < 0.0:
+        raise ValueError("delta_id_max must be non-negative")
+    if params.gate_speed_tol_abs is not None:
+        gate_abs = _finite_float(params.gate_speed_tol_abs, "gate_speed_tol_abs")
+        if gate_abs < 0.0:
+            raise ValueError("gate_speed_tol_abs must be non-negative")
+    if params.gate_speed_tol_rel is not None:
+        gate_rel = _finite_float(params.gate_speed_tol_rel, "gate_speed_tol_rel")
+        if gate_rel < 0.0:
+            raise ValueError("gate_speed_tol_rel must be non-negative")
+    gate_min_scale = _finite_float(params.gate_min_scale, "gate_min_scale")
+    if gate_min_scale < 0.0 or gate_min_scale > 1.0:
+        raise ValueError("gate_min_scale must be in [0, 1]")
+    gate_exponent = _finite_float(params.gate_exponent, "gate_exponent")
+    if gate_exponent < 0.0:
+        raise ValueError("gate_exponent must be non-negative")
 
 
 def _status_fault(status: int, fault_mask: int) -> bool:
@@ -264,6 +312,7 @@ def _action_to_id_ref(
     omega_meas: float,
     params: Air56IdRefParams,
 ) -> tuple[float, float, float]:
+    _validate_id_ref_params(params)
     action = _clip_action_scalar(action)
     gate_scale, gate_tol = _compute_gate_scale(
         omega_ref=float(omega_ref),
@@ -299,7 +348,7 @@ def _load_id_ref_params(env_cfg: object, prefix: str, *, id_ref_min: float, id_r
     gate_abs = getattr(env_cfg, f"{prefix}id_ref_gate_speed_tol", None)
     foc = getattr(env_cfg, "foc", None)
     id_ref_base = float(getattr(foc, "id_ref", 0.0) or 0.0)
-    return Air56IdRefParams(
+    params = Air56IdRefParams(
         id_ref_base=id_ref_base,
         id_ref_min=float(id_ref_min),
         id_ref_max=float(id_ref_max),
@@ -312,6 +361,8 @@ def _load_id_ref_params(env_cfg: object, prefix: str, *, id_ref_min: float, id_r
         ai_id_relative=bool(getattr(env_cfg, f"{prefix}id_ref_relative", False)),
         allow_positive_delta=bool(getattr(env_cfg, f"{prefix}id_ref_allow_positive_delta", True)),
     )
+    _validate_id_ref_params(params)
+    return params
 
 
 def _load_supervisor(env_cfg: object, enabled_attr: str, prefix: str, *, omega_nominal: float) -> Optional[AiIdRefSupervisor]:

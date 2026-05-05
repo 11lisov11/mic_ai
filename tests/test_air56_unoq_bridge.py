@@ -11,6 +11,7 @@ from tools.air56_unoq_bridge import (
     _clip_action_scalar,
     _compute_gate_scale,
     _estimate_load_nm_from_iq,
+    _finite_float,
     _load_id_ref_params,
     _load_supervisor,
     _parse_host_port,
@@ -20,6 +21,7 @@ from tools.air56_unoq_bridge import (
     _should_switch_secondary,
     _status_fault,
     _validate_id_ref_window,
+    _validate_id_ref_params,
     _validate_runtime_args,
 )
 from tools.uno_q_protocol import CURRENT_SCALE, Telemetry
@@ -291,6 +293,49 @@ def test_load_id_ref_params_reads_env_config_attrs() -> None:
     assert not params.allow_positive_delta
 
 
+def test_validate_id_ref_params_rejects_bad_config_values() -> None:
+    _validate_id_ref_params(_params())
+
+    bad_cases = [
+        ("id_ref_alpha", float("nan"), "id_ref_alpha must be finite"),
+        ("id_ref_alpha", 1.1, "id_ref_alpha must be in [0, 1]"),
+        ("delta_id_max", float("nan"), "delta_id_max must be finite"),
+        ("delta_id_max", -0.1, "delta_id_max must be non-negative"),
+        ("gate_speed_tol_abs", float("nan"), "gate_speed_tol_abs must be finite"),
+        ("gate_speed_tol_abs", -0.1, "gate_speed_tol_abs must be non-negative"),
+        ("gate_speed_tol_rel", float("nan"), "gate_speed_tol_rel must be finite"),
+        ("gate_speed_tol_rel", -0.1, "gate_speed_tol_rel must be non-negative"),
+        ("gate_min_scale", float("nan"), "gate_min_scale must be finite"),
+        ("gate_min_scale", 1.1, "gate_min_scale must be in [0, 1]"),
+        ("gate_exponent", float("nan"), "gate_exponent must be finite"),
+        ("gate_exponent", -0.1, "gate_exponent must be non-negative"),
+    ]
+    for field, value, message in bad_cases:
+        data = {**_params().__dict__, field: value}
+        try:
+            _validate_id_ref_params(Air56IdRefParams(**data))
+        except ValueError as exc:
+            assert message in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError(f"{field}={value!r} was accepted")
+
+
+def test_action_to_id_ref_rejects_invalid_params_before_command_mapping() -> None:
+    data = {**_params().__dict__, "gate_min_scale": float("nan")}
+    try:
+        _action_to_id_ref(
+            action=0.0,
+            prev_id_ref=1.35,
+            omega_ref=100.0,
+            omega_meas=100.0,
+            params=Air56IdRefParams(**data),
+        )
+    except ValueError as exc:
+        assert "gate_min_scale must be finite" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("invalid id_ref params reached command mapping")
+
+
 def test_load_supervisor_returns_none_when_disabled() -> None:
     assert _load_supervisor(SimpleNamespace(ai_eval_supervisor_enabled=False), "ai_eval_supervisor_enabled", "ai_eval_", omega_nominal=100.0) is None
 
@@ -454,11 +499,17 @@ def test_validate_runtime_args_rejects_unsafe_cli_ranges() -> None:
 
     bad_cases = [
         ("baud", 0, "--baud must be positive"),
+        ("serial_timeout", float("nan"), "--serial-timeout must be finite"),
         ("serial_timeout", 0.0, "--serial-timeout must be positive"),
         ("fault_mask", -1, "--fault-mask must be in uint16 range"),
         ("fault_mask", 0x10000, "--fault-mask must be in uint16 range"),
+        ("id_min", float("nan"), "--id-min must be finite"),
+        ("id_min", -0.1, "--id-min must be non-negative"),
+        ("id_max", float("nan"), "--id-max must be finite"),
         ("id_min", 2.0, "--id-min must be <= --id-max"),
+        ("cmd_rate_limit_a_per_s", float("nan"), "--cmd-rate-limit-a-per-s must be finite"),
         ("cmd_rate_limit_a_per_s", -0.1, "--cmd-rate-limit-a-per-s must be non-negative"),
+        ("load_est_gain", float("nan"), "--load-est-gain must be finite"),
         ("load_est_gain", -0.1, "--load-est-gain must be non-negative"),
         ("log_every", -1, "--log-every must be non-negative"),
     ]
@@ -476,6 +527,31 @@ def test_validate_runtime_args_rejects_unsafe_cli_ranges() -> None:
 def test_validate_id_ref_window_requires_fallback_inside_launch_limits() -> None:
     _validate_id_ref_window(id_ref_base=1.35, id_min=1.1, id_max=1.7)
 
+    non_finite_cases = [
+        {"id_ref_base": float("nan"), "id_min": 1.1, "id_max": 1.7, "message": "id_ref_base must be finite"},
+        {"id_ref_base": 1.35, "id_min": float("nan"), "id_max": 1.7, "message": "id_min must be finite"},
+        {"id_ref_base": 1.35, "id_min": 1.1, "id_max": float("nan"), "message": "id_max must be finite"},
+    ]
+    for case in non_finite_cases:
+        try:
+            _validate_id_ref_window(
+                id_ref_base=case["id_ref_base"],
+                id_min=case["id_min"],
+                id_max=case["id_max"],
+            )
+        except ValueError as exc:
+            assert case["message"] in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError(f"non-finite id_ref window accepted: {case}")
+
+    for lo, hi, message in [(-0.1, 1.7, "--id-min must be non-negative"), (1.8, 1.7, "--id-min must be <= --id-max")]:
+        try:
+            _validate_id_ref_window(id_ref_base=1.35, id_min=lo, id_max=hi)
+        except ValueError as exc:
+            assert message in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError(f"invalid id_ref window [{lo}, {hi}] accepted")
+
     for lo, hi in [(1.4, 1.7), (1.1, 1.3)]:
         try:
             _validate_id_ref_window(id_ref_base=1.35, id_min=lo, id_max=hi)
@@ -483,6 +559,17 @@ def test_validate_id_ref_window_requires_fallback_inside_launch_limits() -> None
             assert "FOC base id_ref must be inside" in str(exc)
         else:  # pragma: no cover
             raise AssertionError(f"id_ref window [{lo}, {hi}] accepted without base id_ref")
+
+
+def test_finite_float_rejects_non_finite_values() -> None:
+    assert _finite_float(1.25, "field") == 1.25
+    for value in (float("nan"), float("inf"), float("-inf")):
+        try:
+            _finite_float(value, "field")
+        except ValueError as exc:
+            assert "field must be finite" in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError(f"non-finite value accepted: {value!r}")
 
 
 def test_send_fallback_command_disables_ai() -> None:
