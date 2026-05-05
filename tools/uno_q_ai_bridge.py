@@ -17,8 +17,65 @@ from tools.uno_q_protocol import Command, Telemetry
 
 
 def _parse_host_port(text: str) -> Tuple[str, int]:
-    host, port = text.rsplit(":", 1)
-    return host.strip(), int(port)
+    try:
+        host, port_text = str(text).rsplit(":", 1)
+        port = int(port_text)
+    except ValueError as exc:
+        raise ValueError(f"endpoint must be HOST:PORT: {text}") from exc
+    host = host.strip()
+    if not host:
+        raise ValueError(f"endpoint host is empty: {text}")
+    if port < 1 or port > 65535:
+        raise ValueError(f"endpoint port out of range: {port}")
+    return host, port
+
+
+def _finite_float(value: object, field: str) -> float:
+    out = float(value)
+    if not math.isfinite(out):
+        raise ValueError(f"{field} must be finite: {out}")
+    return out
+
+
+def _clip_action(value: object) -> float:
+    action = _finite_float(value, "AI action")
+    return float(max(-1.0, min(1.0, action)))
+
+
+def _clamp_id_ref(value: object, id_min: float, id_max: float) -> float:
+    id_min = _finite_float(id_min, "id_min")
+    id_max = _finite_float(id_max, "id_max")
+    if id_min > id_max:
+        raise ValueError("--id-min must be <= --id-max")
+    out = _finite_float(value, "id_ref")
+    return float(max(id_min, min(id_max, out)))
+
+
+def _validate_runtime_args(args: argparse.Namespace) -> None:
+    fault_mask = int(args.fault_mask)
+    if fault_mask < 0 or fault_mask > 0xFFFF:
+        raise ValueError("--fault-mask must be in uint16 range")
+    id_min = _finite_float(args.id_min, "--id-min")
+    if id_min < 0.0:
+        raise ValueError("--id-min must be non-negative")
+    if args.id_max is not None:
+        id_max = _finite_float(args.id_max, "--id-max")
+        if id_min > id_max:
+            raise ValueError("--id-min must be <= --id-max")
+    if args.delta_id_max is not None:
+        delta_id_max = _finite_float(args.delta_id_max, "--delta-id-max")
+        if delta_id_max < 0.0:
+            raise ValueError("--delta-id-max must be non-negative")
+    if args.speed_tol is not None:
+        speed_tol = _finite_float(args.speed_tol, "--speed-tol")
+        if speed_tol < 0.0:
+            raise ValueError("--speed-tol must be non-negative")
+    if args.speed_tol_rel is not None:
+        speed_tol_rel = _finite_float(args.speed_tol_rel, "--speed-tol-rel")
+        if speed_tol_rel < 0.0:
+            raise ValueError("--speed-tol-rel must be non-negative")
+    if args.load_torque is not None:
+        _finite_float(args.load_torque, "--load-torque")
 
 
 def _infer_hidden_sizes(state: Dict) -> tuple[int, ...] | None:
@@ -63,13 +120,16 @@ def _apply_gates(
 def _action_to_float(action: object) -> float:
     if hasattr(action, "item") and not hasattr(action, "__len__"):
         try:
-            return float(action.item())
+            raw_action = action.item()
         except Exception:
             pass
+        else:
+            return _clip_action(raw_action)
     try:
-        return float(action[0])  # type: ignore[index]
+        raw_action = action[0]  # type: ignore[index]
     except Exception:
-        return float(action)
+        return _clip_action(action)
+    return _clip_action(raw_action)
 
 
 def _build_obs(
@@ -125,6 +185,7 @@ def main() -> None:
     parser.add_argument("--fault-mask", type=int, default=0, help="Bitmask for fault bits (0 = any nonzero)")
     parser.add_argument("--dry-run", action="store_true", help="Do not send commands, only log")
     args = parser.parse_args()
+    _validate_runtime_args(args)
 
     env_cfg = make_env_from_config(args.config).env_config
     i_base = float(getattr(env_cfg.motor, "I_n", 1.0))
@@ -140,6 +201,8 @@ def main() -> None:
     current_limit = float(getattr(getattr(env_cfg, "foc", None), "iq_limit", i_base) or i_base)
     id_max = float(args.id_max) if args.id_max is not None else max(i_base * 1.5, id_ref_base * 1.2, current_limit)
     id_min = max(0.0, float(args.id_min))
+    if id_ref_base < id_min or id_ref_base > id_max:
+        raise ValueError("FOC base id_ref must be inside --id-min/--id-max")
     delta_id_max = float(args.delta_id_max) if args.delta_id_max is not None else float(getattr(env_cfg, "ai_delta_id_max", 0.3))
 
     speed_tol = float(args.speed_tol) if args.speed_tol is not None else float(getattr(env_cfg, "ai_id_speed_tol", 0.5))
@@ -195,7 +258,7 @@ def main() -> None:
 
         id_ref_cmd = id_ref_base
         if lut is not None:
-            id_ref_cmd = float(lut.query(omega_ref, load_torque))
+            id_ref_cmd = _finite_float(lut.query(omega_ref, load_torque), "id_ref")
             action_val = 0.0
         elif policy is not None:
             obs = _build_obs(telem, omega_base, i_base, p, rr, lr, load_torque, load_base)
@@ -211,7 +274,7 @@ def main() -> None:
                     id_ref_cmd = id_ref_base + action_val * delta_id_max * max(1.0, abs(id_ref_base))
                 else:
                     id_ref_cmd = id_min + 0.5 * (action_val + 1.0) * (id_max - id_min)
-        id_ref_cmd = float(max(id_min, min(id_max, id_ref_cmd)))
+        id_ref_cmd = _clamp_id_ref(id_ref_cmd, id_min, id_max)
 
         enable_ai, id_ref_cmd, gated = _apply_gates(
             speed_err=speed_err,
@@ -227,7 +290,10 @@ def main() -> None:
         if not gated:
             # simple rate limit
             max_delta = delta_id_max
-            id_ref_cmd = float(last_id_ref + max(-max_delta, min(max_delta, id_ref_cmd - last_id_ref)))
+            if max_delta > 0.0:
+                id_ref_cmd = float(last_id_ref + max(-max_delta, min(max_delta, id_ref_cmd - last_id_ref)))
+            else:
+                id_ref_cmd = last_id_ref
         last_id_ref = id_ref_cmd
 
         cmd = Command(t_ms=telem.t_ms, enable_ai=int(enable_ai), id_ref=id_ref_cmd, crc=0)
