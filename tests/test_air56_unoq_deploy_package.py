@@ -58,3 +58,18 @@ def test_air56_unoq_static_compile_smoke_script_exists() -> None:
     text = script.read_text(encoding="utf-8")
     assert "AIR56_UNOQ_USE_MOCK_HW=1" in text
     assert "air56_unoq_example.ino" in text
+
+
+def test_air56_unoq_adapter_template_is_not_compiled_as_source() -> None:
+    template = FW / "air56_unoq_hw_port_template.cpp.example"
+    text = template.read_text(encoding="utf-8")
+    assert template.suffix == ".example"
+    assert "#error" in text
+    assert "air56_foc_set_id_ref_amp" in text
+
+
+def test_air56_unoq_deploy_smoke_entrypoint_exists() -> None:
+    script = ROOT / "tools" / "run_air56_unoq_deploy_smoke.py"
+    text = script.read_text(encoding="utf-8")
+    assert "tools/air56_unoq_stage0_loopback.py" in text
+    assert "tests/test_air56_unoq_stage0_loopback.py" in text

@@ -22,6 +22,7 @@ Hardware-productization is now tracked separately:
 - `AIR56 UNO Q` is the active hardware deployment path.
 - Split architecture is fixed: `STM32U585` owns realtime FOC/safety/fallback; `QRB2210/Linux` owns AI `id_ref` decisions.
 - Repository-ready as of this plan: firmware adapter contract, mock-only compile target, env-based Linux service, bridge startup checks, bridge fallback command, staged bring-up protocol.
+- Additional repo-side hardening: Stage 0 protocol loopback self-test, deploy-smoke runner, and STM32U585 adapter template.
 - Not yet physically complete: the real STM32U585 FOC/inverter layer must implement `air56_foc_*` symbols and pass board bring-up.
 
 Historical strict-verified `2-motor` release kept for provenance:
@@ -125,6 +126,10 @@ Weak-hardware fast profile:
 AIR56 UNO Q targeted deploy regression:
 
 - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
+
+AIR56 UNO Q combined repo-side deploy smoke:
+
+- `python tools/run_air56_unoq_deploy_smoke.py`
 
 ## Guardrails
 

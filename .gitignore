@@ -4,6 +4,7 @@ __pycache__/
 *.np[yz]
 *.npz
 .pytest_cache/
+.tmp_pytest/
 .venv/
 .idea/
 .vscode/

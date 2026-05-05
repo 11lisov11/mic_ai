@@ -53,6 +53,8 @@ The diagnostic trail is intentionally kept in the repository:
 - [train_any_motor_pipeline.py](C:/mic_theory/tools/train_any_motor_pipeline.py): universal onboarding pipeline
 - [train_3motors_pipeline.py](C:/mic_theory/tools/train_3motors_pipeline.py): multi-motor training pipeline
 - [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py): QRB2210 Linux bridge for AIR56 UNO Q
+- [air56_unoq_stage0_loopback.py](C:/mic_theory/tools/air56_unoq_stage0_loopback.py): Stage 0 protocol self-test
+- [run_air56_unoq_deploy_smoke.py](C:/mic_theory/tools/run_air56_unoq_deploy_smoke.py): one-command AIR56 UNO Q repo-side smoke
 - [air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready): AIR56 UNO Q split deploy package
 - [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md): physical bring-up protocol
 - [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
@@ -100,6 +102,8 @@ python tools/step27_pipeline.py ^
   - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
 - AIR56 UNO Q firmware static compile smoke:
   - `python tools/check_air56_unoq_firmware_static.py`
+- AIR56 UNO Q one-command repo-side deploy smoke:
+  - `python tools/run_air56_unoq_deploy_smoke.py`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
 

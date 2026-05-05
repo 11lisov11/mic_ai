@@ -1,0 +1,62 @@
+#include "air56_unoq_hw_port.h"
+
+// Template for the board-specific STM32U585 FOC/inverter adapter.
+//
+// Copy this file to the real STM32U585 project as a .cpp file and replace the
+// example symbols with the actual FOC, ADC, observer/encoder, and fault APIs.
+// Do not compile this template unchanged in a motor-connected build.
+
+extern "C" float air56_foc_get_omega_meas_rad_s(void) {
+  // Example mapping:
+  // return foc_speed_feedback_rad_s();
+  #error "Map air56_foc_get_omega_meas_rad_s() to real speed feedback."
+}
+
+extern "C" float air56_foc_get_omega_ref_rad_s(void) {
+  // Example mapping:
+  // return foc_speed_reference_rad_s();
+  #error "Map air56_foc_get_omega_ref_rad_s() to real speed reference."
+}
+
+extern "C" float air56_foc_get_id_amp(void) {
+  // Example mapping:
+  // return foc_current_d_amp();
+  #error "Map air56_foc_get_id_amp() to real d-axis current."
+}
+
+extern "C" float air56_foc_get_iq_amp(void) {
+  // Example mapping:
+  // return foc_current_q_amp();
+  #error "Map air56_foc_get_iq_amp() to real q-axis current."
+}
+
+extern "C" float air56_foc_get_vdc_volt(void) {
+  // Example mapping:
+  // return inverter_dc_bus_volt();
+  #error "Map air56_foc_get_vdc_volt() to real DC bus voltage."
+}
+
+extern "C" float air56_foc_get_irms_amp(void) {
+  // Example mapping:
+  // return current_rms_amp();
+  #error "Map air56_foc_get_irms_amp() to real RMS current."
+}
+
+extern "C" float air56_foc_get_pin_watt(void) {
+  // Example mapping:
+  // return input_power_watt();
+  #error "Map air56_foc_get_pin_watt() to real input power estimate."
+}
+
+extern "C" uint16_t air56_foc_get_status_bits(void) {
+  // Example mapping:
+  // return foc_fault_bits();
+  #error "Map air56_foc_get_status_bits() to real status/fault flags."
+}
+
+extern "C" void air56_foc_set_id_ref_amp(float id_ref_amp) {
+  // Example mapping:
+  // foc_set_flux_reference_amp(id_ref_amp);
+  (void)id_ref_amp;
+  #error "Map air56_foc_set_id_ref_amp() to the real FOC id_ref setter."
+}

@@ -3,18 +3,40 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define UNO_Q_OMEGA_SCALE 1024
+// Omega uses 128 counts per rad/s so int16 covers the AIR56 nominal speed.
+#define UNO_Q_OMEGA_SCALE 128
 #define UNO_Q_CURRENT_SCALE 1024
 #define UNO_Q_VDC_SCALE 256
 #define UNO_Q_POWER_SCALE 4
 
 #define UNO_Q_CRC16_POLY 0x1021u
 #define UNO_Q_CRC16_INIT 0xFFFFu
+
+static inline int16_t unoq_float_to_i16_sat(float value) {
+  if (value > 32767.0f) {
+    return 32767;
+  }
+  if (value < -32768.0f) {
+    return -32768;
+  }
+  return (int16_t)lroundf(value);
+}
+
+static inline uint16_t unoq_float_to_u16_sat(float value) {
+  if (value > 65535.0f) {
+    return 65535u;
+  }
+  if (value < 0.0f) {
+    return 0u;
+  }
+  return (uint16_t)lroundf(value);
+}
 
 #if defined(__GNUC__)
 #define UNO_Q_PACKED __attribute__((packed))

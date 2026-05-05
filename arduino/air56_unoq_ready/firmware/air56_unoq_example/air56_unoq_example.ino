@@ -41,13 +41,13 @@ static bool read_command(unoq_command_t *cmd) {
 static void write_telemetry() {
   unoq_telemetry_t telem;
   telem.t_ms = millis();
-  telem.omega_meas_q10 = (int16_t)lroundf(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
-  telem.omega_ref_q10 = (int16_t)lroundf(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
-  telem.id_q10 = (int16_t)lroundf(air56_hw_read_id_amp() * UNO_Q_CURRENT_SCALE);
-  telem.iq_q10 = (int16_t)lroundf(air56_hw_read_iq_amp() * UNO_Q_CURRENT_SCALE);
-  telem.vdc_q8 = (uint16_t)lroundf(air56_hw_read_vdc_volt() * UNO_Q_VDC_SCALE);
-  telem.i_rms_q10 = (int16_t)lroundf(air56_hw_read_irms_amp() * UNO_Q_CURRENT_SCALE);
-  telem.p_in_q2 = (int16_t)lroundf(air56_hw_read_pin_watt() * UNO_Q_POWER_SCALE);
+  telem.omega_meas_q10 = unoq_float_to_i16_sat(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
+  telem.omega_ref_q10 = unoq_float_to_i16_sat(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
+  telem.id_q10 = unoq_float_to_i16_sat(air56_hw_read_id_amp() * UNO_Q_CURRENT_SCALE);
+  telem.iq_q10 = unoq_float_to_i16_sat(air56_hw_read_iq_amp() * UNO_Q_CURRENT_SCALE);
+  telem.vdc_q8 = unoq_float_to_u16_sat(air56_hw_read_vdc_volt() * UNO_Q_VDC_SCALE);
+  telem.i_rms_q10 = unoq_float_to_i16_sat(air56_hw_read_irms_amp() * UNO_Q_CURRENT_SCALE);
+  telem.p_in_q2 = unoq_float_to_i16_sat(air56_hw_read_pin_watt() * UNO_Q_POWER_SCALE);
   telem.status = air56_hw_read_status_bits();
   AIR56_UNOQ_LINK.write(reinterpret_cast<const uint8_t *>(&telem), sizeof(telem));
 }
@@ -77,12 +77,12 @@ void loop() {
   const int16_t id_ref_max_q10 = (int16_t)lroundf(AIR56_UNOQ_ID_REF_MAX_A * UNO_Q_CURRENT_SCALE);
   const int16_t max_delta_q10 = (int16_t)lroundf(AIR56_UNOQ_SLEW_A_PER_CYCLE * UNO_Q_CURRENT_SCALE);
 
-  const int16_t omega_ref_q10 = (int16_t)lroundf(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
-  const int16_t omega_meas_q10 = (int16_t)lroundf(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
+  const int16_t omega_ref_q10 = unoq_float_to_i16_sat(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
+  const int16_t omega_meas_q10 = unoq_float_to_i16_sat(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
   const int16_t speed_err_q10 = abs((int32_t)omega_ref_q10 - (int32_t)omega_meas_q10);
   const float omega_ref_abs = fabsf((float)omega_ref_q10 / UNO_Q_OMEGA_SCALE);
   const float speed_tol = max(AIR56_UNOQ_SPEED_TOL_ABS_RAD_S, AIR56_UNOQ_SPEED_TOL_REL * omega_ref_abs);
-  const int16_t speed_tol_q10 = (int16_t)lroundf(speed_tol * UNO_Q_OMEGA_SCALE);
+  const int16_t speed_tol_q10 = unoq_float_to_i16_sat(speed_tol * UNO_Q_OMEGA_SCALE);
 
   uint8_t timeout = (now_ms - g_last_cmd_ms) > AIR56_UNOQ_COMMAND_TIMEOUT_MS;
   int16_t requested_q10 = id_ref_base_q10;

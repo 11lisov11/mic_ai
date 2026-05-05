@@ -10,7 +10,7 @@ import struct
 from typing import ClassVar
 
 
-OMEGA_SCALE = 1024.0  # rad/s -> q10
+OMEGA_SCALE = 128.0  # rad/s -> fixed point, int16 range covers AIR56 nominal speed
 CURRENT_SCALE = 1024.0  # A -> q10
 VDC_SCALE = 256.0  # V -> q8
 POWER_SCALE = 4.0  # W -> q2
@@ -21,6 +21,20 @@ CRC16_INIT = 0xFFFF
 
 TELEMETRY_STRUCT = struct.Struct("<IhhhhHhhH")
 CMD_STRUCT = struct.Struct("<IBhH")
+
+
+def _pack_i16(value: float, field: str) -> int:
+    out = int(round(float(value)))
+    if out < -32768 or out > 32767:
+        raise ValueError(f"{field} out of int16 protocol range: {out}")
+    return out
+
+
+def _pack_u16(value: float, field: str) -> int:
+    out = int(round(float(value)))
+    if out < 0 or out > 65535:
+        raise ValueError(f"{field} out of uint16 protocol range: {out}")
+    return out
 
 
 def crc16_ccitt(payload: bytes, init: int = CRC16_INIT) -> int:
@@ -53,13 +67,13 @@ class Telemetry:
     def pack(self) -> bytes:
         return self._struct.pack(
             int(self.t_ms),
-            int(round(self.omega_meas * OMEGA_SCALE)),
-            int(round(self.omega_ref * OMEGA_SCALE)),
-            int(round(self.i_d * CURRENT_SCALE)),
-            int(round(self.i_q * CURRENT_SCALE)),
-            int(round(self.v_dc * VDC_SCALE)),
-            int(round(self.i_rms * CURRENT_SCALE)),
-            int(round(self.p_in * POWER_SCALE)),
+            _pack_i16(self.omega_meas * OMEGA_SCALE, "omega_meas"),
+            _pack_i16(self.omega_ref * OMEGA_SCALE, "omega_ref"),
+            _pack_i16(self.i_d * CURRENT_SCALE, "i_d"),
+            _pack_i16(self.i_q * CURRENT_SCALE, "i_q"),
+            _pack_u16(self.v_dc * VDC_SCALE, "v_dc"),
+            _pack_i16(self.i_rms * CURRENT_SCALE, "i_rms"),
+            _pack_i16(self.p_in * POWER_SCALE, "p_in"),
             int(self.status),
         )
 
@@ -92,7 +106,7 @@ class Command:
         return self._struct.pack(
             int(self.t_ms),
             int(self.enable_ai) & 0xFF,
-            int(round(self.id_ref * CURRENT_SCALE)),
+            _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             int(self.crc) & 0xFFFF,
         )
 
@@ -100,14 +114,14 @@ class Command:
         payload = self._struct.pack(
             int(self.t_ms),
             int(self.enable_ai) & 0xFF,
-            int(round(self.id_ref * CURRENT_SCALE)),
+            _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             0,
         )
         crc = crc16_ccitt(payload, init=init)
         return self._struct.pack(
             int(self.t_ms),
             int(self.enable_ai) & 0xFF,
-            int(round(self.id_ref * CURRENT_SCALE)),
+            _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             int(crc) & 0xFFFF,
         )
 

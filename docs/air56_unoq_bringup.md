@@ -14,10 +14,15 @@ Checks:
   `pio run -d arduino/air56_unoq_ready/firmware/air56_unoq_example -e air56_unoq_stm32u585_mock`
 - If PlatformIO is unavailable on the workstation, run the host static compile
   smoke: `python tools/check_air56_unoq_firmware_static.py`.
+- Run the protocol self-test:
+  `python tools/air56_unoq_stage0_loopback.py --packets 32`.
+- Run the combined repo-side smoke:
+  `python tools/run_air56_unoq_deploy_smoke.py`.
 - Run the bridge in bench mode against a loopback or UART test harness.
 - Verify struct sizes: telemetry `20` bytes, command `9` bytes.
 - Verify CRC-16/CCITT-FALSE with CRC field zeroed before calculation.
-- Verify little-endian fixed-point scaling.
+- Verify little-endian fixed-point scaling, including AIR56 nominal speed at
+  `rad/s * 128`.
 - Force command silence and confirm STM fallback in `<= 100 ms`.
 
 Pass criteria:
@@ -34,6 +39,8 @@ Checks:
 
 - Build production target without `AIR56_UNOQ_USE_MOCK_HW`.
 - Implement all `air56_foc_*` functions from `air56_unoq_hw_port.h`.
+- Start from `air56_unoq_hw_port_template.cpp.example` and replace each
+  `#error` block with the real FOC/inverter call.
 - Run FOC with AI disabled and nominal `id_ref`.
 - Validate current offsets, current sign, speed sign, `Vdc`, `P_in`, and fault bits.
 - Confirm `air56_foc_set_id_ref_amp()` changes the FOC flux reference only through safe limits.
@@ -118,6 +125,12 @@ Targeted deploy checks:
 
 ```bash
 python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py
+```
+
+One-command AIR56 UNO Q deploy smoke:
+
+```bash
+python tools/run_air56_unoq_deploy_smoke.py
 ```
 
 Full regression is still allowed, but it is not the default inner-loop command:

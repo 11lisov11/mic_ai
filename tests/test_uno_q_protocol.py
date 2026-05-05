@@ -1,5 +1,7 @@
 import math
 
+import pytest
+
 from tools.uno_q_protocol import (
     CMD_STRUCT,
     TELEMETRY_STRUCT,
@@ -42,6 +44,41 @@ def test_telemetry_roundtrip() -> None:
     assert math.isclose(decoded.v_dc, telem.v_dc, abs_tol=1.0 / VDC_SCALE)
     assert math.isclose(decoded.i_rms, telem.i_rms, abs_tol=1.0 / CURRENT_SCALE)
     assert math.isclose(decoded.p_in, telem.p_in, abs_tol=1.0 / POWER_SCALE)
+
+
+def test_air56_nominal_speed_fits_omega_protocol_range() -> None:
+    assert OMEGA_SCALE == 128.0
+    nominal_rad_s = 2.0 * math.pi * 1380.0 / 60.0
+    telem = Telemetry(
+        t_ms=1,
+        omega_meas=nominal_rad_s,
+        omega_ref=nominal_rad_s,
+        i_d=1.35,
+        i_q=0.7,
+        v_dc=24.0,
+        i_rms=1.5,
+        p_in=250.0,
+        status=0,
+    )
+
+    decoded = Telemetry.unpack(telem.pack())
+    assert math.isclose(decoded.omega_meas, nominal_rad_s, abs_tol=1.0 / OMEGA_SCALE)
+
+
+def test_telemetry_pack_rejects_out_of_range_speed() -> None:
+    telem = Telemetry(
+        t_ms=1,
+        omega_meas=300.0,
+        omega_ref=300.0,
+        i_d=1.35,
+        i_q=0.7,
+        v_dc=24.0,
+        i_rms=1.5,
+        p_in=250.0,
+        status=0,
+    )
+    with pytest.raises(ValueError, match="omega_meas out of int16 protocol range"):
+        telem.pack()
 
 
 def test_command_crc_roundtrip() -> None:

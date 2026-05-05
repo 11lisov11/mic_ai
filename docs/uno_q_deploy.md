@@ -8,6 +8,8 @@ Ready AIR56 package:
 
 - [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready)
 - dedicated bridge: [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py)
+- Stage 0 loopback self-test: [air56_unoq_stage0_loopback.py](C:/mic_theory/tools/air56_unoq_stage0_loopback.py)
+- deploy smoke runner: [run_air56_unoq_deploy_smoke.py](C:/mic_theory/tools/run_air56_unoq_deploy_smoke.py)
 - staged bring-up protocol: [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md)
 
 Readiness note: the repository contains the split deploy package and the
@@ -41,7 +43,7 @@ Use fixed-point to avoid parsing overhead. Example:
 
 STM->Linux (struct, little-endian):
 - u32 t_ms
-- i16 omega_meas_q10 (rad/s * 1024)
+- i16 omega_meas_q10 (legacy field name, rad/s * 128)
 - i16 omega_ref_q10
 - i16 id_q10 (A * 1024)
 - i16 iq_q10
@@ -60,6 +62,10 @@ CRC: CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) computed over the full
 command packet with the CRC field set to 0. Enable in the bridge with `--crc`
 and mirror the same algorithm on STM.
 
+Speed scaling note: older drafts used `rad/s * 1024`, which only covers about
+`32 rad/s` in int16 and is not enough for AIR56 rated speed. The deploy protocol
+uses `rad/s * 128`, preserving packet size while covering AIR56 nominal speed.
+
 ## 4) Safety gates (STM side)
 - If enable_ai == 0 or comm timeout > 100 ms -> fallback to nominal id_ref.
 - Clamp id_ref in [id_ref_min, id_ref_max].
@@ -72,6 +78,7 @@ The AIR56 package separates production hardware binding from the protocol loop:
 
 - `air56_unoq_hw_port.h`: production adapter contract.
 - `air56_unoq_hw_mock.h`: opt-in mock adapter for no-motor loopback only.
+- `air56_unoq_hw_port_template.cpp.example`: copy-and-fill board adapter template.
 - `platformio.ini`: STM32U585 mock compile target and production-port target.
 
 Production builds must not define `AIR56_UNOQ_USE_MOCK_HW`.

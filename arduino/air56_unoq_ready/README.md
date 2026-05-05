@@ -23,6 +23,7 @@ The firmware no longer contains fake production sensor readings inside `air56_un
 - `firmware/air56_unoq_example/`
   - `air56_unoq_example.ino`: STM32U585 protocol/safety loop
   - `air56_unoq_hw_port.h`: production FOC/inverter adapter contract
+  - `air56_unoq_hw_port_template.cpp.example`: copy-and-fill template for the real STM32U585 project
   - `air56_unoq_hw_mock.h`: mock adapter for no-motor loopback only
   - `platformio.ini`: reproducible STM32U585 PlatformIO targets
 - `linux/`
@@ -31,6 +32,8 @@ The firmware no longer contains fake production sensor readings inside `air56_un
   - `air56_unoq_bridge.service`: env-based systemd unit
   - `air56_unoq_bridge.env.example`: `/etc/default` template
 - `../../tools/air56_unoq_bridge.py`: QRB2210 Linux AI bridge
+- `../../tools/air56_unoq_stage0_loopback.py`: protocol self-test for Stage 0
+- `../../tools/run_air56_unoq_deploy_smoke.py`: one-command repo-side deploy smoke runner
 - `../../docs/air56_unoq_bringup.md`: staged hardware bring-up protocol
 
 ## STM32U585 Firmware Build
@@ -45,6 +48,12 @@ If PlatformIO is not installed on the workstation, run the host static compile s
 
 ```bash
 python tools/check_air56_unoq_firmware_static.py
+```
+
+Run the full repo-side deploy smoke:
+
+```bash
+python tools/run_air56_unoq_deploy_smoke.py
 ```
 
 Production port target:
@@ -64,6 +73,8 @@ The production target intentionally does not define `AIR56_UNOQ_USE_MOCK_HW`. It
 - `air56_foc_get_pin_watt()`
 - `air56_foc_get_status_bits()`
 - `air56_foc_set_id_ref_amp(float id_ref_amp)`
+
+Use `air56_unoq_hw_port_template.cpp.example` as the starting point for that board code.
 
 Do not connect a motor with `AIR56_UNOQ_USE_MOCK_HW` enabled.
 
@@ -109,6 +120,7 @@ On shutdown or fatal runtime error it sends one best-effort fallback command: `e
 
 - MCU telemetry/command period: `10 ms`
 - command timeout fallback: `100 ms`
+- speed telemetry scale: `rad/s * 128` in int16, chosen so AIR56 nominal speed fits without wraparound
 - STM32U585 always owns FOC, current limits, faults, and fallback
 - QRB2210/Linux only adjusts `id_ref`; it does not own the fast current loop
 - frequent fallback/gate events mean the first suspects are sensor scaling, speed feedback, UART stability, or FOC current-loop tuning
