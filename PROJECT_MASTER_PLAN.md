@@ -135,9 +135,9 @@ AIR56 UNO Q production-critical coverage gate:
 
 - `python tools/check_air56_unoq_coverage_gate.py`
 - current thresholds:
-  - total AIR56 deploy subset: `>=65%`
+  - total AIR56 deploy subset: `>=75%`
   - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner: `>=95%`
-  - Linux bridge helper/runtime module floor: `>=45%`
+  - Linux bridge helper/runtime module floor: `>=60%`
 
 ## Guardrails
 

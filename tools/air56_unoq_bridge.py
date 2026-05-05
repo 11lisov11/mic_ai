@@ -45,6 +45,29 @@ class Air56PolicyBundle:
     supervisor: Optional[AiIdRefSupervisor]
 
 
+@dataclass
+class Air56BridgeRuntimeState:
+    last_id_ref: float
+    prev_t_ms: Optional[int] = None
+    last_telem_t_ms: int = 0
+    prev_load_est_nm: float = 0.0
+    secondary_left: int = 0
+
+
+@dataclass(frozen=True)
+class Air56BridgeStep:
+    command: Command
+    t_ms: int
+    active_name: str
+    omega_meas: float
+    omega_ref: float
+    iq_amp: float
+    load_est_nm: float
+    id_ref: float
+    gate_scale: float
+    enable_ai: int
+
+
 class BaseTransport:
     def recv(self, size: int) -> bytes:
         raise NotImplementedError
@@ -367,6 +390,127 @@ def _send_fallback_command(
         print(f"[air56_unoq_bridge] fallback send failed: {exc}", flush=True)
 
 
+def _process_telemetry_step(
+    *,
+    telem: Telemetry,
+    primary: Air56PolicyBundle,
+    secondary: Optional[Air56PolicyBundle],
+    state: Air56BridgeRuntimeState,
+    omega_nominal: float,
+    i_base: float,
+    pole_pairs: int,
+    rr: float,
+    lr_total: float,
+    load_est_gain: float,
+    load_base_nm: float,
+    load_delta_threshold: float,
+    positive_only: bool,
+    latch_steps: int,
+    speed_err_threshold_rel: float,
+    speed_err_threshold_abs: float,
+    fault_mask: int,
+    disable_on_fault: bool,
+    disable_on_guard: bool,
+    cmd_rate_limit_a_per_s: float,
+    id_min: float,
+    id_max: float,
+) -> Air56BridgeStep:
+    t_ms = int(telem.t_ms)
+    state.last_telem_t_ms = t_ms
+    if state.prev_t_ms is None:
+        dt_s = 0.01
+    else:
+        dt_s = max(0.001, min(0.1, (t_ms - state.prev_t_ms) / 1000.0))
+    state.prev_t_ms = t_ms
+
+    omega_ref = float(telem.omega_ref)
+    omega_meas = float(telem.omega_meas)
+    speed_err = abs(omega_ref - omega_meas)
+    load_est_nm = _estimate_load_nm_from_iq(telem.i_q, load_est_gain)
+
+    active = primary
+    if secondary is not None:
+        trigger = _should_switch_secondary(
+            load_est_nm=load_est_nm,
+            prev_load_est_nm=state.prev_load_est_nm,
+            speed_err=speed_err,
+            omega_ref=omega_ref,
+            threshold_nm=load_delta_threshold,
+            positive_only=positive_only,
+            speed_err_threshold_rel=speed_err_threshold_rel,
+            speed_err_threshold_abs=speed_err_threshold_abs,
+        )
+        if trigger:
+            state.secondary_left = max(int(latch_steps), 1)
+        if state.secondary_left > 0:
+            active = secondary
+            state.secondary_left -= 1
+    state.prev_load_est_nm = load_est_nm
+
+    obs = _build_obs(
+        telem=telem,
+        omega_base=omega_nominal,
+        i_base=i_base,
+        pole_pairs=int(pole_pairs),
+        rr=rr,
+        lr_total=lr_total,
+        load_torque_nm=load_est_nm,
+        load_base_nm=load_base_nm,
+    )
+    action = _infer_action_scalar(active.agent, obs)
+    gate_open = False
+    if active.supervisor is not None:
+        action, gate_open = active.supervisor.adjust_action(
+            action,
+            omega_ref=omega_ref,
+            omega=omega_meas,
+        )
+    id_ref_cmd, gate_scale, gate_tol = _action_to_id_ref(
+        action=action,
+        prev_id_ref=state.last_id_ref,
+        omega_ref=omega_ref,
+        omega_meas=omega_meas,
+        params=active.params,
+    )
+
+    enable_ai = 1
+    hard_guard = gate_tol > 0.0 and speed_err > gate_tol
+    if _status_fault(int(telem.status), int(fault_mask)) and bool(disable_on_fault):
+        enable_ai = 0
+        id_ref_cmd = float(active.params.id_ref_base)
+    elif hard_guard and bool(disable_on_guard):
+        enable_ai = 0
+        id_ref_cmd = float(active.params.id_ref_base)
+
+    rate_limit = max(0.0, float(cmd_rate_limit_a_per_s)) * dt_s
+    if rate_limit > 0.0:
+        id_ref_cmd = _clamp_rate(state.last_id_ref, id_ref_cmd, rate_limit)
+    state.last_id_ref = float(max(float(id_min), min(float(id_max), id_ref_cmd)))
+
+    if active.supervisor is not None:
+        p_in_pos = max(0.0, float(telem.p_in))
+        p_shaft_pos = max(0.0, abs(omega_meas) * load_est_nm)
+        active.supervisor.update(
+            p_in_pos=p_in_pos,
+            p_shaft_pos=p_shaft_pos,
+            gate_open=gate_open,
+        )
+
+    cmd = Command(t_ms=t_ms, enable_ai=enable_ai, id_ref=state.last_id_ref, crc=0)
+    return Air56BridgeStep(
+        command=cmd,
+        t_ms=t_ms,
+        active_name=active.name,
+        omega_meas=omega_meas,
+        omega_ref=omega_ref,
+        iq_amp=float(telem.i_q),
+        load_est_nm=load_est_nm,
+        id_ref=state.last_id_ref,
+        gate_scale=gate_scale,
+        enable_ai=enable_ai,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="AIR56 UNO Q Linux bridge (serial/UDP).")
     parser.add_argument("--config", default="config/env_research_air56_025kw.py")
@@ -455,12 +599,8 @@ def main() -> None:
         flush=True,
     )
 
-    last_id_ref = float(getattr(foc, "id_ref", 0.0) or 0.0)
     fallback_id_ref = float(primary.params.id_ref_base)
-    prev_t_ms: Optional[int] = None
-    last_telem_t_ms = 0
-    prev_load_est_nm = 0.0
-    secondary_left = 0
+    state = Air56BridgeRuntimeState(last_id_ref=float(getattr(foc, "id_ref", 0.0) or 0.0))
     packets = 0
 
     try:
@@ -469,103 +609,45 @@ def main() -> None:
             telem = Telemetry.unpack(payload)
             packets += 1
 
-            t_ms = int(telem.t_ms)
-            last_telem_t_ms = t_ms
-            if prev_t_ms is None:
-                dt_s = 0.01
-            else:
-                dt_s = max(0.001, min(0.1, (t_ms - prev_t_ms) / 1000.0))
-            prev_t_ms = t_ms
-
-            omega_ref = float(telem.omega_ref)
-            omega_meas = float(telem.omega_meas)
-            speed_err = abs(omega_ref - omega_meas)
-            load_est_nm = _estimate_load_nm_from_iq(telem.i_q, load_est_gain)
-
-            active = primary
-            if secondary is not None:
-                trigger = _should_switch_secondary(
-                    load_est_nm=load_est_nm,
-                    prev_load_est_nm=prev_load_est_nm,
-                    speed_err=speed_err,
-                    omega_ref=omega_ref,
-                    threshold_nm=load_delta_threshold,
-                    positive_only=positive_only,
-                    speed_err_threshold_rel=speed_err_threshold_rel,
-                    speed_err_threshold_abs=speed_err_threshold_abs,
-                )
-                if trigger:
-                    secondary_left = max(int(latch_steps), 1)
-                if secondary_left > 0:
-                    active = secondary
-                    secondary_left -= 1
-            prev_load_est_nm = load_est_nm
-
-            obs = _build_obs(
+            step = _process_telemetry_step(
                 telem=telem,
-                omega_base=omega_nominal,
+                primary=primary,
+                secondary=secondary,
+                state=state,
+                omega_nominal=omega_nominal,
                 i_base=i_base,
                 pole_pairs=int(motor.p),
                 rr=rr,
                 lr_total=lr_total,
-                load_torque_nm=load_est_nm,
+                load_est_gain=load_est_gain,
                 load_base_nm=load_base_nm,
+                load_delta_threshold=load_delta_threshold,
+                positive_only=positive_only,
+                latch_steps=latch_steps,
+                speed_err_threshold_rel=speed_err_threshold_rel,
+                speed_err_threshold_abs=speed_err_threshold_abs,
+                fault_mask=int(args.fault_mask),
+                disable_on_fault=bool(args.disable_on_fault),
+                disable_on_guard=bool(args.disable_on_guard),
+                cmd_rate_limit_a_per_s=float(args.cmd_rate_limit_a_per_s),
+                id_min=float(args.id_min),
+                id_max=float(args.id_max),
             )
-            action = _infer_action_scalar(active.agent, obs)
-            gate_open = False
-            if active.supervisor is not None:
-                action, gate_open = active.supervisor.adjust_action(
-                    action,
-                    omega_ref=omega_ref,
-                    omega=omega_meas,
-                )
-            id_ref_cmd, gate_scale, gate_tol = _action_to_id_ref(
-                action=action,
-                prev_id_ref=last_id_ref,
-                omega_ref=omega_ref,
-                omega_meas=omega_meas,
-                params=active.params,
-            )
-
-            enable_ai = 1
-            hard_guard = gate_tol > 0.0 and speed_err > gate_tol
-            if _status_fault(int(telem.status), int(args.fault_mask)) and bool(args.disable_on_fault):
-                enable_ai = 0
-                id_ref_cmd = float(active.params.id_ref_base)
-            elif hard_guard and bool(args.disable_on_guard):
-                enable_ai = 0
-                id_ref_cmd = float(active.params.id_ref_base)
-
-            rate_limit = max(0.0, float(args.cmd_rate_limit_a_per_s)) * dt_s
-            if rate_limit > 0.0:
-                id_ref_cmd = _clamp_rate(last_id_ref, id_ref_cmd, rate_limit)
-            last_id_ref = float(max(float(args.id_min), min(float(args.id_max), id_ref_cmd)))
-
-            if active.supervisor is not None:
-                p_in_pos = max(0.0, float(telem.p_in))
-                p_shaft_pos = max(0.0, abs(omega_meas) * load_est_nm)
-                active.supervisor.update(
-                    p_in_pos=p_in_pos,
-                    p_shaft_pos=p_shaft_pos,
-                    gate_open=gate_open,
-                )
-
-            cmd = Command(t_ms=t_ms, enable_ai=enable_ai, id_ref=last_id_ref, crc=0)
             if not args.dry_run:
-                transport.send(cmd.pack_with_crc() if args.crc else cmd.pack())
+                transport.send(step.command.pack_with_crc() if args.crc else step.command.pack())
 
             if args.log_every > 0 and packets % int(args.log_every) == 0:
                 print(
                     "[air56_unoq_bridge] pkt={} mode={} omega={:.2f}/{:.2f} iq={:.3f} load={:.3f} id_ref={:.3f} gate={:.3f} enable={}".format(
                         packets,
-                        active.name,
-                        omega_meas,
-                        omega_ref,
-                        float(telem.i_q),
-                        load_est_nm,
-                        last_id_ref,
-                        gate_scale,
-                        enable_ai,
+                        step.active_name,
+                        step.omega_meas,
+                        step.omega_ref,
+                        step.iq_amp,
+                        step.load_est_nm,
+                        step.id_ref,
+                        step.gate_scale,
+                        step.enable_ai,
                     ),
                     flush=True,
                 )
@@ -573,7 +655,7 @@ def main() -> None:
         print("[air56_unoq_bridge] stopped", flush=True)
         _send_fallback_command(
             transport,
-            t_ms=last_telem_t_ms,
+            t_ms=state.last_telem_t_ms,
             id_ref_base=fallback_id_ref,
             crc=bool(args.crc),
         )
@@ -581,7 +663,7 @@ def main() -> None:
         print(f"[air56_unoq_bridge] fatal: {exc}", flush=True)
         _send_fallback_command(
             transport,
-            t_ms=last_telem_t_ms,
+            t_ms=state.last_telem_t_ms,
             id_ref_base=fallback_id_ref,
             crc=bool(args.crc),
         )

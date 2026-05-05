@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from tools.air56_unoq_bridge import (
     Air56IdRefParams,
+    Air56BridgeRuntimeState,
     _action_to_id_ref,
     _build_obs,
     _clamp_rate,
@@ -12,6 +13,7 @@ from tools.air56_unoq_bridge import (
     _load_id_ref_params,
     _load_supervisor,
     _parse_host_port,
+    _process_telemetry_step,
     _resolve_existing_file,
     _send_fallback_command,
     _should_switch_secondary,
@@ -19,6 +21,25 @@ from tools.air56_unoq_bridge import (
 )
 from tools.uno_q_protocol import Telemetry
 from tools.uno_q_protocol import Command
+
+
+class FakeSupervisor:
+    def __init__(self) -> None:
+        self.adjust_calls: list[tuple[float, float, float]] = []
+        self.update_calls: list[dict[str, float | bool]] = []
+
+    def adjust_action(self, action: float, *, omega_ref: float, omega: float) -> tuple[float, bool]:
+        self.adjust_calls.append((action, omega_ref, omega))
+        return action, True
+
+    def update(self, *, p_in_pos: float, p_shaft_pos: float, gate_open: bool) -> None:
+        self.update_calls.append(
+            {
+                "p_in_pos": p_in_pos,
+                "p_shaft_pos": p_shaft_pos,
+                "gate_open": gate_open,
+            }
+        )
 
 
 def _params() -> Air56IdRefParams:
@@ -34,6 +55,33 @@ def _params() -> Air56IdRefParams:
         gate_exponent=1.0,
         ai_id_relative=True,
         allow_positive_delta=True,
+    )
+
+
+def _bundle(name: str, params: Air56IdRefParams | None = None, supervisor=None):
+    return SimpleNamespace(name=name, agent=object(), params=params or _params(), supervisor=supervisor)
+
+
+def _telem(
+    *,
+    t_ms: int = 10,
+    omega_meas: float = 100.0,
+    omega_ref: float = 100.0,
+    i_d: float = 1.35,
+    i_q: float = 0.6,
+    status: int = 0,
+    p_in: float = 40.0,
+) -> Telemetry:
+    return Telemetry(
+        t_ms=t_ms,
+        omega_meas=omega_meas,
+        omega_ref=omega_ref,
+        i_d=i_d,
+        i_q=i_q,
+        v_dc=24.0,
+        i_rms=1.5,
+        p_in=p_in,
+        status=status,
     )
 
 
@@ -197,6 +245,144 @@ def test_load_id_ref_params_reads_env_config_attrs() -> None:
 
 def test_load_supervisor_returns_none_when_disabled() -> None:
     assert _load_supervisor(SimpleNamespace(ai_eval_supervisor_enabled=False), "ai_eval_supervisor_enabled", "ai_eval_", omega_nominal=100.0) is None
+
+
+def test_process_telemetry_step_uses_primary_and_rate_limit(monkeypatch) -> None:
+    monkeypatch.setattr("tools.air56_unoq_bridge._infer_action_scalar", lambda _agent, _obs: -1.0)
+    state = Air56BridgeRuntimeState(last_id_ref=1.35)
+
+    step = _process_telemetry_step(
+        telem=_telem(t_ms=10),
+        primary=_bundle("primary"),
+        secondary=None,
+        state=state,
+        omega_nominal=200.0,
+        i_base=2.0,
+        pole_pairs=2,
+        rr=0.5,
+        lr_total=1.0,
+        load_est_gain=1.0,
+        load_base_nm=1.0,
+        load_delta_threshold=0.05,
+        positive_only=True,
+        latch_steps=2,
+        speed_err_threshold_rel=0.0,
+        speed_err_threshold_abs=0.0,
+        fault_mask=0,
+        disable_on_fault=True,
+        disable_on_guard=True,
+        cmd_rate_limit_a_per_s=1.0,
+        id_min=1.10,
+        id_max=1.70,
+    )
+
+    assert step.active_name == "primary"
+    assert step.command.enable_ai == 1
+    assert abs(step.command.id_ref - 1.34) < 1e-12
+    assert state.last_id_ref == step.command.id_ref
+    assert state.prev_t_ms == 10
+    assert state.last_telem_t_ms == 10
+
+
+def test_process_telemetry_step_switches_to_secondary(monkeypatch) -> None:
+    monkeypatch.setattr("tools.air56_unoq_bridge._infer_action_scalar", lambda _agent, _obs: 0.0)
+    state = Air56BridgeRuntimeState(last_id_ref=1.35, prev_load_est_nm=0.1)
+
+    step = _process_telemetry_step(
+        telem=_telem(t_ms=20, omega_meas=80.0, omega_ref=100.0, i_q=1.0),
+        primary=_bundle("primary"),
+        secondary=_bundle("secondary"),
+        state=state,
+        omega_nominal=200.0,
+        i_base=2.0,
+        pole_pairs=2,
+        rr=0.5,
+        lr_total=1.0,
+        load_est_gain=1.0,
+        load_base_nm=1.0,
+        load_delta_threshold=0.05,
+        positive_only=True,
+        latch_steps=2,
+        speed_err_threshold_rel=0.05,
+        speed_err_threshold_abs=0.0,
+        fault_mask=0,
+        disable_on_fault=False,
+        disable_on_guard=False,
+        cmd_rate_limit_a_per_s=0.0,
+        id_min=1.10,
+        id_max=1.70,
+    )
+
+    assert step.active_name == "secondary"
+    assert state.secondary_left == 1
+
+
+def test_process_telemetry_step_fault_disables_ai(monkeypatch) -> None:
+    monkeypatch.setattr("tools.air56_unoq_bridge._infer_action_scalar", lambda _agent, _obs: -1.0)
+    state = Air56BridgeRuntimeState(last_id_ref=1.35)
+
+    step = _process_telemetry_step(
+        telem=_telem(status=0x2),
+        primary=_bundle("primary"),
+        secondary=None,
+        state=state,
+        omega_nominal=200.0,
+        i_base=2.0,
+        pole_pairs=2,
+        rr=0.5,
+        lr_total=1.0,
+        load_est_gain=1.0,
+        load_base_nm=1.0,
+        load_delta_threshold=0.05,
+        positive_only=True,
+        latch_steps=0,
+        speed_err_threshold_rel=0.0,
+        speed_err_threshold_abs=0.0,
+        fault_mask=0x2,
+        disable_on_fault=True,
+        disable_on_guard=False,
+        cmd_rate_limit_a_per_s=0.0,
+        id_min=1.10,
+        id_max=1.70,
+    )
+
+    assert step.command.enable_ai == 0
+    assert step.command.id_ref == 1.35
+
+
+def test_process_telemetry_step_supervisor_adjusts_and_updates(monkeypatch) -> None:
+    monkeypatch.setattr("tools.air56_unoq_bridge._infer_action_scalar", lambda _agent, _obs: -0.5)
+    supervisor = FakeSupervisor()
+    state = Air56BridgeRuntimeState(last_id_ref=1.35)
+
+    step = _process_telemetry_step(
+        telem=_telem(omega_meas=100.0, omega_ref=100.0, i_q=0.5, p_in=-1.0),
+        primary=_bundle("primary", supervisor=supervisor),
+        secondary=None,
+        state=state,
+        omega_nominal=200.0,
+        i_base=2.0,
+        pole_pairs=2,
+        rr=0.5,
+        lr_total=1.0,
+        load_est_gain=2.0,
+        load_base_nm=1.0,
+        load_delta_threshold=0.05,
+        positive_only=True,
+        latch_steps=0,
+        speed_err_threshold_rel=0.0,
+        speed_err_threshold_abs=0.0,
+        fault_mask=0,
+        disable_on_fault=False,
+        disable_on_guard=False,
+        cmd_rate_limit_a_per_s=0.0,
+        id_min=1.10,
+        id_max=1.70,
+    )
+
+    assert step.command.enable_ai == 1
+    assert supervisor.adjust_calls == [(-0.5, 100.0, 100.0)]
+    assert supervisor.update_calls == [{"p_in_pos": 0.0, "p_shaft_pos": 100.0, "gate_open": True}]
 
 
 def test_resolve_existing_file_accepts_relative_repo_file() -> None:

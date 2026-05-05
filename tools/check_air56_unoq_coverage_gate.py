@@ -27,7 +27,7 @@ COV_MODULES = [
     "tools.run_air56_unoq_deploy_smoke",
 ]
 
-MIN_TOTAL = 65.0
+MIN_TOTAL = 75.0
 MIN_BY_FILE = {
     "tools/uno_q_protocol.py": 95.0,
     "tools/air56_unoq_stage0_loopback.py": 95.0,
@@ -36,7 +36,7 @@ MIN_BY_FILE = {
     # The bridge runtime owns serial/UDP/torch infinite-loop integration; those
     # paths are covered by deploy smoke and hardware bring-up rather than unit
     # coverage. Keep a floor on helper coverage without pretending it is 100%.
-    "tools/air56_unoq_bridge.py": 45.0,
+    "tools/air56_unoq_bridge.py": 60.0,
 }
 
 

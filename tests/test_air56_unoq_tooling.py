@@ -75,7 +75,7 @@ def test_deploy_smoke_cli_dry_run_writes_json(tmp_path, monkeypatch, capsys) -> 
 
 def test_coverage_gate_evaluate_accepts_thresholds() -> None:
     payload = {
-        "totals": {"percent_covered": 66.0},
+        "totals": {"percent_covered": check_air56_unoq_coverage_gate.MIN_TOTAL},
         "files": {
             path: {"summary": {"percent_covered": required}}
             for path, required in check_air56_unoq_coverage_gate.MIN_BY_FILE.items()
@@ -88,7 +88,7 @@ def test_coverage_gate_evaluate_accepts_thresholds() -> None:
 
 def test_coverage_gate_evaluate_rejects_low_file() -> None:
     payload = {
-        "totals": {"percent_covered": 66.0},
+        "totals": {"percent_covered": check_air56_unoq_coverage_gate.MIN_TOTAL},
         "files": {
             path: {"summary": {"percent_covered": required}}
             for path, required in check_air56_unoq_coverage_gate.MIN_BY_FILE.items()
