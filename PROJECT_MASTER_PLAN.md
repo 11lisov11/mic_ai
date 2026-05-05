@@ -1,11 +1,11 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-04-12`  
+Date updated: `2026-05-05`
 Repository: `C:\mic_theory`
 
 ## Status
 
-The project is complete on the full `3-motor` scope:
+The research/release project is complete on the full `3-motor` scope:
 
 - `AIR56`
 - `AL31`
@@ -17,13 +17,20 @@ Canonical strict-verified release:
 - [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
 - `verification_ok = true`
 
+Hardware-productization is now tracked separately:
+
+- `AIR56 UNO Q` is the active hardware deployment path.
+- Split architecture is fixed: `STM32U585` owns realtime FOC/safety/fallback; `QRB2210/Linux` owns AI `id_ref` decisions.
+- Repository-ready as of this plan: firmware adapter contract, mock-only compile target, env-based Linux service, bridge startup checks, bridge fallback command, staged bring-up protocol.
+- Not yet physically complete: the real STM32U585 FOC/inverter layer must implement `air56_foc_*` symbols and pass board bring-up.
+
 Historical strict-verified `2-motor` release kept for provenance:
 
 - [20260412_postrestore_ai_2motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release)
 
-## Canonical Completion Criteria
+## Canonical Research Completion Criteria
 
-The project counts as `100% done` only when all items below are true.
+The research/release scope counts as `100% done` only when all items below are true.
 
 1. Strict `Step27/Step28` package exists for all three motors.
 2. `VERIFY_SUBMISSION_CANDIDATE.json` is green.
@@ -34,6 +41,24 @@ The project counts as `100% done` only when all items below are true.
 Status on `2026-04-12`:
 
 - all five conditions are satisfied
+
+## Hardware Completion Criteria
+
+The `AIR56 UNO Q` board deployment counts as complete only when all items below are true.
+
+1. Production STM32U585 build links without `AIR56_UNOQ_USE_MOCK_HW`.
+2. Board code implements all `air56_foc_*` functions from `air56_unoq_hw_port.h`.
+3. PlatformIO production-port build or equivalent STM32U585 build passes.
+4. Stage 0 loopback passes without framing/CRC drift.
+5. Stage 1 STM-only FOC passes with validated current/speed/Vdc/P_in scaling.
+6. Stage 2 telemetry-only bridge passes with AI disabled.
+7. Stage 3 AI-enabled tight-limit run passes without tracking/fault regression.
+8. Stage 4 AIR56 physical A/B run is documented against FOC baseline.
+
+Status on `2026-05-05`:
+
+- repo-side deploy package is implemented
+- physical FOC/HAL binding is still an external integration requirement
 
 ## Final Canonical Artifacts
 
@@ -93,12 +118,22 @@ Full repository regression must remain green before final push:
 
 - `python -m pytest -q`
 
+Weak-hardware fast profile:
+
+- `python -m pytest -q -m "not slow and not hardware"`
+
+AIR56 UNO Q targeted deploy regression:
+
+- `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
+
 ## Guardrails
 
 - Do not weaken acceptance thresholds to keep the package green.
 - Do not remove the preserved AO2 diagnosis/tuning artifacts.
 - Do not create a new root plan while this file is current.
 - Do not treat temporary probe configs under `outputs/` as canonical live configs.
+- Do not treat `AIR56_UNOQ_USE_MOCK_HW` as a motor-connected production build.
+- Do not call the AIR56 UNO Q hardware deployment complete before the staged bring-up protocol passes on physical hardware.
 - The canonical AO2 live path is:
   - [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py)
   - [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json)

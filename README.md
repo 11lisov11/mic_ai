@@ -4,7 +4,7 @@ Repository for the MIC/AI motor-control research stack, reproducibility pipeline
 
 ## Current Status
 
-As of `2026-04-12`, the full `3-motor` project is closed:
+As of `2026-04-12`, the full `3-motor` research/release project is closed:
 
 - `AIR56`
 - `AL31`
@@ -15,6 +15,13 @@ Canonical strict-verified release:
 - [20260412_postrestore_ai_3motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release)
 - verify artifact: [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
 - `verification_ok = true`
+
+Hardware-productization status as of `2026-05-05`:
+
+- `AIR56 UNO Q` is the first board deployment path.
+- The split architecture is implemented as a deploy package: STM32U585 owns FOC/safety/fallback, QRB2210/Linux runs the AI `id_ref` decision layer.
+- The repo now contains the firmware hardware-adapter contract and Linux bridge startup/fallback checks.
+- Physical board deployment is not complete until the real STM32U585 FOC/inverter layer implements the `air56_foc_*` adapter symbols and passes the staged bring-up protocol.
 
 Historical milestone kept for provenance:
 
@@ -45,6 +52,9 @@ The diagnostic trail is intentionally kept in the repository:
 - [reproduce_ieee_step28.py](C:/mic_theory/tools/reproduce_ieee_step28.py): end-to-end IEEE reproduce/package pipeline
 - [train_any_motor_pipeline.py](C:/mic_theory/tools/train_any_motor_pipeline.py): universal onboarding pipeline
 - [train_3motors_pipeline.py](C:/mic_theory/tools/train_3motors_pipeline.py): multi-motor training pipeline
+- [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py): QRB2210 Linux bridge for AIR56 UNO Q
+- [air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready): AIR56 UNO Q split deploy package
+- [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md): physical bring-up protocol
 - [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
 
 ## Quick Start
@@ -86,6 +96,12 @@ python tools/step27_pipeline.py ^
 - latest focused regression after AO2 FOC/hybrid fixes:
   - `python -m pytest -q tests/test_step27_report_markdown.py tests/test_step27_hybrid_trigger.py tests/test_vector_foc_field_weakening.py tests/test_scan_step27_checkpoints.py tests/test_train_ai_id_ref_external_step27.py tests/test_diagnose_motor_nominal_consistency.py`
   - `60 passed`
+- AIR56 UNO Q focused deploy regression:
+  - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
+- AIR56 UNO Q firmware static compile smoke:
+  - `python tools/check_air56_unoq_firmware_static.py`
+- weak-hardware fast profile:
+  - `python -m pytest -q -m "not slow and not hardware"`
 
 ## Repository Structure
 
@@ -104,5 +120,4 @@ python tools/step27_pipeline.py ^
 - The canonical `AO2` live config is now [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py).
 - The canonical checkpoint registry is [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json).
 - The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over archived plans.
-- Ready `AIR56` deploy package for `UNO Q` is available in [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready).
-
+- `AIR56` deploy package for `UNO Q` is available in [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready). It is a split hardware-productization package, not proof that a motor-connected STM32U585 build has already passed physical acceptance.

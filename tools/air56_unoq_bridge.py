@@ -109,6 +109,16 @@ def _parse_host_port(text: str) -> Tuple[str, int]:
     return host.strip(), int(port)
 
 
+def _resolve_existing_file(path_text: str, label: str, *, root: Path = ROOT) -> Path:
+    path = Path(str(path_text)).expanduser()
+    if not path.is_absolute():
+        path = root / path
+    path = path.resolve()
+    if not path.is_file():
+        raise FileNotFoundError(f"{label} does not exist or is not a file: {path}")
+    return path
+
+
 def _status_fault(status: int, fault_mask: int) -> bool:
     status_val = int(status)
     mask = int(fault_mask)
@@ -337,6 +347,26 @@ def _clamp_rate(prev_value: float, target_value: float, max_delta: float) -> flo
     return float(prev_value + delta)
 
 
+def _send_fallback_command(
+    transport: Optional[BaseTransport],
+    *,
+    t_ms: int,
+    id_ref_base: float,
+    crc: bool,
+) -> None:
+    if transport is None:
+        return
+    try:
+        cmd = Command(t_ms=int(t_ms), enable_ai=0, id_ref=float(id_ref_base), crc=0)
+        transport.send(cmd.pack_with_crc() if bool(crc) else cmd.pack())
+        print(
+            f"[air56_unoq_bridge] fallback sent: enable_ai=0 id_ref={float(id_ref_base):.3f}",
+            flush=True,
+        )
+    except Exception as exc:  # pragma: no cover - best effort during shutdown
+        print(f"[air56_unoq_bridge] fallback send failed: {exc}", flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="AIR56 UNO Q Linux bridge (serial/UDP).")
     parser.add_argument("--config", default="config/env_research_air56_025kw.py")
@@ -359,7 +389,8 @@ def main() -> None:
     parser.add_argument("--log-every", type=int, default=50)
     args = parser.parse_args()
 
-    env_cfg = make_env_from_config(args.config).env_config
+    config_path = _resolve_existing_file(str(args.config), "--config")
+    env_cfg = make_env_from_config(str(config_path)).env_config
     motor = env_cfg.motor
     foc = env_cfg.foc
     omega_nominal = float(2.0 * math.pi * float(env_cfg.scalar_vf.f_max) / max(int(motor.p), 1))
@@ -370,7 +401,10 @@ def main() -> None:
     load_est_gain = float(args.load_est_gain) if args.load_est_gain is not None else float(torque_nom / i_base)
     load_base_nm = max(float(getattr(env_cfg.sim, "load_torque", 0.0)), 0.2)
 
-    primary_ckpt = Path(str(getattr(env_cfg, "ai_eval_checkpoint_path"))).resolve()
+    primary_ckpt = _resolve_existing_file(
+        str(getattr(env_cfg, "ai_eval_checkpoint_path")),
+        "primary checkpoint",
+    )
     primary = _build_bundle(
         name="primary",
         checkpoint=primary_ckpt,
@@ -388,9 +422,10 @@ def main() -> None:
     if hybrid_enabled:
         secondary_ckpt_text = str(getattr(env_cfg, "ai_eval_hybrid_secondary_checkpoint_path", "")).strip()
         if secondary_ckpt_text:
+            secondary_ckpt = _resolve_existing_file(secondary_ckpt_text, "secondary checkpoint")
             secondary = _build_bundle(
                 name="secondary",
-                checkpoint=Path(secondary_ckpt_text).resolve(),
+                checkpoint=secondary_ckpt,
                 env_cfg=env_cfg,
                 prefix="ai_eval_hybrid_secondary_",
                 enabled_attr="ai_eval_hybrid_secondary_supervisor_enabled",
@@ -407,16 +442,23 @@ def main() -> None:
     speed_err_threshold_abs = float(getattr(env_cfg, "ai_eval_hybrid_speed_err_threshold_abs", 0.0))
 
     if args.transport == "udp":
-        transport: BaseTransport = UdpTransport(args.listen, args.send)
+        transport: Optional[BaseTransport] = UdpTransport(args.listen, args.send)
     else:
         transport = SerialTransport(args.serial_port, args.baud, args.serial_timeout)
 
+    print(f"[air56_unoq_bridge] config={config_path}", flush=True)
     print(f"[air56_unoq_bridge] primary={primary_ckpt}", flush=True)
     if secondary is not None:
         print(f"[air56_unoq_bridge] secondary={getattr(env_cfg, 'ai_eval_hybrid_secondary_checkpoint_path')}", flush=True)
+    print(
+        f"[air56_unoq_bridge] transport={args.transport} mode={args.mode} crc={bool(args.crc)}",
+        flush=True,
+    )
 
     last_id_ref = float(getattr(foc, "id_ref", 0.0) or 0.0)
+    fallback_id_ref = float(primary.params.id_ref_base)
     prev_t_ms: Optional[int] = None
+    last_telem_t_ms = 0
     prev_load_est_nm = 0.0
     secondary_left = 0
     packets = 0
@@ -428,6 +470,7 @@ def main() -> None:
             packets += 1
 
             t_ms = int(telem.t_ms)
+            last_telem_t_ms = t_ms
             if prev_t_ms is None:
                 dt_s = 0.01
             else:
@@ -528,10 +571,25 @@ def main() -> None:
                 )
     except KeyboardInterrupt:
         print("[air56_unoq_bridge] stopped", flush=True)
+        _send_fallback_command(
+            transport,
+            t_ms=last_telem_t_ms,
+            id_ref_base=fallback_id_ref,
+            crc=bool(args.crc),
+        )
+    except Exception as exc:
+        print(f"[air56_unoq_bridge] fatal: {exc}", flush=True)
+        _send_fallback_command(
+            transport,
+            t_ms=last_telem_t_ms,
+            id_ref_base=fallback_id_ref,
+            crc=bool(args.crc),
+        )
+        raise
     finally:
-        transport.close()
+        if transport is not None:
+            transport.close()
 
 
 if __name__ == "__main__":
     main()
-

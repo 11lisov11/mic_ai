@@ -5,8 +5,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/mic_theory
-ExecStart=/usr/bin/python3 /opt/mic_theory/tools/air56_unoq_bridge.py --transport serial --serial-port /dev/ttyHS0 --baud 921600 --config /opt/mic_theory/config/env_research_air56_025kw.py --mode hybrid --crc --disable-on-fault
+Environment=MIC_THEORY_ROOT=/opt/mic_theory
+Environment=SERIAL_PORT=/dev/ttyHS0
+Environment=BAUD=921600
+Environment=CONFIG_PATH=/opt/mic_theory/config/env_research_air56_025kw.py
+Environment=MODE=hybrid
+EnvironmentFile=-/etc/default/air56_unoq_bridge
+ExecStart=/bin/sh -c 'cd "$MIC_THEORY_ROOT" && exec /usr/bin/python3 "$MIC_THEORY_ROOT/tools/air56_unoq_bridge.py" --transport serial --serial-port "$SERIAL_PORT" --baud "$BAUD" --config "$CONFIG_PATH" --mode "$MODE" --crc --disable-on-fault'
 Restart=always
 RestartSec=1
 Nice=-10

@@ -12,6 +12,7 @@ def test_reproduce_ieee_step28_smoke(tmp_path: Path) -> None:
     out_root = tmp_path / "step28_repro"
     pkg_root = tmp_path / "pkg_step28"
     bundle_out = tmp_path / "submission_bundle"
+    passport_out = tmp_path / "passport"
     cmd = [
         sys.executable,
         "tools/reproduce_ieee_step28.py",
@@ -30,6 +31,8 @@ def test_reproduce_ieee_step28_smoke(tmp_path: Path) -> None:
         "--mic-mode",
         "rule",
         "--skip-air56-tune",
+        "--passport-out-root",
+        str(passport_out),
         "--submission-bundle-out-dir",
         str(bundle_out),
     ]

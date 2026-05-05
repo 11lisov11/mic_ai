@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "air56_unoq_config.h"
+#include "air56_unoq_hw.h"
 #include "uno_q_control.h"
 #include "uno_q_protocol.h"
 
@@ -10,16 +11,6 @@
 static uint32_t g_last_tx_ms = 0u;
 static uint32_t g_last_cmd_ms = 0u;
 static int16_t g_last_id_ref_q10 = (int16_t)(AIR56_UNOQ_ID_REF_BASE_A * UNO_Q_CURRENT_SCALE);
-
-static float air56_read_omega_meas_rad_s() { return 0.0f; }
-static float air56_read_omega_ref_rad_s() { return 0.0f; }
-static float air56_read_id_amp() { return AIR56_UNOQ_ID_REF_BASE_A; }
-static float air56_read_iq_amp() { return 0.0f; }
-static float air56_read_vdc_volt() { return 24.0f; }
-static float air56_read_irms_amp() { return 0.0f; }
-static float air56_read_pin_watt() { return 0.0f; }
-static uint16_t air56_read_status_bits() { return 0u; }
-static void air56_apply_id_ref_amp(float id_ref_amp) { (void)id_ref_amp; }
 
 static bool read_exact(uint8_t *dst, size_t len) {
   if (AIR56_UNOQ_LINK.available() < (int)len) {
@@ -50,21 +41,21 @@ static bool read_command(unoq_command_t *cmd) {
 static void write_telemetry() {
   unoq_telemetry_t telem;
   telem.t_ms = millis();
-  telem.omega_meas_q10 = (int16_t)lroundf(air56_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
-  telem.omega_ref_q10 = (int16_t)lroundf(air56_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
-  telem.id_q10 = (int16_t)lroundf(air56_read_id_amp() * UNO_Q_CURRENT_SCALE);
-  telem.iq_q10 = (int16_t)lroundf(air56_read_iq_amp() * UNO_Q_CURRENT_SCALE);
-  telem.vdc_q8 = (uint16_t)lroundf(air56_read_vdc_volt() * UNO_Q_VDC_SCALE);
-  telem.i_rms_q10 = (int16_t)lroundf(air56_read_irms_amp() * UNO_Q_CURRENT_SCALE);
-  telem.p_in_q2 = (int16_t)lroundf(air56_read_pin_watt() * UNO_Q_POWER_SCALE);
-  telem.status = air56_read_status_bits();
+  telem.omega_meas_q10 = (int16_t)lroundf(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
+  telem.omega_ref_q10 = (int16_t)lroundf(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
+  telem.id_q10 = (int16_t)lroundf(air56_hw_read_id_amp() * UNO_Q_CURRENT_SCALE);
+  telem.iq_q10 = (int16_t)lroundf(air56_hw_read_iq_amp() * UNO_Q_CURRENT_SCALE);
+  telem.vdc_q8 = (uint16_t)lroundf(air56_hw_read_vdc_volt() * UNO_Q_VDC_SCALE);
+  telem.i_rms_q10 = (int16_t)lroundf(air56_hw_read_irms_amp() * UNO_Q_CURRENT_SCALE);
+  telem.p_in_q2 = (int16_t)lroundf(air56_hw_read_pin_watt() * UNO_Q_POWER_SCALE);
+  telem.status = air56_hw_read_status_bits();
   AIR56_UNOQ_LINK.write(reinterpret_cast<const uint8_t *>(&telem), sizeof(telem));
 }
 
 void setup() {
   AIR56_UNOQ_DEBUG.begin(115200);
   AIR56_UNOQ_LINK.begin(921600);
-  air56_apply_id_ref_amp(AIR56_UNOQ_ID_REF_BASE_A);
+  air56_hw_apply_id_ref_amp(AIR56_UNOQ_ID_REF_BASE_A);
   AIR56_UNOQ_DEBUG.println("AIR56 UNO Q example started");
 }
 
@@ -86,8 +77,8 @@ void loop() {
   const int16_t id_ref_max_q10 = (int16_t)lroundf(AIR56_UNOQ_ID_REF_MAX_A * UNO_Q_CURRENT_SCALE);
   const int16_t max_delta_q10 = (int16_t)lroundf(AIR56_UNOQ_SLEW_A_PER_CYCLE * UNO_Q_CURRENT_SCALE);
 
-  const int16_t omega_ref_q10 = (int16_t)lroundf(air56_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
-  const int16_t omega_meas_q10 = (int16_t)lroundf(air56_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
+  const int16_t omega_ref_q10 = (int16_t)lroundf(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
+  const int16_t omega_meas_q10 = (int16_t)lroundf(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
   const int16_t speed_err_q10 = abs((int32_t)omega_ref_q10 - (int32_t)omega_meas_q10);
   const float omega_ref_abs = fabsf((float)omega_ref_q10 / UNO_Q_OMEGA_SCALE);
   const float speed_tol = max(AIR56_UNOQ_SPEED_TOL_ABS_RAD_S, AIR56_UNOQ_SPEED_TOL_REL * omega_ref_abs);
@@ -104,7 +95,7 @@ void loop() {
   unoq_gate_result_t gate = unoq_apply_gates(
       speed_err_q10,
       speed_tol_q10,
-      air56_read_status_bits(),
+      air56_hw_read_status_bits(),
       AIR56_UNOQ_FAULT_MASK,
       id_ref_base_q10,
       requested_q10,
@@ -116,5 +107,5 @@ void loop() {
   next_q10 = unoq_rate_limit(g_last_id_ref_q10, next_q10, max_delta_q10);
   g_last_id_ref_q10 = next_q10;
 
-  air56_apply_id_ref_amp((float)next_q10 / UNO_Q_CURRENT_SCALE);
+  air56_hw_apply_id_ref_amp((float)next_q10 / UNO_Q_CURRENT_SCALE);
 }

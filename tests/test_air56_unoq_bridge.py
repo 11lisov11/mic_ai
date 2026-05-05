@@ -4,8 +4,11 @@ from tools.air56_unoq_bridge import (
     Air56IdRefParams,
     _action_to_id_ref,
     _estimate_load_nm_from_iq,
+    _resolve_existing_file,
+    _send_fallback_command,
     _should_switch_secondary,
 )
+from tools.uno_q_protocol import Command
 
 
 def _params() -> Air56IdRefParams:
@@ -61,3 +64,27 @@ def test_should_switch_secondary_requires_real_positive_load_jump() -> None:
         speed_err_threshold_rel=0.05,
         speed_err_threshold_abs=0.0,
     )
+
+
+def test_resolve_existing_file_accepts_relative_repo_file() -> None:
+    path = _resolve_existing_file("config/env_research_air56_025kw.py", "--config")
+    assert path.is_file()
+    assert path.name == "env_research_air56_025kw.py"
+
+
+def test_send_fallback_command_disables_ai() -> None:
+    class FakeTransport:
+        def __init__(self) -> None:
+            self.payloads: list[bytes] = []
+
+        def send(self, payload: bytes) -> None:
+            self.payloads.append(payload)
+
+    transport = FakeTransport()
+    _send_fallback_command(transport, t_ms=10, id_ref_base=1.35, crc=True)  # type: ignore[arg-type]
+    assert len(transport.payloads) == 1
+
+    cmd = Command.unpack(transport.payloads[0])
+    assert cmd.t_ms == 10
+    assert cmd.enable_ai == 0
+    assert abs(cmd.id_ref - 1.35) < 1.0 / 1024.0

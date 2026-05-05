@@ -8,6 +8,12 @@ Ready AIR56 package:
 
 - [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready)
 - dedicated bridge: [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py)
+- staged bring-up protocol: [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md)
+
+Readiness note: the repository contains the split deploy package and the
+adapter contract, not a board-specific FOC/HAL implementation. A motor-connected
+build must implement the `air56_foc_*` functions declared in
+`arduino/air56_unoq_ready/firmware/air56_unoq_example/air56_unoq_hw_port.h`.
 
 ## 1) Split of responsibilities
 - Linux (QRB2210): runs AI policy at low rate (50-200 Hz). Output is id_ref (flux reference) or delta_id_ref.
@@ -61,6 +67,15 @@ and mirror the same algorithm on STM.
 - Speed error gate: if |omega_ref - omega_meas| > speed_tol -> freeze id_ref (or revert to nominal).
 - Hard overcurrent -> immediate fallback + fault flag.
 
+## 4.1) STM32U585 hardware adapter
+The AIR56 package separates production hardware binding from the protocol loop:
+
+- `air56_unoq_hw_port.h`: production adapter contract.
+- `air56_unoq_hw_mock.h`: opt-in mock adapter for no-motor loopback only.
+- `platformio.ini`: STM32U585 mock compile target and production-port target.
+
+Production builds must not define `AIR56_UNOQ_USE_MOCK_HW`.
+
 ## 5) Policy inputs mapping (ai_id_ref)
 FEATURE_KEYS in training:
 - omega_norm, omega_ref_norm, err_norm, id_norm, iq_norm, slip_norm, load_torque_norm
@@ -100,4 +115,3 @@ Ensure telemetry provides these or allow Linux to compute:
 - Protocol: `arduino/uno_q_protocol.h` (packed structs + CRC16).
 - Safety gates and slew limit: `arduino/uno_q_control.h`.
 - LUT headers (generated): `arduino/id_ref_lut_motor1.h`, `arduino/id_ref_lut_motor2.h`.
-
