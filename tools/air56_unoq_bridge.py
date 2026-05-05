@@ -128,8 +128,17 @@ class SerialTransport(BaseTransport):
 
 
 def _parse_host_port(text: str) -> Tuple[str, int]:
-    host, port = str(text).rsplit(":", 1)
-    return host.strip(), int(port)
+    try:
+        host, port_text = str(text).rsplit(":", 1)
+        port = int(port_text)
+    except ValueError as exc:
+        raise ValueError(f"endpoint must be HOST:PORT: {text}") from exc
+    host = host.strip()
+    if not host:
+        raise ValueError(f"endpoint host is empty: {text}")
+    if port < 1 or port > 65535:
+        raise ValueError(f"endpoint port out of range: {port}")
+    return host, port
 
 
 def _resolve_existing_file(path_text: str, label: str, *, root: Path = ROOT) -> Path:
@@ -140,6 +149,31 @@ def _resolve_existing_file(path_text: str, label: str, *, root: Path = ROOT) -> 
     if not path.is_file():
         raise FileNotFoundError(f"{label} does not exist or is not a file: {path}")
     return path
+
+
+def _validate_runtime_args(args: argparse.Namespace) -> None:
+    if int(args.baud) <= 0:
+        raise ValueError("--baud must be positive")
+    if float(args.serial_timeout) <= 0.0:
+        raise ValueError("--serial-timeout must be positive")
+    if int(args.fault_mask) < 0 or int(args.fault_mask) > 0xFFFF:
+        raise ValueError("--fault-mask must be in uint16 range")
+    if float(args.id_min) > float(args.id_max):
+        raise ValueError("--id-min must be <= --id-max")
+    if float(args.cmd_rate_limit_a_per_s) < 0.0:
+        raise ValueError("--cmd-rate-limit-a-per-s must be non-negative")
+    if args.load_est_gain is not None and float(args.load_est_gain) < 0.0:
+        raise ValueError("--load-est-gain must be non-negative")
+    if int(args.log_every) < 0:
+        raise ValueError("--log-every must be non-negative")
+
+
+def _validate_id_ref_window(*, id_ref_base: float, id_min: float, id_max: float) -> None:
+    base = float(id_ref_base)
+    lo = float(id_min)
+    hi = float(id_max)
+    if base < lo or base > hi:
+        raise ValueError("FOC base id_ref must be inside --id-min/--id-max")
 
 
 def _status_fault(status: int, fault_mask: int) -> bool:
@@ -362,6 +396,8 @@ def _should_switch_secondary(
 
 
 def _clamp_rate(prev_value: float, target_value: float, max_delta: float) -> float:
+    if float(max_delta) <= 0.0:
+        return float(prev_value)
     delta = float(target_value) - float(prev_value)
     if delta > max_delta:
         delta = max_delta
@@ -536,11 +572,17 @@ def main() -> None:
     parser.add_argument("--load-est-gain", type=float, default=None)
     parser.add_argument("--log-every", type=int, default=50)
     args = parser.parse_args()
+    _validate_runtime_args(args)
 
     config_path = _resolve_existing_file(str(args.config), "--config")
     env_cfg = make_env_from_config(str(config_path)).env_config
     motor = env_cfg.motor
     foc = env_cfg.foc
+    _validate_id_ref_window(
+        id_ref_base=float(getattr(foc, "id_ref", 0.0) or 0.0),
+        id_min=float(args.id_min),
+        id_max=float(args.id_max),
+    )
     omega_nominal = float(2.0 * math.pi * float(env_cfg.scalar_vf.f_max) / max(int(motor.p), 1))
     i_base = float(max(getattr(motor, "I_n", 1.0), 1e-6))
     rr = float(getattr(motor, "Rr", 0.0))

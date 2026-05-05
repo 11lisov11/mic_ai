@@ -63,6 +63,14 @@ typedef struct UNO_Q_PACKED {
   uint16_t crc;
 } unoq_command_t;
 
+#ifdef __cplusplus
+static_assert(sizeof(unoq_telemetry_t) == 20, "unoq_telemetry_t ABI must stay 20 bytes");
+static_assert(sizeof(unoq_command_t) == 9, "unoq_command_t ABI must stay 9 bytes");
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+_Static_assert(sizeof(unoq_telemetry_t) == 20, "unoq_telemetry_t ABI must stay 20 bytes");
+_Static_assert(sizeof(unoq_command_t) == 9, "unoq_command_t ABI must stay 9 bytes");
+#endif
+
 static inline uint16_t unoq_crc16_ccitt(const uint8_t *data, size_t len) {
   uint16_t crc = UNO_Q_CRC16_INIT;
   for (size_t i = 0; i < len; ++i) {

@@ -69,6 +69,14 @@ def test_air56_unoq_platformio_target_exists() -> None:
     assert "-DAIR56_UNOQ_USE_MOCK_HW=1" in pio
 
 
+def test_uno_q_protocol_headers_lock_binary_abi_sizes() -> None:
+    fw_protocol = (FW / "uno_q_protocol.h").read_text(encoding="utf-8")
+    root_protocol = (ROOT / "arduino" / "uno_q_protocol.h").read_text(encoding="utf-8")
+    for text in (fw_protocol, root_protocol):
+        assert "sizeof(unoq_telemetry_t) == 20" in text
+        assert "sizeof(unoq_command_t) == 9" in text
+
+
 def test_air56_unoq_linux_deploy_is_env_based() -> None:
     service = (PKG / "linux" / "air56_unoq_bridge.service").read_text(encoding="utf-8")
     assert "EnvironmentFile=-/etc/default/air56_unoq_bridge" in service

@@ -18,6 +18,8 @@ from tools.air56_unoq_bridge import (
     _send_fallback_command,
     _should_switch_secondary,
     _status_fault,
+    _validate_id_ref_window,
+    _validate_runtime_args,
 )
 from tools.uno_q_protocol import CURRENT_SCALE, Telemetry
 from tools.uno_q_protocol import Command
@@ -93,6 +95,23 @@ def test_parse_host_port() -> None:
     assert _parse_host_port("127.0.0.1:9000") == ("127.0.0.1", 9000)
 
 
+def test_parse_host_port_rejects_invalid_endpoints() -> None:
+    bad_cases = [
+        "127.0.0.1",
+        ":9000",
+        "127.0.0.1:0",
+        "127.0.0.1:70000",
+        "127.0.0.1:notaport",
+    ]
+    for endpoint in bad_cases:
+        try:
+            _parse_host_port(endpoint)
+        except ValueError:
+            pass
+        else:  # pragma: no cover - keeps failures readable without pytest import dependency here
+            raise AssertionError(f"{endpoint!r} was accepted")
+
+
 def test_status_fault_mask_semantics() -> None:
     assert not _status_fault(0, 0)
     assert _status_fault(1, 0)
@@ -154,6 +173,8 @@ def test_clamp_rate_limits_both_directions() -> None:
     assert _clamp_rate(1.0, 2.0, 0.2) == 1.2
     assert _clamp_rate(1.0, 0.0, 0.2) == 0.8
     assert _clamp_rate(1.0, 1.1, 0.2) == 1.1
+    assert _clamp_rate(1.0, 2.0, 0.0) == 1.0
+    assert _clamp_rate(1.0, 2.0, -0.2) == 1.0
 
 
 def test_build_obs_computes_normalized_runtime_features() -> None:
@@ -389,6 +410,52 @@ def test_resolve_existing_file_accepts_relative_repo_file() -> None:
     path = _resolve_existing_file("config/env_research_air56_025kw.py", "--config")
     assert path.is_file()
     assert path.name == "env_research_air56_025kw.py"
+
+
+def test_validate_runtime_args_rejects_unsafe_cli_ranges() -> None:
+    base = {
+        "baud": 921600,
+        "serial_timeout": 0.05,
+        "fault_mask": 0,
+        "id_min": 1.1,
+        "id_max": 1.7,
+        "cmd_rate_limit_a_per_s": 12.0,
+        "load_est_gain": None,
+        "log_every": 50,
+    }
+    _validate_runtime_args(SimpleNamespace(**base))
+
+    bad_cases = [
+        ("baud", 0, "--baud must be positive"),
+        ("serial_timeout", 0.0, "--serial-timeout must be positive"),
+        ("fault_mask", -1, "--fault-mask must be in uint16 range"),
+        ("fault_mask", 0x10000, "--fault-mask must be in uint16 range"),
+        ("id_min", 2.0, "--id-min must be <= --id-max"),
+        ("cmd_rate_limit_a_per_s", -0.1, "--cmd-rate-limit-a-per-s must be non-negative"),
+        ("load_est_gain", -0.1, "--load-est-gain must be non-negative"),
+        ("log_every", -1, "--log-every must be non-negative"),
+    ]
+    for field, value, message in bad_cases:
+        data = dict(base)
+        data[field] = value
+        try:
+            _validate_runtime_args(SimpleNamespace(**data))
+        except ValueError as exc:
+            assert message in str(exc)
+        else:  # pragma: no cover - keeps failures readable without pytest import dependency here
+            raise AssertionError(f"{field}={value!r} was accepted")
+
+
+def test_validate_id_ref_window_requires_fallback_inside_launch_limits() -> None:
+    _validate_id_ref_window(id_ref_base=1.35, id_min=1.1, id_max=1.7)
+
+    for lo, hi in [(1.4, 1.7), (1.1, 1.3)]:
+        try:
+            _validate_id_ref_window(id_ref_base=1.35, id_min=lo, id_max=hi)
+        except ValueError as exc:
+            assert "FOC base id_ref must be inside" in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError(f"id_ref window [{lo}, {hi}] accepted without base id_ref")
 
 
 def test_send_fallback_command_disables_ai() -> None:
