@@ -37,6 +37,20 @@ def _pack_u16(value: float, field: str) -> int:
     return out
 
 
+def _pack_u32(value: float, field: str) -> int:
+    out = int(round(float(value)))
+    if out < 0 or out > 0xFFFFFFFF:
+        raise ValueError(f"{field} out of uint32 protocol range: {out}")
+    return out
+
+
+def _pack_u8(value: float, field: str) -> int:
+    out = int(round(float(value)))
+    if out < 0 or out > 255:
+        raise ValueError(f"{field} out of uint8 protocol range: {out}")
+    return out
+
+
 def crc16_ccitt(payload: bytes, init: int = CRC16_INIT) -> int:
     """CRC-16/CCITT-FALSE over the full packet (CRC field zeroed)."""
     crc = init & 0xFFFF
@@ -66,7 +80,7 @@ class Telemetry:
 
     def pack(self) -> bytes:
         return self._struct.pack(
-            int(self.t_ms),
+            _pack_u32(self.t_ms, "t_ms"),
             _pack_i16(self.omega_meas * OMEGA_SCALE, "omega_meas"),
             _pack_i16(self.omega_ref * OMEGA_SCALE, "omega_ref"),
             _pack_i16(self.i_d * CURRENT_SCALE, "i_d"),
@@ -74,7 +88,7 @@ class Telemetry:
             _pack_u16(self.v_dc * VDC_SCALE, "v_dc"),
             _pack_i16(self.i_rms * CURRENT_SCALE, "i_rms"),
             _pack_i16(self.p_in * POWER_SCALE, "p_in"),
-            int(self.status),
+            _pack_u16(self.status, "status"),
         )
 
     @classmethod
@@ -104,23 +118,23 @@ class Command:
 
     def pack(self) -> bytes:
         return self._struct.pack(
-            int(self.t_ms),
-            int(self.enable_ai) & 0xFF,
+            _pack_u32(self.t_ms, "t_ms"),
+            _pack_u8(self.enable_ai, "enable_ai"),
             _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
-            int(self.crc) & 0xFFFF,
+            _pack_u16(self.crc, "crc"),
         )
 
     def pack_with_crc(self, init: int = CRC16_INIT) -> bytes:
         payload = self._struct.pack(
-            int(self.t_ms),
-            int(self.enable_ai) & 0xFF,
+            _pack_u32(self.t_ms, "t_ms"),
+            _pack_u8(self.enable_ai, "enable_ai"),
             _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             0,
         )
         crc = crc16_ccitt(payload, init=init)
         return self._struct.pack(
-            int(self.t_ms),
-            int(self.enable_ai) & 0xFF,
+            _pack_u32(self.t_ms, "t_ms"),
+            _pack_u8(self.enable_ai, "enable_ai"),
             _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             int(crc) & 0xFFFF,
         )

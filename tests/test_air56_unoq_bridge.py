@@ -19,7 +19,7 @@ from tools.air56_unoq_bridge import (
     _should_switch_secondary,
     _status_fault,
 )
-from tools.uno_q_protocol import Telemetry
+from tools.uno_q_protocol import CURRENT_SCALE, Telemetry
 from tools.uno_q_protocol import Command
 
 
@@ -406,4 +406,4 @@ def test_send_fallback_command_disables_ai() -> None:
     cmd = Command.unpack(transport.payloads[0])
     assert cmd.t_ms == 10
     assert cmd.enable_ai == 0
-    assert abs(cmd.id_ref - 1.35) < 1.0 / 1024.0
+    assert abs(cmd.id_ref - 1.35) < 1.0 / CURRENT_SCALE

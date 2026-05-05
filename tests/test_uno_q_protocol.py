@@ -81,6 +81,36 @@ def test_telemetry_pack_rejects_out_of_range_speed() -> None:
         telem.pack()
 
 
+def test_telemetry_pack_rejects_out_of_range_unsigned_fields() -> None:
+    telem = Telemetry(
+        t_ms=-1,
+        omega_meas=1.0,
+        omega_ref=1.0,
+        i_d=1.0,
+        i_q=1.0,
+        v_dc=24.0,
+        i_rms=1.0,
+        p_in=10.0,
+        status=0,
+    )
+    with pytest.raises(ValueError, match="t_ms out of uint32 protocol range"):
+        telem.pack()
+
+    telem = Telemetry(
+        t_ms=1,
+        omega_meas=1.0,
+        omega_ref=1.0,
+        i_d=1.0,
+        i_q=1.0,
+        v_dc=24.0,
+        i_rms=1.0,
+        p_in=10.0,
+        status=65536,
+    )
+    with pytest.raises(ValueError, match="status out of uint16 protocol range"):
+        telem.pack()
+
+
 def test_command_crc_roundtrip() -> None:
     cmd = Command(t_ms=54321, enable_ai=1, id_ref=0.42)
     payload = cmd.pack_with_crc()
@@ -94,3 +124,16 @@ def test_command_crc_roundtrip() -> None:
     assert decoded.t_ms == cmd.t_ms
     assert decoded.enable_ai == cmd.enable_ai
     assert math.isclose(decoded.id_ref, cmd.id_ref, abs_tol=1.0 / CURRENT_SCALE)
+
+
+def test_command_pack_rejects_invalid_enable_ai_instead_of_masking() -> None:
+    with pytest.raises(ValueError, match="enable_ai out of uint8 protocol range"):
+        Command(t_ms=1, enable_ai=256, id_ref=1.35).pack()
+
+    with pytest.raises(ValueError, match="enable_ai out of uint8 protocol range"):
+        Command(t_ms=1, enable_ai=-1, id_ref=1.35).pack_with_crc()
+
+
+def test_command_pack_rejects_out_of_range_crc() -> None:
+    with pytest.raises(ValueError, match="crc out of uint16 protocol range"):
+        Command(t_ms=1, enable_ai=1, id_ref=1.35, crc=65536).pack()

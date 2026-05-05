@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools.uno_q_protocol import CMD_STRUCT, TELEMETRY_STRUCT, Command, Telemetry, crc16_ccitt
+from tools.uno_q_protocol import CMD_STRUCT, CURRENT_SCALE, TELEMETRY_STRUCT, Command, Telemetry, crc16_ccitt
 
 
 @dataclass(frozen=True)
@@ -98,7 +98,7 @@ def run_loopback_selftest(
     fallback = Command(t_ms=silence_t_ms, enable_ai=0, id_ref=float(id_ref_base))
     fallback_payload = fallback.pack_with_crc() if crc else fallback.pack()
     fallback_cmd = Command.unpack(fallback_payload)
-    fallback_after_timeout = fallback_cmd.enable_ai == 0 and abs(fallback_cmd.id_ref - id_ref_base) <= 1.0 / 1024.0
+    fallback_after_timeout = fallback_cmd.enable_ai == 0 and abs(fallback_cmd.id_ref - id_ref_base) <= 1.0 / CURRENT_SCALE
 
     return LoopbackReport(
         packets=int(packets),
