@@ -37,7 +37,9 @@ class LoopbackReport:
     @property
     def passed(self) -> bool:
         return (
-            self.telemetry_size == 20
+            self.packets > 0
+            and len(self.frames) == self.packets
+            and self.telemetry_size == 20
             and self.command_size == 9
             and all(frame.crc_ok for frame in self.frames)
             and self.fallback_after_timeout
@@ -74,6 +76,13 @@ def run_loopback_selftest(
     id_ref_delta: float = -0.05,
     crc: bool = True,
 ) -> LoopbackReport:
+    if int(packets) <= 0:
+        raise ValueError("packets must be positive")
+    if int(period_ms) <= 0:
+        raise ValueError("period_ms must be positive")
+    if int(timeout_ms) < 0:
+        raise ValueError("timeout_ms must be non-negative")
+
     frames: list[LoopbackFrame] = []
     for idx, telemetry in enumerate(_telemetry_stream(packets, period_ms)):
         telem_payload = telemetry.pack()

@@ -83,10 +83,11 @@ void loop() {
 
   const int16_t omega_ref_q10 = unoq_float_to_i16_sat(air56_hw_read_omega_ref_rad_s() * UNO_Q_OMEGA_SCALE);
   const int16_t omega_meas_q10 = unoq_float_to_i16_sat(air56_hw_read_omega_meas_rad_s() * UNO_Q_OMEGA_SCALE);
-  const int16_t speed_err_q10 = abs((int32_t)omega_ref_q10 - (int32_t)omega_meas_q10);
+  const int32_t speed_delta_q10 = (int32_t)omega_ref_q10 - (int32_t)omega_meas_q10;
+  const int32_t speed_err_q10 = speed_delta_q10 >= 0 ? speed_delta_q10 : -speed_delta_q10;
   const float omega_ref_abs = fabsf((float)omega_ref_q10 / UNO_Q_OMEGA_SCALE);
   const float speed_tol = max(AIR56_UNOQ_SPEED_TOL_ABS_RAD_S, AIR56_UNOQ_SPEED_TOL_REL * omega_ref_abs);
-  const int16_t speed_tol_q10 = unoq_float_to_i16_sat(speed_tol * UNO_Q_OMEGA_SCALE);
+  const int32_t speed_tol_q10 = (int32_t)unoq_float_to_i16_sat(speed_tol * UNO_Q_OMEGA_SCALE);
 
   uint8_t timeout = (now_ms - g_last_cmd_ms) > AIR56_UNOQ_COMMAND_TIMEOUT_MS;
   int16_t requested_q10 = id_ref_base_q10;

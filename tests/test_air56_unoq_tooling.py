@@ -99,3 +99,19 @@ def test_coverage_gate_evaluate_rejects_low_file() -> None:
     results = check_air56_unoq_coverage_gate._evaluate(payload)
     failed = [row.name for row in results if not row.passed]
     assert failed == ["tools/uno_q_protocol.py"]
+
+
+def test_coverage_gate_reuse_json_fails_cleanly_when_missing(tmp_path, monkeypatch) -> None:
+    missing = tmp_path / "missing_coverage.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "check_air56_unoq_coverage_gate.py",
+            "--reuse-json",
+            "--coverage-json",
+            str(missing),
+        ],
+    )
+
+    with pytest.raises(SystemExit, match="coverage JSON not found"):
+        check_air56_unoq_coverage_gate.main()

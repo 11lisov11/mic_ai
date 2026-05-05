@@ -22,6 +22,28 @@ def test_air56_unoq_firmware_latches_last_command_until_timeout() -> None:
     assert "!timeout && have_cmd" not in ino
 
 
+def test_air56_unoq_firmware_speed_guard_uses_wide_error_math() -> None:
+    ino = (FW / "air56_unoq_example.ino").read_text(encoding="utf-8")
+    control = (FW / "uno_q_control.h").read_text(encoding="utf-8")
+    root_control = (ROOT / "arduino" / "uno_q_control.h").read_text(encoding="utf-8")
+
+    assert "const int32_t speed_delta_q10" in ino
+    assert "const int32_t speed_err_q10" in ino
+    assert "const int16_t speed_err_q10" not in ino
+    assert "int32_t speed_err_q10" in control
+    assert "int32_t speed_tol_q10" in control
+    assert "int32_t speed_err_q10" in root_control
+    assert "int32_t speed_tol_q10" in root_control
+
+
+def test_uno_q_rate_limit_rejects_nonpositive_delta() -> None:
+    control = (FW / "uno_q_control.h").read_text(encoding="utf-8")
+    root_control = (ROOT / "arduino" / "uno_q_control.h").read_text(encoding="utf-8")
+
+    assert "if (max_delta_q10 <= 0)" in control
+    assert "if (max_delta_q10 <= 0)" in root_control
+
+
 def test_air56_unoq_production_port_declares_real_foc_contract() -> None:
     port = (FW / "air56_unoq_hw_port.h").read_text(encoding="utf-8")
     required = [

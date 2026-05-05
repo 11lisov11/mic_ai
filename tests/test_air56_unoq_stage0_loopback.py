@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from tools.air56_unoq_stage0_loopback import run_loopback_selftest
 from tools import air56_unoq_stage0_loopback
 
@@ -22,6 +24,19 @@ def test_stage0_loopback_selftest_supports_crc_disabled() -> None:
     assert report.passed
     assert not report.crc_enabled
     assert all(frame.crc_ok for frame in report.frames)
+
+
+def test_stage0_loopback_rejects_zero_packet_false_pass() -> None:
+    with pytest.raises(ValueError, match="packets must be positive"):
+        run_loopback_selftest(packets=0)
+
+
+def test_stage0_loopback_rejects_invalid_timing() -> None:
+    with pytest.raises(ValueError, match="period_ms must be positive"):
+        run_loopback_selftest(period_ms=0)
+
+    with pytest.raises(ValueError, match="timeout_ms must be non-negative"):
+        run_loopback_selftest(timeout_ms=-1)
 
 
 def test_stage0_loopback_cli_writes_report(tmp_path, monkeypatch, capsys) -> None:

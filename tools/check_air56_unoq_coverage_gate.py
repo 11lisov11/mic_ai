@@ -100,6 +100,8 @@ def main() -> int:
     out_json = Path(str(args.coverage_json)).resolve()
     if not bool(args.reuse_json):
         _run_pytest(out_json)
+    elif not out_json.is_file():
+        raise SystemExit(f"coverage JSON not found: {out_json}")
 
     payload = json.loads(out_json.read_text(encoding="utf-8"))
     results = _evaluate(payload)
