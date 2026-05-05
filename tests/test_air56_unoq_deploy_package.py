@@ -14,6 +14,14 @@ def test_air56_unoq_firmware_uses_hardware_adapter() -> None:
     assert "air56_hw_apply_id_ref_amp" in ino
 
 
+def test_air56_unoq_firmware_latches_last_command_until_timeout() -> None:
+    ino = (FW / "air56_unoq_example.ino").read_text(encoding="utf-8")
+    assert "g_last_cmd_id_ref_q10" in ino
+    assert "g_last_cmd_enable_ai" in ino
+    assert "if (!timeout) {" in ino
+    assert "!timeout && have_cmd" not in ino
+
+
 def test_air56_unoq_production_port_declares_real_foc_contract() -> None:
     port = (FW / "air56_unoq_hw_port.h").read_text(encoding="utf-8")
     required = [

@@ -376,8 +376,12 @@ def _send_fallback_command(
     t_ms: int,
     id_ref_base: float,
     crc: bool,
+    dry_run: bool = False,
 ) -> None:
     if transport is None:
+        return
+    if bool(dry_run):
+        print("[air56_unoq_bridge] dry-run: fallback send skipped", flush=True)
         return
     try:
         cmd = Command(t_ms=int(t_ms), enable_ai=0, id_ref=float(id_ref_base), crc=0)
@@ -658,6 +662,7 @@ def main() -> None:
             t_ms=state.last_telem_t_ms,
             id_ref_base=fallback_id_ref,
             crc=bool(args.crc),
+            dry_run=bool(args.dry_run),
         )
     except Exception as exc:
         print(f"[air56_unoq_bridge] fatal: {exc}", flush=True)
@@ -666,6 +671,7 @@ def main() -> None:
             t_ms=state.last_telem_t_ms,
             id_ref_base=fallback_id_ref,
             crc=bool(args.crc),
+            dry_run=bool(args.dry_run),
         )
         raise
     finally:

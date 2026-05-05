@@ -407,3 +407,16 @@ def test_send_fallback_command_disables_ai() -> None:
     assert cmd.t_ms == 10
     assert cmd.enable_ai == 0
     assert abs(cmd.id_ref - 1.35) < 1.0 / CURRENT_SCALE
+
+
+def test_send_fallback_command_respects_dry_run() -> None:
+    class FakeTransport:
+        def __init__(self) -> None:
+            self.payloads: list[bytes] = []
+
+        def send(self, payload: bytes) -> None:
+            self.payloads.append(payload)
+
+    transport = FakeTransport()
+    _send_fallback_command(transport, t_ms=10, id_ref_base=1.35, crc=True, dry_run=True)  # type: ignore[arg-type]
+    assert transport.payloads == []

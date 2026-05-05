@@ -11,6 +11,8 @@
 static uint32_t g_last_tx_ms = 0u;
 static uint32_t g_last_cmd_ms = 0u;
 static int16_t g_last_id_ref_q10 = (int16_t)(AIR56_UNOQ_ID_REF_BASE_A * UNO_Q_CURRENT_SCALE);
+static int16_t g_last_cmd_id_ref_q10 = (int16_t)(AIR56_UNOQ_ID_REF_BASE_A * UNO_Q_CURRENT_SCALE);
+static uint8_t g_last_cmd_enable_ai = 0u;
 
 static bool read_exact(uint8_t *dst, size_t len) {
   if (AIR56_UNOQ_LINK.available() < (int)len) {
@@ -70,6 +72,8 @@ void loop() {
   bool have_cmd = read_command(&cmd);
   if (have_cmd) {
     g_last_cmd_ms = now_ms;
+    g_last_cmd_id_ref_q10 = cmd.id_ref_q10;
+    g_last_cmd_enable_ai = cmd.enable_ai ? 1u : 0u;
   }
 
   const int16_t id_ref_base_q10 = (int16_t)lroundf(AIR56_UNOQ_ID_REF_BASE_A * UNO_Q_CURRENT_SCALE);
@@ -87,9 +91,12 @@ void loop() {
   uint8_t timeout = (now_ms - g_last_cmd_ms) > AIR56_UNOQ_COMMAND_TIMEOUT_MS;
   int16_t requested_q10 = id_ref_base_q10;
   uint8_t enable_ai = 0u;
-  if (!timeout && have_cmd) {
-    requested_q10 = unoq_clamp_i16(cmd.id_ref_q10, id_ref_min_q10, id_ref_max_q10);
-    enable_ai = cmd.enable_ai ? 1u : 0u;
+  if (!timeout) {
+    // Hold the last valid Linux command between 10 ms packets; timeout owns fallback.
+    requested_q10 = unoq_clamp_i16(g_last_cmd_id_ref_q10, id_ref_min_q10, id_ref_max_q10);
+    enable_ai = g_last_cmd_enable_ai ? 1u : 0u;
+  } else {
+    g_last_cmd_enable_ai = 0u;
   }
 
   unoq_gate_result_t gate = unoq_apply_gates(
