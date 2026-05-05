@@ -19,6 +19,9 @@ extern "C" {
 #define UNO_Q_CRC16_INIT 0xFFFFu
 
 static inline int16_t unoq_float_to_i16_sat(float value) {
+  if (!isfinite(value)) {
+    return 0;
+  }
   if (value > 32767.0f) {
     return 32767;
   }
@@ -29,6 +32,9 @@ static inline int16_t unoq_float_to_i16_sat(float value) {
 }
 
 static inline uint16_t unoq_float_to_u16_sat(float value) {
+  if (!isfinite(value)) {
+    return 0u;
+  }
   if (value > 65535.0f) {
     return 65535u;
   }

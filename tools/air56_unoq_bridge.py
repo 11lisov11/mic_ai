@@ -184,12 +184,19 @@ def _status_fault(status: int, fault_mask: int) -> bool:
     return (status_val & mask) != 0
 
 
+def _clip_action_scalar(value: float) -> float:
+    action = float(value)
+    if not math.isfinite(action):
+        raise ValueError(f"AI action must be finite: {action}")
+    return float(max(-1.0, min(1.0, action)))
+
+
 def _infer_action_scalar(agent: PPOVoltageAgent, obs: dict[str, float]) -> float:
     with torch.no_grad():
         state_t = agent._to_tensor(obs).unsqueeze(0)
         mu, _std, _value = agent.net(state_t)
     value = float(mu.squeeze(0).cpu().numpy()[0])
-    return float(max(-1.0, min(1.0, value)))
+    return _clip_action_scalar(value)
 
 
 def _build_obs(
@@ -257,7 +264,7 @@ def _action_to_id_ref(
     omega_meas: float,
     params: Air56IdRefParams,
 ) -> tuple[float, float, float]:
-    action = float(max(-1.0, min(1.0, float(action))))
+    action = _clip_action_scalar(action)
     gate_scale, gate_tol = _compute_gate_scale(
         omega_ref=float(omega_ref),
         omega_meas=float(omega_meas),

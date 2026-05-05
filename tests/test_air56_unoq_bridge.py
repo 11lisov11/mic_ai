@@ -8,6 +8,7 @@ from tools.air56_unoq_bridge import (
     _action_to_id_ref,
     _build_obs,
     _clamp_rate,
+    _clip_action_scalar,
     _compute_gate_scale,
     _estimate_load_nm_from_iq,
     _load_id_ref_params,
@@ -142,6 +143,32 @@ def test_action_to_id_ref_blocks_demagnetization_on_large_error() -> None:
     )
     assert gate_scale <= 0.1
     assert cmd >= 1.35
+
+
+def test_clip_action_scalar_rejects_nan_instead_of_maxing_command() -> None:
+    assert _clip_action_scalar(-2.0) == -1.0
+    assert _clip_action_scalar(2.0) == 1.0
+    try:
+        _clip_action_scalar(float("nan"))
+    except ValueError as exc:
+        assert "AI action must be finite" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("NaN AI action was accepted")
+
+
+def test_action_to_id_ref_rejects_non_finite_action() -> None:
+    try:
+        _action_to_id_ref(
+            action=float("nan"),
+            prev_id_ref=1.35,
+            omega_ref=100.0,
+            omega_meas=100.0,
+            params=_params(),
+        )
+    except ValueError as exc:
+        assert "AI action must be finite" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("NaN AI action reached id_ref mapping")
 
 
 def test_action_to_id_ref_absolute_mode_gates_below_base() -> None:

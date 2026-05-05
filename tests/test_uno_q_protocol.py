@@ -111,6 +111,30 @@ def test_telemetry_pack_rejects_out_of_range_unsigned_fields() -> None:
         telem.pack()
 
 
+def test_telemetry_pack_rejects_non_finite_fields() -> None:
+    telem = Telemetry(
+        t_ms=1,
+        omega_meas=math.nan,
+        omega_ref=1.0,
+        i_d=1.0,
+        i_q=1.0,
+        v_dc=24.0,
+        i_rms=1.0,
+        p_in=10.0,
+        status=0,
+    )
+    with pytest.raises(ValueError, match="omega_meas must be finite"):
+        telem.pack()
+
+
+def test_unpack_rejects_wrong_payload_size_cleanly() -> None:
+    with pytest.raises(ValueError, match="Telemetry payload must be 20 bytes"):
+        Telemetry.unpack(b"\x00" * (TELEMETRY_STRUCT.size - 1))
+
+    with pytest.raises(ValueError, match="Command payload must be 9 bytes"):
+        Command.unpack(b"\x00" * (CMD_STRUCT.size + 1))
+
+
 def test_command_crc_roundtrip() -> None:
     cmd = Command(t_ms=54321, enable_ai=1, id_ref=0.42)
     payload = cmd.pack_with_crc()
@@ -127,6 +151,9 @@ def test_command_crc_roundtrip() -> None:
 
 
 def test_command_pack_rejects_invalid_enable_ai_instead_of_masking() -> None:
+    with pytest.raises(ValueError, match="enable_ai must be 0 or 1"):
+        Command(t_ms=1, enable_ai=2, id_ref=1.35).pack()
+
     with pytest.raises(ValueError, match="enable_ai out of uint8 protocol range"):
         Command(t_ms=1, enable_ai=256, id_ref=1.35).pack()
 
@@ -137,3 +164,15 @@ def test_command_pack_rejects_invalid_enable_ai_instead_of_masking() -> None:
 def test_command_pack_rejects_out_of_range_crc() -> None:
     with pytest.raises(ValueError, match="crc out of uint16 protocol range"):
         Command(t_ms=1, enable_ai=1, id_ref=1.35, crc=65536).pack()
+
+
+def test_command_pack_rejects_non_finite_id_ref() -> None:
+    with pytest.raises(ValueError, match="id_ref must be finite"):
+        Command(t_ms=1, enable_ai=1, id_ref=math.inf).pack()
+
+
+def test_command_unpack_rejects_invalid_enable_ai_value() -> None:
+    payload = CMD_STRUCT.pack(1, 2, 0, 0)
+
+    with pytest.raises(ValueError, match="enable_ai must be 0 or 1"):
+        Command.unpack(payload)

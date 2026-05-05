@@ -6,6 +6,7 @@ This module provides fixed-point pack/unpack helpers matching docs/uno_q_deploy.
 """
 
 from dataclasses import dataclass
+import math
 import struct
 from typing import ClassVar
 
@@ -23,32 +24,52 @@ TELEMETRY_STRUCT = struct.Struct("<IhhhhHhhH")
 CMD_STRUCT = struct.Struct("<IBhH")
 
 
+def _finite_float(value: float, field: str) -> float:
+    out = float(value)
+    if not math.isfinite(out):
+        raise ValueError(f"{field} must be finite: {out}")
+    return out
+
+
 def _pack_i16(value: float, field: str) -> int:
-    out = int(round(float(value)))
+    out = int(round(_finite_float(value, field)))
     if out < -32768 or out > 32767:
         raise ValueError(f"{field} out of int16 protocol range: {out}")
     return out
 
 
 def _pack_u16(value: float, field: str) -> int:
-    out = int(round(float(value)))
+    out = int(round(_finite_float(value, field)))
     if out < 0 or out > 65535:
         raise ValueError(f"{field} out of uint16 protocol range: {out}")
     return out
 
 
 def _pack_u32(value: float, field: str) -> int:
-    out = int(round(float(value)))
+    out = int(round(_finite_float(value, field)))
     if out < 0 or out > 0xFFFFFFFF:
         raise ValueError(f"{field} out of uint32 protocol range: {out}")
     return out
 
 
 def _pack_u8(value: float, field: str) -> int:
-    out = int(round(float(value)))
+    out = int(round(_finite_float(value, field)))
     if out < 0 or out > 255:
         raise ValueError(f"{field} out of uint8 protocol range: {out}")
     return out
+
+
+def _pack_enable_ai(value: float) -> int:
+    out = _pack_u8(value, "enable_ai")
+    if out not in (0, 1):
+        raise ValueError(f"enable_ai must be 0 or 1: {out}")
+    return out
+
+
+def _unpack_exact(struct_obj: struct.Struct, payload: bytes, label: str) -> tuple:
+    if len(payload) != struct_obj.size:
+        raise ValueError(f"{label} payload must be {struct_obj.size} bytes, got {len(payload)}")
+    return struct_obj.unpack(payload)
 
 
 def crc16_ccitt(payload: bytes, init: int = CRC16_INIT) -> int:
@@ -93,7 +114,7 @@ class Telemetry:
 
     @classmethod
     def unpack(cls, payload: bytes) -> "Telemetry":
-        values = cls._struct.unpack(payload)
+        values = _unpack_exact(cls._struct, payload, "Telemetry")
         return cls(
             t_ms=int(values[0]),
             omega_meas=float(values[1]) / OMEGA_SCALE,
@@ -119,7 +140,7 @@ class Command:
     def pack(self) -> bytes:
         return self._struct.pack(
             _pack_u32(self.t_ms, "t_ms"),
-            _pack_u8(self.enable_ai, "enable_ai"),
+            _pack_enable_ai(self.enable_ai),
             _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             _pack_u16(self.crc, "crc"),
         )
@@ -127,24 +148,27 @@ class Command:
     def pack_with_crc(self, init: int = CRC16_INIT) -> bytes:
         payload = self._struct.pack(
             _pack_u32(self.t_ms, "t_ms"),
-            _pack_u8(self.enable_ai, "enable_ai"),
+            _pack_enable_ai(self.enable_ai),
             _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             0,
         )
         crc = crc16_ccitt(payload, init=init)
         return self._struct.pack(
             _pack_u32(self.t_ms, "t_ms"),
-            _pack_u8(self.enable_ai, "enable_ai"),
+            _pack_enable_ai(self.enable_ai),
             _pack_i16(self.id_ref * CURRENT_SCALE, "id_ref"),
             int(crc) & 0xFFFF,
         )
 
     @classmethod
     def unpack(cls, payload: bytes) -> "Command":
-        values = cls._struct.unpack(payload)
+        values = _unpack_exact(cls._struct, payload, "Command")
+        enable_ai = int(values[1])
+        if enable_ai not in (0, 1):
+            raise ValueError(f"enable_ai must be 0 or 1: {enable_ai}")
         return cls(
             t_ms=int(values[0]),
-            enable_ai=int(values[1]),
+            enable_ai=enable_ai,
             id_ref=float(values[2]) / CURRENT_SCALE,
             crc=int(values[3]),
         )

@@ -22,6 +22,11 @@ def test_air56_unoq_firmware_latches_last_command_until_timeout() -> None:
     assert "!timeout && have_cmd" not in ino
 
 
+def test_air56_unoq_firmware_rejects_invalid_enable_ai_commands() -> None:
+    ino = (FW / "air56_unoq_example.ino").read_text(encoding="utf-8")
+    assert "if (cmd->enable_ai > 1u)" in ino
+
+
 def test_air56_unoq_firmware_speed_guard_uses_wide_error_math() -> None:
     ino = (FW / "air56_unoq_example.ino").read_text(encoding="utf-8")
     control = (FW / "uno_q_control.h").read_text(encoding="utf-8")
@@ -75,6 +80,15 @@ def test_uno_q_protocol_headers_lock_binary_abi_sizes() -> None:
     for text in (fw_protocol, root_protocol):
         assert "sizeof(unoq_telemetry_t) == 20" in text
         assert "sizeof(unoq_command_t) == 9" in text
+
+
+def test_uno_q_protocol_headers_neutralize_non_finite_sensor_values() -> None:
+    fw_protocol = (FW / "uno_q_protocol.h").read_text(encoding="utf-8")
+    root_protocol = (ROOT / "arduino" / "uno_q_protocol.h").read_text(encoding="utf-8")
+    for text in (fw_protocol, root_protocol):
+        assert "if (!isfinite(value))" in text
+        assert "return 0;" in text
+        assert "return 0u;" in text
 
 
 def test_air56_unoq_linux_deploy_is_env_based() -> None:

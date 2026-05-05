@@ -37,6 +37,9 @@ static bool read_command(unoq_command_t *cmd) {
       return false;
     }
   }
+  if (cmd->enable_ai > 1u) {
+    return false;
+  }
   return true;
 }
 
