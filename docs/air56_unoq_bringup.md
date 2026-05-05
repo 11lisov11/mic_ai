@@ -133,6 +133,12 @@ One-command AIR56 UNO Q deploy smoke:
 python tools/run_air56_unoq_deploy_smoke.py
 ```
 
+Production-critical AIR56 UNO Q coverage gate:
+
+```bash
+python tools/check_air56_unoq_coverage_gate.py
+```
+
 Full regression is still allowed, but it is not the default inner-loop command:
 
 ```bash

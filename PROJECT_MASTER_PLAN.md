@@ -131,6 +131,14 @@ AIR56 UNO Q combined repo-side deploy smoke:
 
 - `python tools/run_air56_unoq_deploy_smoke.py`
 
+AIR56 UNO Q production-critical coverage gate:
+
+- `python tools/check_air56_unoq_coverage_gate.py`
+- current thresholds:
+  - total AIR56 deploy subset: `>=65%`
+  - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner: `>=95%`
+  - Linux bridge helper/runtime module floor: `>=45%`
+
 ## Guardrails
 
 - Do not weaken acceptance thresholds to keep the package green.
@@ -139,6 +147,7 @@ AIR56 UNO Q combined repo-side deploy smoke:
 - Do not treat temporary probe configs under `outputs/` as canonical live configs.
 - Do not treat `AIR56_UNOQ_USE_MOCK_HW` as a motor-connected production build.
 - Do not call the AIR56 UNO Q hardware deployment complete before the staged bring-up protocol passes on physical hardware.
+- Do not claim whole-repository 100% test coverage; enforce coverage on the production-critical AIR56 UNO Q subset and keep broad research validation under smoke/release checks.
 - The canonical AO2 live path is:
   - [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py)
   - [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json)

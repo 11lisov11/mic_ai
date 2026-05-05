@@ -1,4 +1,7 @@
+import json
+
 from tools.air56_unoq_stage0_loopback import run_loopback_selftest
+from tools import air56_unoq_stage0_loopback
 
 
 def test_stage0_loopback_selftest_passes_with_crc() -> None:
@@ -19,3 +22,23 @@ def test_stage0_loopback_selftest_supports_crc_disabled() -> None:
     assert report.passed
     assert not report.crc_enabled
     assert all(frame.crc_ok for frame in report.frames)
+
+
+def test_stage0_loopback_cli_writes_report(tmp_path, monkeypatch, capsys) -> None:
+    out_json = tmp_path / "stage0.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "air56_unoq_stage0_loopback.py",
+            "--packets",
+            "2",
+            "--out-json",
+            str(out_json),
+        ],
+    )
+
+    assert air56_unoq_stage0_loopback.main() == 0
+    payload = json.loads(out_json.read_text(encoding="utf-8"))
+    assert payload["passed"] is True
+    assert payload["packets"] == 2
+    assert "passed" in capsys.readouterr().out

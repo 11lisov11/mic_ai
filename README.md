@@ -104,6 +104,9 @@ python tools/step27_pipeline.py ^
   - `python tools/check_air56_unoq_firmware_static.py`
 - AIR56 UNO Q one-command repo-side deploy smoke:
   - `python tools/run_air56_unoq_deploy_smoke.py`
+- AIR56 UNO Q production-critical coverage gate:
+  - `python tools/check_air56_unoq_coverage_gate.py`
+  - current gate: total `>=65%`, protocol/loopback/static/deploy-smoke `>=95%`, bridge helper floor `>=45%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
 
@@ -125,3 +128,4 @@ python tools/step27_pipeline.py ^
 - The canonical checkpoint registry is [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json).
 - The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over archived plans.
 - `AIR56` deploy package for `UNO Q` is available in [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready). It is a split hardware-productization package, not proof that a motor-connected STM32U585 build has already passed physical acceptance.
+- Whole-repository coverage is not expected to be 100% because this repo contains many research CLI and long-running reproduction scripts. Coverage gating is enforced on the production-critical AIR56 UNO Q deploy subset instead.

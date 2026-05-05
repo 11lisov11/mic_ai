@@ -56,6 +56,18 @@ Run the full repo-side deploy smoke:
 python tools/run_air56_unoq_deploy_smoke.py
 ```
 
+Run the production-critical coverage gate:
+
+```bash
+python tools/check_air56_unoq_coverage_gate.py
+```
+
+Current gate:
+
+- total AIR56 deploy subset: `>=65%`
+- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner: `>=95%`
+- Linux bridge helper/runtime module floor: `>=45%`
+
 Production port target:
 
 ```bash

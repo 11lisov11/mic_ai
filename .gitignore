@@ -5,6 +5,7 @@ __pycache__/
 *.npz
 .pytest_cache/
 .tmp_pytest/
+.coverage*
 .venv/
 .idea/
 .vscode/
