@@ -51,7 +51,7 @@ def main() -> None:
             "--common-p2-kw",
             str(float(args.air56_common_p2_kw)),
             "--journal-formats",
-            "pdf",
+            "png,pdf,svg",
             "--figure-only",
         ]
     )
@@ -79,6 +79,8 @@ def main() -> None:
         "multi_out_dir": str((ROOT / args.multi_out_dir).resolve()),
         "air56_out_dir": str((ROOT / args.air56_out_dir).resolve()),
         "air56_figure_pdf": str((ROOT / args.air56_fig_dir / "working_characteristics_air56_foc_mic.pdf").resolve()),
+        "air56_figure_png": str((ROOT / args.air56_fig_dir / "working_characteristics_air56_foc_mic.png").resolve()),
+        "air56_figure_svg": str((ROOT / args.air56_fig_dir / "working_characteristics_air56_foc_mic.svg").resolve()),
         "nominal_win_built": bool(nominal_built),
     }
     out_report = ROOT / "outputs" / "key_figures_repro_report.json"

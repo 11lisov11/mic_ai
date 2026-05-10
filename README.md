@@ -106,7 +106,7 @@ python tools/step27_pipeline.py ^
   - `python tools/run_air56_unoq_deploy_smoke.py`
 - AIR56 UNO Q production-critical coverage gate:
   - `python tools/check_air56_unoq_coverage_gate.py`
-  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke `>=95%`, bridge helper/runtime floor `>=60%`
+  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke `>=95%`, bridge helper/runtime floor `>=75%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
 

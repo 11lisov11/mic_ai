@@ -997,7 +997,17 @@ def _plot_air56_mech_journal(
     output_formats: Tuple[str, ...] = ("png", "pdf", "svg"),
 ) -> None:
     plt = apply_vak_style(ensure_matplotlib())
-    fig, ax_m2 = plt.subplots(1, 1, figsize=(13.6, 6.8))
+    plt.rcParams.update(
+        {
+            "font.size": 15,
+            "axes.labelsize": 17,
+            "axes.titlesize": 17,
+            "legend.fontsize": 14,
+            "xtick.labelsize": 14,
+            "ytick.labelsize": 14,
+        }
+    )
+    fig, ax_m2 = plt.subplots(1, 1, figsize=(15.2, 8.0))
 
     colors = {
         "M2": "#1f4e79",
@@ -1011,10 +1021,10 @@ def _plot_air56_mech_journal(
     ax_n2 = ax_m2.twinx()
     ax_eta = ax_m2.twinx()
     ax_cosphi = ax_m2.twinx()
-    i1_axis_x = -0.14
-    n2_axis_x = -0.27
-    eta_axis_x = 1.03
-    cosphi_axis_x = 1.14
+    i1_axis_x = -0.16
+    n2_axis_x = -0.32
+    eta_axis_x = 1.04
+    cosphi_axis_x = 1.18
     for ax_extra in (ax_i1, ax_n2, ax_eta, ax_cosphi):
         ax_extra.set_frame_on(True)
         ax_extra.patch.set_visible(False)
@@ -1076,7 +1086,7 @@ def _plot_air56_mech_journal(
         eta = np.asarray([float(r["eta_pct"]) for r in rows], dtype=float)
         cosphi = np.asarray([float(r["cos_phi"]) for r in rows], dtype=float)
 
-        lw = 1.9
+        lw = 2.6
         x_m2, y_m2 = _smooth_xy_curve(x, m2, points=420, y_min=0.0)
         x_i1, y_i1 = _smooth_xy_curve(x, i1, points=420, y_min=0.0)
         x_n2, y_n2 = _smooth_xy_curve(
@@ -1206,10 +1216,10 @@ def _plot_air56_mech_journal(
         ax_m2.text(
             label_x,
             0.030,
-            f"{float(lf):.1f}Mном".replace(".", ","),
+            f"{float(lf):.1f}$M_{{\\mathrm{{ном}}}}$".replace(".", ","),
             rotation=90,
             color="0.38",
-            fontsize=8,
+            fontsize=12,
             ha=label_ha,
             va="bottom",
             transform=blended_transform_factory(ax_m2.transData, ax_m2.transAxes),
@@ -1329,18 +1339,19 @@ def _plot_air56_mech_journal(
             ax_eta.plot([x_mid, x_right], [eta_m, eta_m], linestyle=":", color="0.50", linewidth=0.9, alpha=0.9, zorder=1)
             eta_special_levels.append(float(eta_m))
 
-    ax_m2.set_ylabel("M2, Н·м", color=colors["M2"])
-    ax_i1.set_ylabel("I1, A", color=colors["I1"])
-    ax_n2.set_ylabel("n2, об/мин", color=colors["n2"])
-    ax_eta.set_ylabel("η, %", color=colors["eta"])
-    ax_cosphi.set_ylabel("cosφ, о.е.", color=colors["cosphi"])
-    ax_m2.set_xlabel("P2, кВт")
+    ax_m2.set_ylabel(r"$M_2$, Н·м", color=colors["M2"], fontsize=17, labelpad=10)
+    ax_i1.set_ylabel(r"$I_1$, A", color=colors["I1"], fontsize=17, labelpad=10)
+    ax_n2.set_ylabel(r"$n_2$, об/мин", color=colors["n2"], fontsize=17, labelpad=12)
+    ax_eta.set_ylabel(r"$\eta$, %", color=colors["eta"], fontsize=17, labelpad=10)
+    ax_cosphi.set_ylabel(r"$\cos\varphi$, о.е.", color=colors["cosphi"], fontsize=17, labelpad=12)
+    ax_m2.set_xlabel(r"$P_2$, кВт", fontsize=17, labelpad=12)
 
-    ax_m2.tick_params(axis="y", colors=colors["M2"])
-    ax_i1.tick_params(axis="y", colors=colors["I1"])
-    ax_n2.tick_params(axis="y", colors=colors["n2"])
-    ax_eta.tick_params(axis="y", colors=colors["eta"])
-    ax_cosphi.tick_params(axis="y", colors=colors["cosphi"])
+    ax_m2.tick_params(axis="y", colors=colors["M2"], labelsize=14)
+    ax_i1.tick_params(axis="y", colors=colors["I1"], labelsize=14)
+    ax_n2.tick_params(axis="y", colors=colors["n2"], labelsize=14)
+    ax_eta.tick_params(axis="y", colors=colors["eta"], labelsize=14)
+    ax_cosphi.tick_params(axis="y", colors=colors["cosphi"], labelsize=14)
+    ax_m2.tick_params(axis="x", labelsize=14)
 
     eta_special = sorted({round(float(v), 3) for v in eta_special_levels if np.isfinite(v)})
     # Keep regular eta scale ticks only (hide "80"), and render characteristic
@@ -1455,8 +1466,8 @@ def _plot_air56_mech_journal(
             arrowprops={
                 "arrowstyle": "-|>",
                 "color": color,
-                "lw": 1.0,
-                "mutation_scale": 9,
+                "lw": 1.2,
+                "mutation_scale": 12,
                 "shrinkA": 0.0,
                 "shrinkB": 0.0,
             },
@@ -1476,16 +1487,24 @@ def _plot_air56_mech_journal(
     from matplotlib.lines import Line2D
 
     handles = [
-        Line2D([0], [0], color=colors["M2"], linestyle="-", label="M2"),
-        Line2D([0], [0], color=colors["I1"], linestyle="-", label="I1"),
-        Line2D([0], [0], color=colors["n2"], linestyle="-", label="n2"),
-        Line2D([0], [0], color=colors["eta"], linestyle="-", label="η"),
-        Line2D([0], [0], color=colors["cosphi"], linestyle="-", label="cosφ"),
+        Line2D([0], [0], color=colors["M2"], linestyle="-", linewidth=2.6, label=r"$M_2$"),
+        Line2D([0], [0], color=colors["I1"], linestyle="-", linewidth=2.6, label=r"$I_1$"),
+        Line2D([0], [0], color=colors["n2"], linestyle="-", linewidth=2.6, label=r"$n_2$"),
+        Line2D([0], [0], color=colors["eta"], linestyle="-", linewidth=2.6, label=r"$\eta$"),
+        Line2D([0], [0], color=colors["cosphi"], linestyle="-", linewidth=2.6, label=r"$\cos\varphi$"),
         Line2D([0], [0], color="black", linestyle="-", label="FOC"),
         Line2D([0], [0], color="black", linestyle="--", label="MIC"),
     ]
-    fig.legend(handles=handles, loc="upper center", ncol=4, frameon=False, bbox_to_anchor=(0.5, 0.955))
-    fig.subplots_adjust(left=0.20, right=0.84, top=0.86, bottom=0.14)
+    fig.legend(
+        handles=handles,
+        loc="upper center",
+        ncol=4,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.965),
+        handlelength=2.8,
+        columnspacing=1.3,
+    )
+    fig.subplots_adjust(left=0.25, right=0.78, top=0.84, bottom=0.17)
     base = out_path.with_suffix("")
     fmts = tuple(str(f).strip().lower().lstrip(".") for f in output_formats if str(f).strip())
     valid = {"png", "pdf", "svg"}

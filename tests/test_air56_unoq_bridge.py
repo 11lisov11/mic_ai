@@ -1,17 +1,28 @@
 from __future__ import annotations
 
+import socket
+import sys
+from pathlib import Path
 from types import SimpleNamespace
+
+import torch
 
 from tools.air56_unoq_bridge import (
     Air56IdRefParams,
+    Air56PolicyBundle,
     Air56BridgeRuntimeState,
+    BaseTransport,
+    SerialTransport,
+    UdpTransport,
     _action_to_id_ref,
     _build_obs,
+    _build_bundle,
     _clamp_rate,
     _clip_action_scalar,
     _compute_gate_scale,
     _estimate_load_nm_from_iq,
     _finite_float,
+    _infer_action_scalar,
     _load_id_ref_params,
     _load_supervisor,
     _parse_host_port,
@@ -26,6 +37,15 @@ from tools.air56_unoq_bridge import (
 )
 from tools.uno_q_protocol import CURRENT_SCALE, Telemetry
 from tools.uno_q_protocol import Command
+
+
+def _free_udp_port() -> int:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+    finally:
+        sock.close()
 
 
 class FakeSupervisor:
@@ -115,6 +135,91 @@ def test_parse_host_port_rejects_invalid_endpoints() -> None:
             raise AssertionError(f"{endpoint!r} was accepted")
 
 
+def test_base_transport_contract_methods() -> None:
+    transport = BaseTransport()
+    try:
+        transport.recv(1)
+    except NotImplementedError:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError("BaseTransport.recv did not raise")
+
+    try:
+        transport.send(b"x")
+    except NotImplementedError:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError("BaseTransport.send did not raise")
+
+    transport.close()
+
+
+def test_udp_transport_roundtrip_and_size_filter() -> None:
+    listen_port = _free_udp_port()
+    send_port = _free_udp_port()
+    rx_peer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    tx_peer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    transport = UdpTransport(f"127.0.0.1:{listen_port}", f"127.0.0.1:{send_port}")
+    try:
+        rx_peer.bind(("127.0.0.1", send_port))
+        tx_peer.sendto(b"x", ("127.0.0.1", listen_port))
+        tx_peer.sendto(b"abcd", ("127.0.0.1", listen_port))
+        assert transport.recv(4) == b"abcd"
+
+        transport.send(b"cmd")
+        payload, addr = rx_peer.recvfrom(16)
+        assert payload == b"cmd"
+        assert addr[0] == "127.0.0.1"
+    finally:
+        transport.close()
+        rx_peer.close()
+        tx_peer.close()
+
+
+def test_serial_transport_uses_pyserial_contract(monkeypatch) -> None:
+    created: list[object] = []
+
+    class FakeSerial:
+        def __init__(self, *, port: str, baudrate: int, timeout: float) -> None:
+            self.port = port
+            self.baudrate = baudrate
+            self.timeout = timeout
+            self.read_chunks = [b"a", b"", b"bc", b"d"]
+            self.writes: list[bytes] = []
+            self.flushed = False
+            self.closed = False
+            created.append(self)
+
+        def read(self, size: int) -> bytes:
+            if not self.read_chunks:
+                return b""
+            chunk = self.read_chunks.pop(0)
+            return chunk[:size]
+
+        def write(self, payload: bytes) -> None:
+            self.writes.append(payload)
+
+        def flush(self) -> None:
+            self.flushed = True
+
+        def close(self) -> None:
+            self.closed = True
+
+    monkeypatch.setitem(sys.modules, "serial", SimpleNamespace(Serial=FakeSerial))
+    transport = SerialTransport("COM99", 115200, 0.25)
+    assert transport.recv(4) == b"abcd"
+    transport.send(b"ok")
+    transport.close()
+
+    fake = created[0]
+    assert fake.port == "COM99"
+    assert fake.baudrate == 115200
+    assert fake.timeout == 0.25
+    assert fake.writes == [b"ok"]
+    assert fake.flushed
+    assert fake.closed
+
+
 def test_status_fault_mask_semantics() -> None:
     assert not _status_fault(0, 0)
     assert _status_fault(1, 0)
@@ -134,6 +239,11 @@ def test_compute_gate_scale_handles_abs_rel_and_exponent() -> None:
     assert scale == 1.0
     assert tol == 0.0
 
+    exp_gate = Air56IdRefParams(**{**_params().__dict__, "gate_exponent": 2.0, "gate_min_scale": 0.0})
+    scale, tol = _compute_gate_scale(omega_ref=100.0, omega_meas=95.0, params=exp_gate)
+    assert tol == 10.0
+    assert abs(scale - 0.25) < 1e-12
+
 
 def test_action_to_id_ref_blocks_demagnetization_on_large_error() -> None:
     cmd, gate_scale, _gate_tol = _action_to_id_ref(
@@ -145,6 +255,19 @@ def test_action_to_id_ref_blocks_demagnetization_on_large_error() -> None:
     )
     assert gate_scale <= 0.1
     assert cmd >= 1.35
+
+
+def test_action_to_id_ref_blocks_positive_relative_delta_when_disabled() -> None:
+    params = Air56IdRefParams(**{**_params().__dict__, "allow_positive_delta": False})
+    cmd, gate_scale, _gate_tol = _action_to_id_ref(
+        action=1.0,
+        prev_id_ref=1.35,
+        omega_ref=100.0,
+        omega_meas=100.0,
+        params=params,
+    )
+    assert gate_scale == 1.0
+    assert cmd == 1.35
 
 
 def test_clip_action_scalar_rejects_nan_instead_of_maxing_command() -> None:
@@ -273,6 +396,29 @@ def test_should_switch_secondary_can_use_absolute_delta() -> None:
     )
 
 
+def test_should_switch_secondary_rejects_small_absolute_delta_and_speed_gate() -> None:
+    assert not _should_switch_secondary(
+        load_est_nm=0.43,
+        prev_load_est_nm=0.40,
+        speed_err=8.0,
+        omega_ref=100.0,
+        threshold_nm=0.05,
+        positive_only=False,
+        speed_err_threshold_rel=0.05,
+        speed_err_threshold_abs=0.0,
+    )
+    assert not _should_switch_secondary(
+        load_est_nm=0.60,
+        prev_load_est_nm=0.40,
+        speed_err=2.0,
+        omega_ref=100.0,
+        threshold_nm=0.05,
+        positive_only=True,
+        speed_err_threshold_rel=0.05,
+        speed_err_threshold_abs=0.0,
+    )
+
+
 def test_load_id_ref_params_reads_env_config_attrs() -> None:
     env_cfg = SimpleNamespace(
         foc=SimpleNamespace(id_ref=1.35),
@@ -338,6 +484,75 @@ def test_action_to_id_ref_rejects_invalid_params_before_command_mapping() -> Non
 
 def test_load_supervisor_returns_none_when_disabled() -> None:
     assert _load_supervisor(SimpleNamespace(ai_eval_supervisor_enabled=False), "ai_eval_supervisor_enabled", "ai_eval_", omega_nominal=100.0) is None
+
+
+def test_load_supervisor_builds_enabled_supervisor() -> None:
+    env_cfg = SimpleNamespace(
+        ai_eval_supervisor_enabled=True,
+        ai_eval_sup_speed_tol_rel=0.04,
+        ai_eval_sup_speed_tol_abs=1.0,
+        ai_eval_sup_omega_min=0.2,
+        ai_eval_sup_update=4,
+        ai_eval_sup_dither=0.03,
+        ai_eval_sup_step=0.02,
+        ai_eval_sup_bias_max=0.1,
+        ai_eval_sup_objective="p_in",
+        ai_eval_sup_shaft_eps=2.0,
+        ai_eval_sup_reset_decay=0.9,
+        ai_eval_sup_objective_clip=4.0,
+        ai_eval_sup_idle_enable=True,
+        ai_eval_sup_idle_omega_min=0.05,
+        ai_eval_sup_idle_action=-0.8,
+        ai_eval_sup_idle_blend=0.7,
+        ai_eval_sup_idle_exit_boost=3,
+        ai_eval_sup_idle_exit_action=0.6,
+        ai_eval_sup_idle_bias_decay=0.8,
+    )
+    supervisor = _load_supervisor(env_cfg, "ai_eval_supervisor_enabled", "ai_eval_sup_", omega_nominal=100.0)
+    assert supervisor is not None
+
+
+def test_infer_action_scalar_uses_agent_network_and_clips() -> None:
+    class FakeAgent:
+        def _to_tensor(self, obs: dict[str, float]) -> torch.Tensor:
+            assert obs == {"omega_norm": 1.0}
+            return torch.tensor([1.0], dtype=torch.float32)
+
+        class Net:
+            def __call__(self, state_t: torch.Tensor):
+                assert tuple(state_t.shape) == (1, 1)
+                return torch.tensor([[2.0]], dtype=torch.float32), None, None
+
+        net = Net()
+
+    assert _infer_action_scalar(FakeAgent(), {"omega_norm": 1.0}) == 1.0  # type: ignore[arg-type]
+
+
+def test_build_bundle_wires_agent_params_and_supervisor(monkeypatch, tmp_path: Path) -> None:
+    checkpoint = tmp_path / "actor.pth"
+    checkpoint.write_bytes(b"not-used")
+    fake_agent = object()
+    fake_supervisor = object()
+
+    monkeypatch.setattr("tools.air56_unoq_bridge._load_agent", lambda path: fake_agent)
+    monkeypatch.setattr("tools.air56_unoq_bridge._load_id_ref_params", lambda env, prefix, id_ref_min, id_ref_max: _params())
+    monkeypatch.setattr("tools.air56_unoq_bridge._load_supervisor", lambda env, enabled_attr, prefix, omega_nominal: fake_supervisor)
+
+    bundle = _build_bundle(
+        name="primary",
+        checkpoint=checkpoint,
+        env_cfg=SimpleNamespace(),
+        prefix="ai_eval_",
+        enabled_attr="ai_eval_supervisor_enabled",
+        supervisor_prefix="ai_eval_sup_",
+        id_ref_min=1.1,
+        id_ref_max=1.7,
+        omega_nominal=100.0,
+    )
+    assert isinstance(bundle, Air56PolicyBundle)
+    assert bundle.name == "primary"
+    assert bundle.agent is fake_agent
+    assert bundle.supervisor is fake_supervisor
 
 
 def test_process_telemetry_step_uses_primary_and_rate_limit(monkeypatch) -> None:
@@ -443,6 +658,39 @@ def test_process_telemetry_step_fault_disables_ai(monkeypatch) -> None:
     assert step.command.id_ref == 1.35
 
 
+def test_process_telemetry_step_guard_disables_ai(monkeypatch) -> None:
+    monkeypatch.setattr("tools.air56_unoq_bridge._infer_action_scalar", lambda _agent, _obs: -1.0)
+    state = Air56BridgeRuntimeState(last_id_ref=1.35)
+
+    step = _process_telemetry_step(
+        telem=_telem(omega_meas=50.0, omega_ref=100.0),
+        primary=_bundle("primary"),
+        secondary=None,
+        state=state,
+        omega_nominal=200.0,
+        i_base=2.0,
+        pole_pairs=2,
+        rr=0.5,
+        lr_total=1.0,
+        load_est_gain=1.0,
+        load_base_nm=1.0,
+        load_delta_threshold=0.05,
+        positive_only=True,
+        latch_steps=0,
+        speed_err_threshold_rel=0.0,
+        speed_err_threshold_abs=0.0,
+        fault_mask=0,
+        disable_on_fault=False,
+        disable_on_guard=True,
+        cmd_rate_limit_a_per_s=0.0,
+        id_min=1.10,
+        id_max=1.70,
+    )
+
+    assert step.command.enable_ai == 0
+    assert step.command.id_ref == 1.35
+
+
 def test_process_telemetry_step_supervisor_adjusts_and_updates(monkeypatch) -> None:
     monkeypatch.setattr("tools.air56_unoq_bridge._infer_action_scalar", lambda _agent, _obs: -0.5)
     supervisor = FakeSupervisor()
@@ -482,6 +730,15 @@ def test_resolve_existing_file_accepts_relative_repo_file() -> None:
     path = _resolve_existing_file("config/env_research_air56_025kw.py", "--config")
     assert path.is_file()
     assert path.name == "env_research_air56_025kw.py"
+
+
+def test_resolve_existing_file_rejects_missing_file(tmp_path: Path) -> None:
+    try:
+        _resolve_existing_file("missing.txt", "--missing", root=tmp_path)
+    except FileNotFoundError as exc:
+        assert "--missing does not exist" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("missing file accepted")
 
 
 def test_validate_runtime_args_rejects_unsafe_cli_ranges() -> None:
@@ -588,6 +845,10 @@ def test_send_fallback_command_disables_ai() -> None:
     assert cmd.t_ms == 10
     assert cmd.enable_ai == 0
     assert abs(cmd.id_ref - 1.35) < 1.0 / CURRENT_SCALE
+
+
+def test_send_fallback_command_ignores_missing_transport() -> None:
+    _send_fallback_command(None, t_ms=10, id_ref_base=1.35, crc=True)
 
 
 def test_send_fallback_command_respects_dry_run() -> None:

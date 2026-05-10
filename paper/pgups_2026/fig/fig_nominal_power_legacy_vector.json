@@ -1,0 +1,16 @@
+{
+  "source_dir": "C:\\mic_theory\\.tmp_pytest\\rebuild_nominal_motor1_nominal",
+  "case": "speed_step_0p2",
+  "env_config": "config/env_demo_true_motor1_nominal.py",
+  "t_end": 2.0,
+  "dt": 0.001,
+  "window_frac": 0.25,
+  "mic_id_ref_low": 1.0,
+  "mic_id_ref_high": 1.4,
+  "power_saving_pct": 8.492366554669783,
+  "outputs": [
+    "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_nominal_power_legacy_vector.pdf",
+    "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_nominal_power_legacy_vector.svg",
+    "C:\\mic_theory\\paper\\pgups_2026\\fig\\fig_nominal_power_legacy_vector.png"
+  ]
+}

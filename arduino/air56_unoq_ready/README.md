@@ -66,7 +66,7 @@ Current gate:
 
 - total AIR56 deploy subset: `>=75%`
 - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner: `>=95%`
-- Linux bridge helper/runtime module floor: `>=60%`
+- Linux bridge helper/runtime module floor: `>=75%`
 
 Production port target:
 

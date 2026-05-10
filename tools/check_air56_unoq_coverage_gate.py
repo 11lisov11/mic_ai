@@ -33,10 +33,10 @@ MIN_BY_FILE = {
     "tools/air56_unoq_stage0_loopback.py": 95.0,
     "tools/check_air56_unoq_firmware_static.py": 95.0,
     "tools/run_air56_unoq_deploy_smoke.py": 95.0,
-    # The bridge runtime owns serial/UDP/torch infinite-loop integration; those
-    # paths are covered by deploy smoke and hardware bring-up rather than unit
-    # coverage. Keep a floor on helper coverage without pretending it is 100%.
-    "tools/air56_unoq_bridge.py": 60.0,
+    # The bridge runtime owns serial/UDP/torch infinite-loop integration; keep
+    # a real helper/runtime floor while leaving physical bring-up to hardware
+    # tests.
+    "tools/air56_unoq_bridge.py": 75.0,
 }
 
 

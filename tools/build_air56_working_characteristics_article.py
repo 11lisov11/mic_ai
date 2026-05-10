@@ -82,7 +82,7 @@ def main() -> None:
         default=0.0,
         help="Forwarded to drive_characteristics_ai; <=0 disables abrupt n2-step clipping for journal figure.",
     )
-    parser.add_argument("--journal-formats", default="pdf", help="Formats for journal figure: comma-separated (e.g. 'pdf').")
+    parser.add_argument("--journal-formats", default="png,pdf,svg", help="Formats for journal figure: comma-separated.")
     parser.add_argument("--figure-only", action="store_true", help="Build only figure; do not export table/summary/note.")
     args = parser.parse_args()
     env_mod = _load_config_module(str(args.env_config))

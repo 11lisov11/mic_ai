@@ -1,6 +1,6 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-05-05`
+Date updated: `2026-05-09`
 Repository: `C:\mic_theory`
 
 ## Status
@@ -60,6 +60,101 @@ Status on `2026-05-05`:
 
 - repo-side deploy package is implemented
 - physical FOC/HAL binding is still an external integration requirement
+
+Status on `2026-05-09` audit:
+
+- repo-side AIR56 UNO Q deploy smoke is green
+- weak-hardware fast pytest profile is green
+- production-critical AIR56 UNO Q coverage gate is green
+- physical board deployment is still not complete because the real STM32U585 FOC/inverter adapter and staged motor tests are not present in this repository
+
+## Active Rework Plan After 2026-05-09 Audit
+
+This checklist tracks what is still not complete after the research release. It intentionally separates already-closed software/research work from board-connected deployment work.
+
+### A. Repository Hygiene And Publication Artifacts
+
+- [x] Keep the canonical `3-motor` research release as the active scientific baseline.
+- [x] Regenerate AIR56 working-characteristics figure outputs with readable labels and math-style subscripts.
+- [x] Rebuild the legacy nominal power plot as a vector PDF/SVG/PNG instead of a raster screenshot export.
+- [x] Decide whether the regenerated publication figures are canonical and either commit them or move noncanonical scratch artifacts out of tracked publication folders.
+- [x] Rename or remove the misleading `fig_nominal_power_legacy_from_screenshot.*` compatibility files after downstream documents stop referencing them.
+- [ ] Run `git diff --check` and a final `git status --short --untracked-files=all` before the next push.
+
+### B. AIR56 UNO Q Repo-Side Software Readiness
+
+- [x] Protocol, Linux bridge, Stage 0 loopback, firmware static compile, and deploy smoke pass locally.
+- [x] Focused AIR56 UNO Q tests pass locally.
+- [x] Weak-hardware fast test profile passes locally.
+- [x] AIR56 UNO Q production-critical coverage gate passes locally.
+- [x] Increase `tools/air56_unoq_bridge.py` test coverage from the current `68%` toward `75-80%` and raise the coverage gate floor to `75%`.
+- [x] Add a small regression check that fails if the root plan reports `100%` while hardware completion items are still open.
+
+### C. STM32U585 Production Hardware Binding
+
+- [x] Keep the mock adapter separate and explicitly non-production.
+- [x] Keep `air56_unoq_hw_port.h` as the production FOC/inverter adapter contract.
+- [ ] Implement the real board-side translation unit for all `air56_foc_*` symbols:
+  - `air56_foc_get_omega_meas_rad_s`
+  - `air56_foc_get_omega_ref_rad_s`
+  - `air56_foc_get_id_amp`
+  - `air56_foc_get_iq_amp`
+  - `air56_foc_get_vdc_volt`
+  - `air56_foc_get_irms_amp`
+  - `air56_foc_get_pin_watt`
+  - `air56_foc_get_status_bits`
+  - `air56_foc_set_id_ref_amp`
+- [ ] Confirm the actual UNO Q STM32U585 board definition, pinout, UART instance, ADC/current scaling, and inverter enable/fault lines; the current PlatformIO target is a reproducible STM32U585 compile target, not proof of final board pin binding.
+- [ ] Build the production target without `AIR56_UNOQ_USE_MOCK_HW` against the real FOC/inverter project.
+- [x] Add a repo-side static regression that the production PlatformIO target does not enable `AIR56_UNOQ_USE_MOCK_HW`.
+- [ ] Verify the final motor-connected board binary and release procedure cannot accidentally use the mock adapter.
+
+### D. Physical Bring-Up And Acceptance
+
+- [x] Stage 0 loopback protocol self-test passes in repo-side simulation.
+- [ ] Stage 0 loopback must pass on the actual QRB2210-to-STM32U585 serial link.
+- [ ] Stage 1 STM-only FOC must pass without AI: current scaling, speed scaling, Vdc scaling, `P_in` estimate, fault bits, and safe disable path.
+- [ ] Stage 2 bridge telemetry-only mode must pass with AI disabled.
+- [ ] Stage 3 AI-enabled run must pass with narrow `id_ref` limits, `disable-on-fault`, and fallback within `100 ms`.
+- [ ] Stage 4 physical A/B comparison must document AIR56 FOC baseline vs MIC/AI `id_ref` under no-load and load-step conditions.
+
+### E. Release/Verification Discipline
+
+- [x] Do not restart long RL training unless a measured regression proves it is necessary.
+- [x] Use existing strict `Step28` release artifacts as the research baseline.
+- [ ] Do not call the whole project `100% hardware-ready` until Sections C and D are closed on real hardware.
+- [ ] Before final hardware release, run:
+  - `python -m pytest -q -m "not slow and not hardware"`
+  - `python tools/run_air56_unoq_deploy_smoke.py`
+  - `python tools/check_air56_unoq_coverage_gate.py`
+  - production firmware build without mock hardware
+  - physical Stage 0-4 bring-up protocol
+
+### 2026-05-09 Audit Commands
+
+Commands run during this audit:
+
+- `python tools/run_air56_unoq_deploy_smoke.py`
+  - result: `passed = true`
+- `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
+  - result: `61 passed`
+- `python tools/check_air56_unoq_coverage_gate.py`
+  - initial audit result: `passed = true`, total AIR56 deploy subset coverage `79.26%`
+  - after bridge coverage hardening: `passed = true`, total AIR56 deploy subset coverage `86.22%`, `tools/air56_unoq_bridge.py = 79.16%`, bridge floor raised to `75%`
+- `python -m pytest -q -m "not slow and not hardware"`
+  - initial audit result: `257 passed, 14 deselected`
+  - after repo-side hardening: `270 passed, 14 deselected`
+- `python -m pytest -q tests/test_air56_unoq_bridge.py tests/test_report_plan_completion_smoke.py`
+  - result: `40 passed`
+- `python -m pytest -q tests/test_air56_unoq_deploy_package.py tests/test_air56_unoq_bridge.py tests/test_report_plan_completion_smoke.py`
+  - result: `55 passed`
+
+Not run during this audit:
+
+- full slow `python -m pytest -q`
+- PlatformIO production build against real board FOC/inverter sources
+- hardware-marked physical tests
+- physical AIR56 Stage 0-4 bring-up
 
 ## Final Canonical Artifacts
 
@@ -137,7 +232,7 @@ AIR56 UNO Q production-critical coverage gate:
 - current thresholds:
   - total AIR56 deploy subset: `>=75%`
   - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner: `>=95%`
-  - Linux bridge helper/runtime module floor: `>=60%`
+  - Linux bridge helper/runtime module floor: `>=75%`
 
 ## Guardrails
 

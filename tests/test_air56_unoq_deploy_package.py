@@ -74,6 +74,18 @@ def test_air56_unoq_platformio_target_exists() -> None:
     assert "-DAIR56_UNOQ_USE_MOCK_HW=1" in pio
 
 
+def test_air56_unoq_production_target_does_not_enable_mock_adapter() -> None:
+    pio = (FW / "platformio.ini").read_text(encoding="utf-8")
+    production_block = pio.split("[env:air56_unoq_stm32u585_port]", maxsplit=1)[1]
+    assert "AIR56_UNOQ_PRODUCTION_PORT=1" in production_block
+    assert "AIR56_UNOQ_USE_MOCK_HW" not in production_block
+
+    selector = (FW / "air56_unoq_hw.h").read_text(encoding="utf-8")
+    assert '#if defined(AIR56_UNOQ_USE_MOCK_HW)' in selector
+    assert '#include "air56_unoq_hw_mock.h"' in selector
+    assert '#include "air56_unoq_hw_port.h"' in selector
+
+
 def test_uno_q_protocol_headers_lock_binary_abi_sizes() -> None:
     fw_protocol = (FW / "uno_q_protocol.h").read_text(encoding="utf-8")
     root_protocol = (ROOT / "arduino" / "uno_q_protocol.h").read_text(encoding="utf-8")
