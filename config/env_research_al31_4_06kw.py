@@ -82,10 +82,11 @@ ai_drift_ranges = {
 }
 
 # Step27/Step28 AI evaluation defaults (sensorless MIC).
-# Promoted strict pair:
-#   checkpoint = outputs/al31_anchor_ep008_medium4_20260328a/results_run/20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth
+# Promoted strict pair after 2026-05-19 train3 refresh:
+#   selected  = outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/eval/actor_ep018.pth
+#   promoted  = outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/best_actor_step27_train3.pth
 #   candidate  = outputs/al31_mid04_ultrafine2_20260328l/al31_tuning_summary.json#mid04_speed_dn_04
-ai_eval_checkpoint_path = "outputs/al31_anchor_ep008_medium4_20260328a/results_run/20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth"
+ai_eval_checkpoint_path = "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/best_actor_step27_train3.pth"
 ai_eval_id_ref_alpha = 0.09675
 ai_eval_delta_id_max = 0.1052
 ai_eval_id_ref_relative = True

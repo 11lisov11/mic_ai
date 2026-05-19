@@ -19,7 +19,14 @@ if ($env:BAUD -and $PSBoundParameters.ContainsKey("Baud") -eq $false) {
 if ($env:MODE -and $PSBoundParameters.ContainsKey("Mode") -eq $false) {
   $Mode = $env:MODE
 }
-$ConfigPath = if ($env:CONFIG_PATH) { $env:CONFIG_PATH } else { "$Root\config\env_research_air56_025kw.py" }
+$ConfigPath = if ($env:CONFIG) { $env:CONFIG } elseif ($env:CONFIG_PATH) { $env:CONFIG_PATH } else { "$Root\config\env_research_air56_025kw.py" }
+$ExtraArgs = @()
+if (($env:CRC -eq $null) -or ($env:CRC -eq "1")) {
+  $ExtraArgs += "--crc"
+}
+if (($env:DISABLE_ON_FAULT -eq $null) -or ($env:DISABLE_ON_FAULT -eq "1")) {
+  $ExtraArgs += "--disable-on-fault"
+}
 
 python "$Root\tools\air56_unoq_bridge.py" `
   --transport serial `
@@ -27,5 +34,4 @@ python "$Root\tools\air56_unoq_bridge.py" `
   --baud $Baud `
   --config $ConfigPath `
   --mode $Mode `
-  --crc `
-  --disable-on-fault
+  @ExtraArgs

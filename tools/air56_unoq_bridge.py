@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import socket
 import sys
@@ -488,6 +489,39 @@ def _send_fallback_command(
         print(f"[air56_unoq_bridge] fallback send failed: {exc}", flush=True)
 
 
+def _build_startup_self_check_report(
+    *,
+    config_path: Path,
+    primary_checkpoint: Path,
+    secondary_checkpoint: Optional[Path],
+    transport_name: str,
+    crc: bool,
+    disable_on_fault: bool,
+    disable_on_guard: bool,
+    id_min: float,
+    id_max: float,
+    fallback_id_ref: float,
+) -> dict[str, object]:
+    return {
+        "config_exists": bool(config_path.is_file()),
+        "config_path": str(config_path),
+        "primary_checkpoint_exists": bool(primary_checkpoint.is_file()),
+        "primary_checkpoint": str(primary_checkpoint),
+        "secondary_checkpoint_required": secondary_checkpoint is not None,
+        "secondary_checkpoint_exists": True if secondary_checkpoint is None else bool(secondary_checkpoint.is_file()),
+        "secondary_checkpoint": "" if secondary_checkpoint is None else str(secondary_checkpoint),
+        "transport_ready": True,
+        "transport": str(transport_name),
+        "crc_enabled": bool(crc),
+        "disable_on_fault": bool(disable_on_fault),
+        "disable_on_guard": bool(disable_on_guard),
+        "id_min": float(id_min),
+        "id_max": float(id_max),
+        "fallback_id_ref": float(fallback_id_ref),
+        "fallback_inside_limits": bool(float(id_min) <= float(fallback_id_ref) <= float(id_max)),
+    }
+
+
 def _process_telemetry_step(
     *,
     telem: Telemetry,
@@ -666,6 +700,7 @@ def main() -> None:
     )
 
     secondary: Optional[Air56PolicyBundle] = None
+    secondary_ckpt: Optional[Path] = None
     hybrid_enabled = bool(args.mode == "hybrid" and getattr(env_cfg, "ai_eval_hybrid_enabled", False))
     if hybrid_enabled:
         secondary_ckpt_text = str(getattr(env_cfg, "ai_eval_hybrid_secondary_checkpoint_path", "")).strip()
@@ -694,6 +729,19 @@ def main() -> None:
     else:
         transport = SerialTransport(args.serial_port, args.baud, args.serial_timeout)
 
+    fallback_id_ref = float(primary.params.id_ref_base)
+    startup_self_check = _build_startup_self_check_report(
+        config_path=config_path,
+        primary_checkpoint=primary_ckpt,
+        secondary_checkpoint=secondary_ckpt,
+        transport_name=str(args.transport),
+        crc=bool(args.crc),
+        disable_on_fault=bool(args.disable_on_fault),
+        disable_on_guard=bool(args.disable_on_guard),
+        id_min=float(args.id_min),
+        id_max=float(args.id_max),
+        fallback_id_ref=fallback_id_ref,
+    )
     print(f"[air56_unoq_bridge] config={config_path}", flush=True)
     print(f"[air56_unoq_bridge] primary={primary_ckpt}", flush=True)
     if secondary is not None:
@@ -702,8 +750,13 @@ def main() -> None:
         f"[air56_unoq_bridge] transport={args.transport} mode={args.mode} crc={bool(args.crc)}",
         flush=True,
     )
+    print(
+        "[air56_unoq_bridge] startup_self_check={}".format(
+            json.dumps(startup_self_check, sort_keys=True, ensure_ascii=False)
+        ),
+        flush=True,
+    )
 
-    fallback_id_ref = float(primary.params.id_ref_base)
     state = Air56BridgeRuntimeState(last_id_ref=float(getattr(foc, "id_ref", 0.0) or 0.0))
     packets = 0
 

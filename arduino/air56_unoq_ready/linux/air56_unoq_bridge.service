@@ -8,10 +8,12 @@ Type=simple
 Environment=MIC_THEORY_ROOT=/opt/mic_theory
 Environment=SERIAL_PORT=/dev/ttyHS0
 Environment=BAUD=921600
-Environment=CONFIG_PATH=/opt/mic_theory/config/env_research_air56_025kw.py
+Environment=CONFIG=/opt/mic_theory/config/env_research_air56_025kw.py
 Environment=MODE=hybrid
+Environment=CRC=1
+Environment=DISABLE_ON_FAULT=1
 EnvironmentFile=-/etc/default/air56_unoq_bridge
-ExecStart=/bin/sh -c 'cd "$MIC_THEORY_ROOT" && exec /usr/bin/python3 "$MIC_THEORY_ROOT/tools/air56_unoq_bridge.py" --transport serial --serial-port "$SERIAL_PORT" --baud "$BAUD" --config "$CONFIG_PATH" --mode "$MODE" --crc --disable-on-fault'
+ExecStart=/bin/sh -c 'set -eu; cd "$MIC_THEORY_ROOT"; CONFIG_RESOLVED="${CONFIG:-${CONFIG_PATH:-$MIC_THEORY_ROOT/config/env_research_air56_025kw.py}}"; CRC_FLAG=""; FAULT_FLAG=""; if [ "${CRC:-1}" = "1" ]; then CRC_FLAG="--crc"; fi; if [ "${DISABLE_ON_FAULT:-1}" = "1" ]; then FAULT_FLAG="--disable-on-fault"; fi; exec /usr/bin/python3 "$MIC_THEORY_ROOT/tools/air56_unoq_bridge.py" --transport serial --serial-port "$SERIAL_PORT" --baud "$BAUD" --config "$CONFIG_RESOLVED" --mode "$MODE" $CRC_FLAG $FAULT_FLAG'
 Restart=always
 RestartSec=1
 Nice=-10

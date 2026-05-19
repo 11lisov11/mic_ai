@@ -105,10 +105,20 @@ def test_uno_q_protocol_headers_neutralize_non_finite_sensor_values() -> None:
 
 def test_air56_unoq_linux_deploy_is_env_based() -> None:
     service = (PKG / "linux" / "air56_unoq_bridge.service").read_text(encoding="utf-8")
+    env_example = (PKG / "linux" / "air56_unoq_bridge.env.example").read_text(encoding="utf-8")
+    sh_wrapper = (PKG / "linux" / "run_air56_unoq_bridge.sh").read_text(encoding="utf-8")
+    ps_wrapper = (PKG / "linux" / "run_air56_unoq_bridge.ps1").read_text(encoding="utf-8")
+
     assert "EnvironmentFile=-/etc/default/air56_unoq_bridge" in service
+    assert "Environment=CONFIG=/opt/mic_theory/config/env_research_air56_025kw.py" in service
+    assert "Environment=CRC=1" in service
+    assert "Environment=DISABLE_ON_FAULT=1" in service
     assert 'cd "$MIC_THEORY_ROOT"' in service
     assert '--serial-port "$SERIAL_PORT"' in service
-    assert '--config "$CONFIG_PATH"' in service
+    assert '--config "$CONFIG_RESOLVED"' in service
+    assert "CONFIG=/opt/mic_theory/config/env_research_air56_025kw.py" in env_example
+    assert "CONFIG=\"${CONFIG:-${CONFIG_PATH:-$ROOT/config/env_research_air56_025kw.py}}\"" in sh_wrapper
+    assert 'if ($env:CONFIG)' in ps_wrapper
     assert "ExecStart=/usr/bin/python3 /opt/mic_theory" not in service
 
 

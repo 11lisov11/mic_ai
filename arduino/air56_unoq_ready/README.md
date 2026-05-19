@@ -104,8 +104,10 @@ Run manually:
 MIC_THEORY_ROOT=/opt/mic_theory \
 SERIAL_PORT=/dev/ttyHS0 \
 BAUD=921600 \
-CONFIG_PATH=/opt/mic_theory/config/env_research_air56_025kw.py \
+CONFIG=/opt/mic_theory/config/env_research_air56_025kw.py \
 MODE=hybrid \
+CRC=1 \
+DISABLE_ON_FAULT=1 \
 ./arduino/air56_unoq_ready/linux/run_air56_unoq_bridge.sh
 ```
 
@@ -125,6 +127,7 @@ The bridge performs startup checks before entering control:
 - primary checkpoint exists
 - secondary hybrid checkpoint exists when enabled
 - serial transport can open the configured port
+- CRC and fault-disable launch mode are explicit in the env file
 
 On shutdown or fatal runtime error it sends one best-effort fallback command: `enable_ai=0`, `id_ref=base`.
 

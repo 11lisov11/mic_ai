@@ -52,8 +52,8 @@ CANONICAL_STEP27_SELECTION: Dict[str, Dict[str, str]] = {
         "candidate_json": "outputs/tmp_al31_mid04_ultrafine2_20260328.json",
         "candidate_tag": "mid04_speed_dn_04",
         "checkpoint_path": (
-            "outputs/al31_anchor_ep008_medium4_20260328a/results_run/"
-            "20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth"
+            "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/"
+            "20260519_205752_env_research_al31_4_06kw_ai_id_ref/best_actor_step27_train3.pth"
         ),
     },
     "ao2": {

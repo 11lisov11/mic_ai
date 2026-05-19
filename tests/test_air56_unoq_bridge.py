@@ -17,6 +17,7 @@ from tools.air56_unoq_bridge import (
     _action_to_id_ref,
     _build_obs,
     _build_bundle,
+    _build_startup_self_check_report,
     _clamp_rate,
     _clip_action_scalar,
     _compute_gate_scale,
@@ -862,3 +863,33 @@ def test_send_fallback_command_respects_dry_run() -> None:
     transport = FakeTransport()
     _send_fallback_command(transport, t_ms=10, id_ref_base=1.35, crc=True, dry_run=True)  # type: ignore[arg-type]
     assert transport.payloads == []
+
+
+def test_startup_self_check_report_records_deploy_contract(tmp_path: Path) -> None:
+    config = tmp_path / "env.py"
+    primary = tmp_path / "primary.pth"
+    secondary = tmp_path / "secondary.pth"
+    for path in (config, primary, secondary):
+        path.write_bytes(b"x")
+
+    report = _build_startup_self_check_report(
+        config_path=config,
+        primary_checkpoint=primary,
+        secondary_checkpoint=secondary,
+        transport_name="serial",
+        crc=True,
+        disable_on_fault=True,
+        disable_on_guard=False,
+        id_min=1.1,
+        id_max=1.7,
+        fallback_id_ref=1.35,
+    )
+
+    assert report["config_exists"] is True
+    assert report["primary_checkpoint_exists"] is True
+    assert report["secondary_checkpoint_required"] is True
+    assert report["secondary_checkpoint_exists"] is True
+    assert report["transport_ready"] is True
+    assert report["crc_enabled"] is True
+    assert report["disable_on_fault"] is True
+    assert report["fallback_inside_limits"] is True

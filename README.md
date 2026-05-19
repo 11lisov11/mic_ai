@@ -16,13 +16,14 @@ Historical strict-verified release package:
 - verify artifact: [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
 - `verification_ok = true`
 
-Current-code Step27 reproducibility baseline:
+Current-code Step27 reproducibility baseline after the `2026-05-19` full training refresh:
 
 - `AIR56`: `+1.072%` avg power saving, `+0.112%` eta gain, `0` err failures
-- `AL31`: `+3.180%` avg power saving, `+0.007%` eta gain, `0` err failures
+- `AL31`: `+3.455%` avg power saving, `+0.003%` eta gain, `0` err failures
 - `AO2`: `+0.512%` avg power saving, `+1.724%` eta gain, `0` err failures
 - all three have `envelope_fail_count = 0`
-- strict recheck output: [canonical_step27_recheck_fixed_20260519](C:/mic_theory/outputs/canonical_step27_recheck_fixed_20260519)
+- strict recheck output: [final_selected_strict_recheck_20260519](C:/mic_theory/outputs/train3_fullprog_20260519/final_selected_strict_recheck_20260519)
+- tracked refresh manifest: [20260519_train3_refresh](C:/mic_theory/paper/ieee_2026/data/release/20260519_train3_refresh/research_refresh_manifest.json)
 
 Hardware-productization status as of `2026-05-19`:
 
@@ -56,6 +57,19 @@ The diagnostic trail is intentionally kept in the repository:
 - current AO2 candidate: [step27_ao2_current_repro_candidate_20260519.json](C:/mic_theory/config/step27_ao2_current_repro_candidate_20260519.json)
 - current AO2 strict scan: [ao2_current_repro_strict_scan_20260519](C:/mic_theory/outputs/ao2_current_repro_strict_scan_20260519)
 - old `fw_c` scan is preserved as provenance, but it is no longer the canonical current-code acceptance source because the `2026-05-19` audit found stale resume-cache risk in Step27 scans.
+
+## 2026-05-19 Train3 Refresh
+
+The latest full training pass is captured as a tracked refresh release:
+
+- manifest: [research_refresh_manifest.json](C:/mic_theory/paper/ieee_2026/data/release/20260519_train3_refresh/research_refresh_manifest.json)
+- `AIR56`: keep accepted canonical baseline
+- `AL31`: promote the fine-tuned `actor_ep018.pth` result through `best_actor_step27_train3.pth`
+- `AO2`: keep accepted nameplate-first canonical baseline
+- `research_refresh_complete = true`
+- `hardware_deploy_complete = false`
+
+The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracked manifest records the path, SHA-256, metrics, and reproduce commands.
 
 ## Main Entry Points
 
@@ -104,8 +118,8 @@ python tools/step27_pipeline.py ^
 ## Validation Snapshot
 
 - historical strict 3-motor `Step28` verify: green
-- current-code strict Step27 canonical recheck: green for `AIR56`, `AL31`, `AO2`
-- `train_3motors_pipeline.py --step27-select` smoke: `3/3` runs passed and selected canonical baselines when fresh 20-step checkpoints were worse
+- current-code strict Step27 full-training refresh: green for `AIR56`, `AL31`, `AO2`
+- `train_3motors_pipeline.py --step27-select` full refresh: `3/3` runs passed; `AIR56`/`AO2` kept canonical baselines, `AL31` promoted the new fine-tuned checkpoint
 - Step27 scan resume-state now hashes config, candidate, acceptance envelope, and checkpoint content to prevent stale acceptance reuse.
 - `AO2` live config now uses `ao2_current_repro_rand017`
   - [motor_tuning_acceptance_summary.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/derived_ieee/motor_tuning_acceptance_summary.json)
@@ -115,6 +129,10 @@ python tools/step27_pipeline.py ^
 - latest focused regression after the `2026-05-19` training/Step27 fixes:
   - `python -m pytest -q tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py tests/test_train_3motors_pipeline_smoke.py tests/test_train_3motors_pipeline_joint_and_finetune_smoke.py tests/test_train_3motors_pipeline_resume_eval_first_smoke.py`
   - `34 passed`
+- latest full training refresh:
+  - joint domain-randomized seed `101`: complete
+  - fine-tune per motor seed `101`: complete
+  - selected strict recheck: `3/3` pass
 - AIR56 UNO Q focused deploy regression:
   - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
 - AIR56 UNO Q firmware static compile smoke:
@@ -126,7 +144,14 @@ python tools/step27_pipeline.py ^
   - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke `>=95%`, bridge helper/runtime floor `>=75%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
-  - current `2026-05-19` result: `272 passed, 18 deselected`
+  - `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
+  - current `2026-05-19` result after train3 refresh implementation: `274 passed, 18 deselected`
+- slow research profile:
+  - `python -m pytest -q -m "slow and not hardware"`
+  - `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
+- full repository regression after train3 refresh implementation:
+  - `python -m pytest -q`
+  - `292 passed`
 
 ## Repository Structure
 

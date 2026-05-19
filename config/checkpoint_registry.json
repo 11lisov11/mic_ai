@@ -1,12 +1,12 @@
 {
   "motors": {
     "air56": "outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth",
-    "al31": "outputs/al31_anchor_ep008_medium4_20260328a/results_run/20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth",
+    "al31": "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/best_actor_step27_train3.pth",
     "ao2": "outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth"
   },
   "configs": {
     "env_research_air56_025kw.py": "outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth",
-    "env_research_al31_4_06kw.py": "outputs/al31_anchor_ep008_medium4_20260328a/results_run/20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth",
+    "env_research_al31_4_06kw.py": "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/best_actor_step27_train3.pth",
     "env_research_ao2_32_4_3kw.py": "outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth"
   }
 }

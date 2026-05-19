@@ -43,17 +43,19 @@ Status on `2026-04-12`:
 
 - all five conditions are satisfied
 
-Status on `2026-05-19` reproducibility audit:
+Status on `2026-05-19` full training refresh:
 
-- current-code strict Step27 canonical recheck is green for all three motors
+- current-code strict Step27 selected recheck is green for all three motors
 - `AIR56`: `+1.072%` avg power saving, `+0.112%` eta gain, `0` err failures, `envelope_fail_count = 0`
-- `AL31`: `+3.180%` avg power saving, `+0.007%` eta gain, `0` err failures, `envelope_fail_count = 0`
+- `AL31`: `+3.455%` avg power saving, `+0.003%` eta gain, `0` err failures, `envelope_fail_count = 0`
 - `AO2`: `+0.512%` avg power saving, `+1.724%` eta gain, `0` err failures, `envelope_fail_count = 0`
-- strict recheck output: [canonical_step27_recheck_fixed_20260519](C:/mic_theory/outputs/canonical_step27_recheck_fixed_20260519)
+- strict recheck output: [final_selected_strict_recheck_20260519](C:/mic_theory/outputs/train3_fullprog_20260519/final_selected_strict_recheck_20260519)
+- tracked refresh manifest: [20260519_train3_refresh](C:/mic_theory/paper/ieee_2026/data/release/20260519_train3_refresh/research_refresh_manifest.json)
 - `AO2` live config was refreshed to the reproducible `ao2_current_repro_rand017` candidate
+- `AL31` live config and checkpoint registry now point to the promoted `2026-05-19` `best_actor_step27_train3.pth` checkpoint, selected from `actor_ep018.pth`
 - old `outputs/ao2_fw_grid_20260412af/fw_c` is preserved as provenance but is no longer the canonical current-code acceptance source
 - Step27 scan resume-state now hashes config, candidate, acceptance envelope, and checkpoint content to prevent stale acceptance reuse
-- `train_3motors_pipeline.py --step27-select` smoke passed `3/3` and selected canonical baselines when fresh 20-step checkpoints were worse
+- `train_3motors_pipeline.py --step27-select` full refresh passed `3/3`; `AIR56` and `AO2` kept canonical baselines, `AL31` promoted the new fine-tuned checkpoint
 
 ## Hardware Completion Criteria
 
@@ -87,6 +89,8 @@ This checklist tracks what is still not complete after the research release. It 
 ### A. Repository Hygiene And Publication Artifacts
 
 - [x] Keep the canonical `3-motor` research release as the active scientific baseline.
+- [x] Record the `2026-05-19` full training refresh as a tracked release manifest.
+- [x] Promote the strict-green `AL31` refresh checkpoint in the live config and checkpoint registry.
 - [x] Regenerate AIR56 working-characteristics figure outputs with readable labels and math-style subscripts.
 - [x] Rebuild the legacy nominal power plot as a vector PDF/SVG/PNG instead of a raster screenshot export.
 - [x] Decide whether the regenerated publication figures are canonical and either commit them or move noncanonical scratch artifacts out of tracked publication folders.
@@ -137,6 +141,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add Step27 selection of canonical release baselines so a new training run cannot silently regress below the accepted baseline.
 - [x] Add file-hash based Step27 scan resume signatures to prevent stale metric reuse.
 - [x] Refresh `AO2` current-code candidate after stale-cache audit and recheck strict Step27 acceptance.
+- [x] Run the full `2026-05-19` joint plus fine-tune training refresh and record the selected strict result.
 - [ ] Do not call the whole project `100% hardware-ready` until Sections C and D are closed on real hardware.
 - [ ] Before final hardware release, run:
   - `python -m pytest -q -m "not slow and not hardware"`
@@ -156,6 +161,7 @@ Commands run during this audit:
 - `python tools/check_air56_unoq_coverage_gate.py`
   - initial audit result: `passed = true`, total AIR56 deploy subset coverage `79.26%`
   - after bridge coverage hardening: `passed = true`, total AIR56 deploy subset coverage `86.22%`, `tools/air56_unoq_bridge.py = 79.16%`, bridge floor raised to `75%`
+  - after train3 refresh implementation: `passed = true`, total AIR56 deploy subset coverage `85.90%`, `tools/air56_unoq_bridge.py = 78.75%`
 - `python -m pytest -q -m "not slow and not hardware"`
   - initial audit result: `257 passed, 14 deselected`
   - after repo-side hardening: `270 passed, 14 deselected`
@@ -231,6 +237,11 @@ Focused regression after the `2026-05-19` training/Step27 reproducibility fixes:
 
 - `python -m pytest -q tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py tests/test_train_3motors_pipeline_smoke.py tests/test_train_3motors_pipeline_joint_and_finetune_smoke.py tests/test_train_3motors_pipeline_resume_eval_first_smoke.py`
 - `34 passed`
+- full train3 refresh run:
+  - joint domain-randomized seed `101`: complete
+  - fine-tune per motor seed `101`: complete
+  - selected strict recheck: `3/3` pass
+  - tracked manifest: [20260519_train3_refresh](C:/mic_theory/paper/ieee_2026/data/release/20260519_train3_refresh/research_refresh_manifest.json)
 - expanded focused regression with AO2 hardening/vector FOC/Step27 external checks:
   - `python -m pytest -q tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py tests/test_train_3motors_pipeline_smoke.py tests/test_train_3motors_pipeline_joint_and_finetune_smoke.py tests/test_train_3motors_pipeline_resume_eval_first_smoke.py tests/test_ao2_hardening_sweep_smoke.py tests/test_vector_foc_field_weakening.py tests/test_step27_report_markdown.py tests/test_train_ai_id_ref_external_step27.py`
   - `67 passed`
@@ -238,11 +249,18 @@ Focused regression after the `2026-05-19` training/Step27 reproducibility fixes:
 Full repository regression must remain green before final push:
 
 - `python -m pytest -q`
+- current `2026-05-19` result after train3 refresh implementation: `292 passed`
 
 Weak-hardware fast profile:
 
 - `python -m pytest -q -m "not slow and not hardware"`
-- current `2026-05-19` result: `272 passed, 18 deselected`
+- `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
+- current `2026-05-19` result after train3 refresh implementation: `274 passed, 18 deselected`
+
+Slow research profile:
+
+- `python -m pytest -q -m "slow and not hardware"`
+- `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
 
 AIR56 UNO Q targeted deploy regression:
 

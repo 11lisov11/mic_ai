@@ -1,0 +1,81 @@
+{
+  "schema": "mic_theory.train3_refresh_release.v1",
+  "created_utc": "2026-05-19T18:38:31.333822+00:00",
+  "refresh_tag": "20260519_train3_refresh",
+  "research_refresh_complete": true,
+  "hardware_deploy_complete": false,
+  "summary_source": "outputs/train3_fullprog_20260519/final_selected_strict_recheck_20260519/selected_recheck_summary.json",
+  "joint_manifest": "outputs/train3_fullprog_20260519/20260519_205216_joint_domain_randomized/training_manifest_3motors.json",
+  "fine_tune_manifest": "outputs/train3_fullprog_20260519/20260519_205338_fine_tune_per_motor/training_manifest_3motors.json",
+  "joint_protocol_hash": "9a8ef0371eea67c25d4a48d37c4adeaddd7c59b53ec0e6c4b7d42b450d168a86",
+  "fine_tune_protocol_hash": "e41c0d18cca8bda069bae8aaff9aad3e22b925112554c8a81f7442cc9b6841e6",
+  "motors": [
+    {
+      "motor": "air56",
+      "decision": "keep_canonical_baseline",
+      "acceptance_pass": true,
+      "envelope_fail_count": 0,
+      "err_failures": 0.0,
+      "avg_power_saving_pct": 1.0722457820873026,
+      "avg_eta_gain_pct": 0.11167932999284758,
+      "start_stop_power_saving_pct": 2.1402939994070724,
+      "candidate_tag": "rand007_soft_track",
+      "selected_is_canonical_baseline": true,
+      "selected_checkpoint": "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_air56/20260519_205339_env_research_air56_025kw_ai_id_ref/eval/actor_ep_canonical_baseline.pth",
+      "selected_checkpoint_exists": true,
+      "selected_checkpoint_sha256": "5ac195758ba10b1a34e8cd3c868cf5431026d0a925063229ada0776180835692",
+      "release_checkpoint": "outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth",
+      "release_checkpoint_exists": true,
+      "release_checkpoint_sha256": "5ac195758ba10b1a34e8cd3c868cf5431026d0a925063229ada0776180835692",
+      "canonical_source_checkpoint": "outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth"
+    },
+    {
+      "motor": "al31",
+      "decision": "promote_training_checkpoint",
+      "acceptance_pass": true,
+      "envelope_fail_count": 0,
+      "err_failures": 0.0,
+      "avg_power_saving_pct": 3.4550026120184207,
+      "avg_eta_gain_pct": 0.003437852265358865,
+      "start_stop_power_saving_pct": 13.736201014231709,
+      "candidate_tag": "mid04_speed_dn_04",
+      "selected_is_canonical_baseline": false,
+      "selected_checkpoint": "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/eval/actor_ep018.pth",
+      "selected_checkpoint_exists": true,
+      "selected_checkpoint_sha256": "b54e33c485da95201f5e2b20e76f6fa954ce18c551eea079b1661a87e8c9e98b",
+      "release_checkpoint": "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_al31/20260519_205752_env_research_al31_4_06kw_ai_id_ref/best_actor_step27_train3.pth",
+      "release_checkpoint_exists": true,
+      "release_checkpoint_sha256": "b54e33c485da95201f5e2b20e76f6fa954ce18c551eea079b1661a87e8c9e98b",
+      "canonical_source_checkpoint": "outputs/al31_anchor_ep008_medium4_20260328a/results_run/20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth"
+    },
+    {
+      "motor": "ao2",
+      "decision": "keep_canonical_baseline",
+      "acceptance_pass": true,
+      "envelope_fail_count": 0,
+      "err_failures": 0.0,
+      "avg_power_saving_pct": 0.5122877482041044,
+      "avg_eta_gain_pct": 1.7244070917656782,
+      "start_stop_power_saving_pct": 0.0,
+      "candidate_tag": "ao2_current_repro_rand017",
+      "selected_is_canonical_baseline": true,
+      "selected_checkpoint": "outputs/train3_fullprog_20260519/results_run/fine_tune_seed101_ao2/20260519_210023_env_research_ao2_32_4_3kw_ai_id_ref/eval/actor_ep_canonical_baseline.pth",
+      "selected_checkpoint_exists": true,
+      "selected_checkpoint_sha256": "755a3b667e4490802cbf1bf637d8ad512470341c21b9e71687c9ecca53ea791d",
+      "release_checkpoint": "outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth",
+      "release_checkpoint_exists": true,
+      "release_checkpoint_sha256": "755a3b667e4490802cbf1bf637d8ad512470341c21b9e71687c9ecca53ea791d",
+      "canonical_source_checkpoint": "outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth"
+    }
+  ],
+  "promotion_policy": {
+    "air56": "keep previous canonical baseline",
+    "al31": "promote 2026-05-19 fine-tuned checkpoint because strict recheck improved AL31",
+    "ao2": "keep previous canonical nameplate-first baseline"
+  },
+  "reproduce_commands": {
+    "joint_domain_randomized": "python tools/train_3motors_pipeline.py --mode joint-domain-randomized --motors air56,al31,ao2 --seeds 101 --joint-cycles 1 --joint-cycle-episodes 24 --episode-steps 2400 --scenarios speed_step,ramp,load_step,start_stop --scenario-sample cycle --relative --out-dir outputs/train3_fullprog_20260519 --ai-output-dir outputs/train3_fullprog_20260519/ai_outputs --results-root outputs/train3_fullprog_20260519/results_run",
+    "fine_tune_per_motor": "python tools/train_3motors_pipeline.py --mode fine_tune_per_motor --motors air56,al31,ao2 --seeds 101 --episodes 40 --episode-steps 2400 --scenarios speed_step,ramp,load_step,start_stop --scenario-sample cycle --relative --base-manifest outputs/train3_fullprog_20260519/20260519_205216_joint_domain_randomized/training_manifest_3motors.json --step27-select --step27-seeds 101 --step27-scenarios speed_step,ramp,load_step,start_stop --out-dir outputs/train3_fullprog_20260519 --ai-output-dir outputs/train3_fullprog_20260519/ai_outputs --results-root outputs/train3_fullprog_20260519/results_run"
+  },
+  "artifact_storage_note": "Large checkpoints stay under ignored outputs/. This tracked manifest records paths and hashes; rerun the reproduce commands if a clean clone needs to regenerate them."
+}
