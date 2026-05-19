@@ -29,7 +29,7 @@ Hardware-productization status as of `2026-05-19`:
 
 - `AIR56 UNO Q` is the first board deployment path.
 - The split architecture is implemented as a deploy package: STM32U585 owns FOC/safety/fallback, QRB2210/Linux runs the AI `id_ref` decision layer.
-- The repo now contains the firmware hardware-adapter contract and Linux bridge startup/fallback checks.
+- The repo now contains the firmware hardware-adapter contract, Linux bridge startup/fallback checks, and a Stage 0-4 log-to-report hardware acceptance builder.
 - Physical board deployment is not complete until the real STM32U585 FOC/inverter layer implements the `air56_foc_*` adapter symbols and passes the staged bring-up protocol.
 
 Historical milestone kept for provenance:
@@ -79,6 +79,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [train_3motors_pipeline.py](C:/mic_theory/tools/train_3motors_pipeline.py): multi-motor training pipeline
 - [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py): QRB2210 Linux bridge for AIR56 UNO Q
 - [air56_unoq_stage0_loopback.py](C:/mic_theory/tools/air56_unoq_stage0_loopback.py): Stage 0 protocol self-test
+- [air56_unoq_build_hardware_report.py](C:/mic_theory/tools/air56_unoq_build_hardware_report.py): builds a Stage 0-4 acceptance report from real board logs
 - [air56_unoq_hardware_acceptance.py](C:/mic_theory/tools/air56_unoq_hardware_acceptance.py): validator for real Stage 0-4 hardware evidence
 - [run_air56_unoq_deploy_smoke.py](C:/mic_theory/tools/run_air56_unoq_deploy_smoke.py): one-command AIR56 UNO Q repo-side smoke
 - [air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready): AIR56 UNO Q split deploy package
@@ -135,28 +136,32 @@ python tools/step27_pipeline.py ^
   - fine-tune per motor seed `101`: complete
   - selected strict recheck: `3/3` pass
 - AIR56 UNO Q focused deploy regression:
-  - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
+  - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py tests/test_air56_unoq_hardware_acceptance.py tests/test_air56_unoq_build_hardware_report.py tests/test_air56_unoq_stage0_loopback.py`
 - AIR56 UNO Q firmware static compile/link smoke:
   - `python tools/check_air56_unoq_firmware_static.py --mode mock`
   - `python tools/check_air56_unoq_firmware_static.py --mode production-port`
 - AIR56 UNO Q one-command repo-side deploy smoke:
   - `python tools/run_air56_unoq_deploy_smoke.py`
+  - current `2026-05-19` result after hardware log builder: `passed = true`, targeted pytest `94 passed`
+- AIR56 UNO Q hardware report builder from real Stage 0-4 logs:
+  - `python tools/air56_unoq_build_hardware_report.py --board-id <board> --operator <name> --stage0-json <stage0.json> --stage1-json <stage1.json> --stage2-json <stage2.json> --stage2-csv <stage2.csv> --stage3-json <stage3.json> --stage4-json <stage4.json> --out-json <hardware_report.json>`
 - AIR56 UNO Q physical hardware acceptance validator:
   - `python tools/air56_unoq_hardware_acceptance.py --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json`
   - required result before hardware-ready claim: `hardware_ready = true`
 - AIR56 UNO Q production-critical coverage gate:
   - `python tools/check_air56_unoq_coverage_gate.py`
-  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke/hardware-acceptance `>=95%`, bridge helper/runtime floor `>=75%`
+  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke/hardware-report/hardware-acceptance `>=95%`, bridge helper/runtime floor `>=75%`
+  - current `2026-05-19` result after hardware log builder: `passed = true`, total AIR56 deploy subset coverage `89.48%`, `tools/air56_unoq_build_hardware_report.py = 100.00%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
   - `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
-  - current `2026-05-19` result after train3 refresh implementation: `274 passed, 18 deselected`
+  - current `2026-05-19` result after hardware log builder: `290 passed, 18 deselected`
 - slow research profile:
   - `python -m pytest -q -m "slow and not hardware"`
   - `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
 - full repository regression after train3 refresh implementation:
   - `python -m pytest -q`
-  - current `2026-05-19` result after production-port link smoke: `301 passed`
+  - current `2026-05-19` result after hardware log builder: `308 passed`
 
 ## Repository Structure
 
@@ -177,4 +182,5 @@ python tools/step27_pipeline.py ^
 - The canonical checkpoint registry is [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json).
 - The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over archived plans.
 - `AIR56` deploy package for `UNO Q` is available in [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready). It is a split hardware-productization package, not proof that a motor-connected STM32U585 build has already passed physical acceptance.
+- The hardware report builder is fail-safe: missing or incomplete board logs produce `hardware_ready=false`, not a simulated pass.
 - Whole-repository coverage is not expected to be 100% because this repo contains many research CLI and long-running reproduction scripts. Coverage gating is enforced on the production-critical AIR56 UNO Q deploy subset instead.

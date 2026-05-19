@@ -1,0 +1,9 @@
+{
+  "notes": "Template only. Fill from AI-enabled tight-limit run.",
+  "passed": false,
+  "ai_enabled": true,
+  "id_ref_limits_tight": false,
+  "disable_on_fault": true,
+  "fallback_ms": 999,
+  "tracking_guard_regression": true
+}

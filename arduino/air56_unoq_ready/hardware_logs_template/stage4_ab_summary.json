@@ -1,0 +1,10 @@
+{
+  "notes": "Template only. Fill from physical AIR56 FOC baseline vs MIC/AI A/B run.",
+  "passed": false,
+  "documented": false,
+  "guard_fail_delta": 1,
+  "tracking_guard_regression": true,
+  "current_thermal_limit_ok": false,
+  "fallback_oscillation": true,
+  "power_saving_pct": -1
+}

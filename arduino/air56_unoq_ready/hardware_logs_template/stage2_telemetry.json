@@ -1,0 +1,6 @@
+{
+  "notes": "Template only. Fill from QRB2210 bridge telemetry-only run.",
+  "passed": false,
+  "ai_enabled": false,
+  "bridge_dry_run": true
+}

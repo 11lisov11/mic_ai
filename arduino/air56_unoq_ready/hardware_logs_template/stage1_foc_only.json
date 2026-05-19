@@ -1,0 +1,12 @@
+{
+  "notes": "Template only. Fill from STM32U585 FOC-only bring-up with motor/inverter connected and AI disabled.",
+  "passed": false,
+  "mock_adapter_enabled": false,
+  "production_build_without_mock": false,
+  "current_scaling_ok": false,
+  "speed_scaling_ok": false,
+  "vdc_scaling_ok": false,
+  "p_in_estimate_ok": false,
+  "fault_bits_ok": false,
+  "safe_disable_ok": false
+}

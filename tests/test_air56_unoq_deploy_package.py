@@ -152,14 +152,21 @@ def test_air56_unoq_deploy_smoke_entrypoint_exists() -> None:
     assert "firmware_static_production_port_link" in text
     assert "tests/test_air56_unoq_stage0_loopback.py" in text
     assert "tests/test_air56_unoq_hardware_acceptance.py" in text
+    assert "tests/test_air56_unoq_build_hardware_report.py" in text
 
 
-def test_air56_unoq_hardware_acceptance_template_and_tool_exist() -> None:
+def test_air56_unoq_hardware_acceptance_template_logs_and_tools_exist() -> None:
     tool = ROOT / "tools" / "air56_unoq_hardware_acceptance.py"
+    builder = ROOT / "tools" / "air56_unoq_build_hardware_report.py"
     template = PKG / "hardware_acceptance_report.template.json"
+    logs_template = PKG / "hardware_logs_template"
     bringup = ROOT / "docs" / "air56_unoq_bringup.md"
 
     assert tool.exists()
+    assert builder.exists()
     assert template.exists()
+    assert (logs_template / "stage0_loopback.json").exists()
+    assert (logs_template / "stage2_telemetry.csv").exists()
     assert "mic_theory.air56_unoq.hardware_acceptance.v1" in template.read_text(encoding="utf-8")
     assert "air56_unoq_hardware_acceptance.py" in bringup.read_text(encoding="utf-8")
+    assert "air56_unoq_build_hardware_report.py" in bringup.read_text(encoding="utf-8")

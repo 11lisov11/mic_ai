@@ -120,11 +120,22 @@ Pass criteria:
 
 ## Hardware Acceptance Report
 
-After the real board runs pass, copy and fill:
+After the real board runs pass, build the report from the recorded Stage 0-4
+logs. The checked-in files under `hardware_logs_template/` are examples only;
+they are fail-safe and must be replaced with real board evidence.
 
 ```bash
-cp arduino/air56_unoq_ready/hardware_acceptance_report.template.json \
-  .tmp_pytest/air56_unoq_hardware_acceptance_report.json
+python tools/air56_unoq_build_hardware_report.py \
+  --board-id unoq-air56-bench-001 \
+  --operator bench \
+  --stage0-json arduino/air56_unoq_ready/hardware_logs_template/stage0_loopback.json \
+  --stage1-json arduino/air56_unoq_ready/hardware_logs_template/stage1_foc_only.json \
+  --stage2-json arduino/air56_unoq_ready/hardware_logs_template/stage2_telemetry.json \
+  --stage2-csv arduino/air56_unoq_ready/hardware_logs_template/stage2_telemetry.csv \
+  --stage3-json arduino/air56_unoq_ready/hardware_logs_template/stage3_ai_tight.json \
+  --stage4-json arduino/air56_unoq_ready/hardware_logs_template/stage4_ab_summary.json \
+  --out-json .tmp_pytest/air56_unoq_hardware_acceptance_report.json \
+  --out-summary-json .tmp_pytest/air56_unoq_hardware_acceptance_summary_from_logs.json
 ```
 
 Validate the report:
@@ -136,6 +147,14 @@ python tools/air56_unoq_hardware_acceptance.py \
 ```
 
 `hardware_ready=true` is required before the root plan can call AIR56 UNO Q board deployment `100%` complete.
+
+Required log semantics:
+
+- Stage 0 JSON must prove telemetry `20` bytes, command `9` bytes, CRC error rejection, `>=600 s` loopback, max telemetry period `<=12 ms`, and fallback `<=100 ms`.
+- Stage 1 JSON must prove production build without mock, current/speed/Vdc/P_in scaling, fault bits, and safe-disable path.
+- Stage 2 JSON/CSV must prove telemetry-only bridge operation with AI disabled; when CSV includes Linux and `stm_*` columns, the builder computes period and decoded mismatch automatically.
+- Stage 3 JSON must prove AI enabled only under tight `id_ref` limits with `disable-on-fault` and fallback `<=100 ms`.
+- Stage 4 JSON must document physical FOC baseline vs MIC/AI A/B evidence with no guard/tracking/thermal/fallback regression.
 
 ## Fast Verification Commands
 

@@ -1,0 +1,10 @@
+{
+  "notes": "Template only. Replace with a real 10 minute Stage 0 loopback run before building acceptance report.",
+  "passed": false,
+  "telemetry_size": 20,
+  "command_size": 9,
+  "crc_error_rejected": false,
+  "loopback_duration_s": 0,
+  "fallback_ms": 999,
+  "telemetry_period_ms_max": 999
+}

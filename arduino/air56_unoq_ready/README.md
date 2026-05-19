@@ -33,9 +33,11 @@ The firmware no longer contains fake production sensor readings inside `air56_un
   - `air56_unoq_bridge.env.example`: `/etc/default` template
 - `../../tools/air56_unoq_bridge.py`: QRB2210 Linux AI bridge
 - `../../tools/air56_unoq_stage0_loopback.py`: protocol self-test for Stage 0
+- `../../tools/air56_unoq_build_hardware_report.py`: builds the physical Stage 0-4 report from board logs
 - `../../tools/air56_unoq_hardware_acceptance.py`: physical Stage 0-4 acceptance validator
 - `../../tools/run_air56_unoq_deploy_smoke.py`: one-command repo-side deploy smoke runner
 - `../../docs/air56_unoq_bringup.md`: staged hardware bring-up protocol
+- `hardware_logs_template/`: fail-safe Stage 0-4 log templates for real bring-up evidence
 - `hardware_acceptance_report.template.json`: fill from real board logs before claiming hardware-ready
 
 ## STM32U585 Firmware Build
@@ -72,14 +74,27 @@ python tools/check_air56_unoq_coverage_gate.py
 Validate real hardware acceptance after Stage 0-4 runs:
 
 ```bash
+python tools/air56_unoq_build_hardware_report.py \
+  --board-id unoq-air56-bench-001 \
+  --operator bench \
+  --stage0-json arduino/air56_unoq_ready/hardware_logs_template/stage0_loopback.json \
+  --stage1-json arduino/air56_unoq_ready/hardware_logs_template/stage1_foc_only.json \
+  --stage2-json arduino/air56_unoq_ready/hardware_logs_template/stage2_telemetry.json \
+  --stage2-csv arduino/air56_unoq_ready/hardware_logs_template/stage2_telemetry.csv \
+  --stage3-json arduino/air56_unoq_ready/hardware_logs_template/stage3_ai_tight.json \
+  --stage4-json arduino/air56_unoq_ready/hardware_logs_template/stage4_ab_summary.json \
+  --out-json arduino/air56_unoq_ready/hardware_acceptance_report.filled.json
+
 python tools/air56_unoq_hardware_acceptance.py \
   --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json
 ```
 
+The checked-in `hardware_logs_template/` files intentionally do not pass. Replace them with real board logs before using the generated report as completion evidence.
+
 Current gate:
 
 - total AIR56 deploy subset: `>=75%`
-- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner: `>=95%`
+- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, hardware report builder, hardware acceptance validator: `>=95%`
 - Linux bridge helper/runtime module floor: `>=75%`
 
 Production port target:
