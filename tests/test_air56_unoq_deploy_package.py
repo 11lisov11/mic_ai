@@ -155,6 +155,7 @@ def test_air56_unoq_deploy_smoke_entrypoint_exists() -> None:
     assert "tests/test_air56_unoq_build_hardware_report.py" in text
     assert "tests/test_air56_unoq_analyze_stage4_ab.py" in text
     assert "tests/test_air56_unoq_validate_hw_binding.py" in text
+    assert "tests/test_air56_unoq_hardware_release_gate.py" in text
 
 
 def test_air56_unoq_hardware_acceptance_template_logs_and_tools_exist() -> None:
@@ -162,6 +163,7 @@ def test_air56_unoq_hardware_acceptance_template_logs_and_tools_exist() -> None:
     builder = ROOT / "tools" / "air56_unoq_build_hardware_report.py"
     stage4_analyzer = ROOT / "tools" / "air56_unoq_analyze_stage4_ab.py"
     hw_binding_validator = ROOT / "tools" / "air56_unoq_validate_hw_binding.py"
+    release_gate = ROOT / "tools" / "air56_unoq_hardware_release_gate.py"
     template = PKG / "hardware_acceptance_report.template.json"
     binding_template = PKG / "hardware_binding.template.json"
     logs_template = PKG / "hardware_logs_template"
@@ -171,6 +173,7 @@ def test_air56_unoq_hardware_acceptance_template_logs_and_tools_exist() -> None:
     assert builder.exists()
     assert stage4_analyzer.exists()
     assert hw_binding_validator.exists()
+    assert release_gate.exists()
     assert template.exists()
     assert binding_template.exists()
     assert (logs_template / "stage0_loopback.json").exists()
@@ -183,3 +186,4 @@ def test_air56_unoq_hardware_acceptance_template_logs_and_tools_exist() -> None:
     assert "air56_unoq_build_hardware_report.py" in bringup.read_text(encoding="utf-8")
     assert "air56_unoq_analyze_stage4_ab.py" in bringup.read_text(encoding="utf-8")
     assert "air56_unoq_validate_hw_binding.py" in bringup.read_text(encoding="utf-8")
+    assert "air56_unoq_hardware_release_gate.py" in bringup.read_text(encoding="utf-8")

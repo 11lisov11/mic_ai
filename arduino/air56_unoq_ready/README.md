@@ -37,6 +37,7 @@ The firmware no longer contains fake production sensor readings inside `air56_un
 - `../../tools/air56_unoq_build_hardware_report.py`: builds the physical Stage 0-4 report from board logs
 - `../../tools/air56_unoq_validate_hw_binding.py`: validates STM32U585 pinout/scaling/fault binding and production adapter source
 - `../../tools/air56_unoq_hardware_acceptance.py`: physical Stage 0-4 acceptance validator
+- `../../tools/air56_unoq_hardware_release_gate.py`: final release-ready aggregator for binding, hardware acceptance, deploy smoke, and coverage evidence
 - `../../tools/run_air56_unoq_deploy_smoke.py`: one-command repo-side deploy smoke runner
 - `../../docs/air56_unoq_bringup.md`: staged hardware bring-up protocol
 - `hardware_logs_template/`: fail-safe Stage 0-4 log templates for real bring-up evidence
@@ -111,6 +112,19 @@ python tools/air56_unoq_build_hardware_report.py \
 
 python tools/air56_unoq_hardware_acceptance.py \
   --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json
+
+python tools/run_air56_unoq_deploy_smoke.py \
+  --out-json .tmp_pytest/air56_unoq_deploy_smoke.json
+
+python tools/check_air56_unoq_coverage_gate.py \
+  --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json
+
+python tools/air56_unoq_hardware_release_gate.py \
+  --binding-manifest .tmp_pytest/air56_unoq_hardware_binding.json \
+  --hardware-report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json \
+  --deploy-smoke-json .tmp_pytest/air56_unoq_deploy_smoke.json \
+  --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json \
+  --out-json .tmp_pytest/air56_unoq_hardware_release_gate.json
 ```
 
 The checked-in `hardware_logs_template/` files intentionally do not pass. Replace them with real board logs before using the generated report as completion evidence.
@@ -118,7 +132,7 @@ The checked-in `hardware_logs_template/` files intentionally do not pass. Replac
 Current gate:
 
 - total AIR56 deploy subset: `>=75%`
-- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware binding validator, hardware report builder, hardware acceptance validator: `>=95%`
+- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware binding validator, hardware report builder, hardware acceptance validator, hardware release gate: `>=95%`
 - Linux bridge helper/runtime module floor: `>=75%`
 
 Production port target:

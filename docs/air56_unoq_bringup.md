@@ -175,7 +175,24 @@ python tools/air56_unoq_hardware_acceptance.py \
   --out-json .tmp_pytest/air56_unoq_hardware_acceptance_summary.json
 ```
 
-`hardware_ready=true` is required before the root plan can call AIR56 UNO Q board deployment `100%` complete.
+Run the final release gate after deploy smoke and coverage evidence exist:
+
+```bash
+python tools/run_air56_unoq_deploy_smoke.py \
+  --out-json .tmp_pytest/air56_unoq_deploy_smoke.json
+
+python tools/check_air56_unoq_coverage_gate.py \
+  --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json
+
+python tools/air56_unoq_hardware_release_gate.py \
+  --binding-manifest <filled hardware binding manifest> \
+  --hardware-report .tmp_pytest/air56_unoq_hardware_acceptance_report.json \
+  --deploy-smoke-json .tmp_pytest/air56_unoq_deploy_smoke.json \
+  --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json \
+  --out-json .tmp_pytest/air56_unoq_hardware_release_gate.json
+```
+
+`hardware_ready=true` and `release_ready=true` are required before the root plan can call AIR56 UNO Q board deployment `100%` complete.
 
 Required log semantics:
 
