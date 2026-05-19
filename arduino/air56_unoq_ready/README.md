@@ -35,10 +35,12 @@ The firmware no longer contains fake production sensor readings inside `air56_un
 - `../../tools/air56_unoq_stage0_loopback.py`: protocol self-test for Stage 0
 - `../../tools/air56_unoq_analyze_stage4_ab.py`: analyzes physical Stage 4 FOC vs MIC/AI A/B CSV logs
 - `../../tools/air56_unoq_build_hardware_report.py`: builds the physical Stage 0-4 report from board logs
+- `../../tools/air56_unoq_validate_hw_binding.py`: validates STM32U585 pinout/scaling/fault binding and production adapter source
 - `../../tools/air56_unoq_hardware_acceptance.py`: physical Stage 0-4 acceptance validator
 - `../../tools/run_air56_unoq_deploy_smoke.py`: one-command repo-side deploy smoke runner
 - `../../docs/air56_unoq_bringup.md`: staged hardware bring-up protocol
 - `hardware_logs_template/`: fail-safe Stage 0-4 log templates for real bring-up evidence
+- `hardware_binding.template.json`: fail-safe STM32U585 hardware binding manifest template
 - `hardware_acceptance_report.template.json`: fill from real board logs before claiming hardware-ready
 
 ## STM32U585 Firmware Build
@@ -59,6 +61,19 @@ python tools/check_air56_unoq_firmware_static.py --mode production-port
 The `production-port` smoke does not prove the real inverter HAL. It proves the
 firmware source links without `AIR56_UNOQ_USE_MOCK_HW` when a board-side
 implementation of the `air56_foc_*` contract is supplied.
+
+Validate the real board binding manifest and adapter source before Stage 1:
+
+```bash
+cp arduino/air56_unoq_ready/hardware_binding.template.json \
+  .tmp_pytest/air56_unoq_hardware_binding.json
+
+python tools/air56_unoq_validate_hw_binding.py \
+  --manifest .tmp_pytest/air56_unoq_hardware_binding.json \
+  --out-json .tmp_pytest/air56_unoq_hardware_binding_summary.json
+```
+
+The checked-in `hardware_binding.template.json` intentionally fails. A real pass requires board ID/revision, STM32U585 build target, UART pins, current/Vdc/speed/P_in scaling, fault lines, safe-disable evidence, and production adapter source that implements every `air56_foc_*` symbol without mock/stub code.
 
 Run the full repo-side deploy smoke:
 
@@ -103,7 +118,7 @@ The checked-in `hardware_logs_template/` files intentionally do not pass. Replac
 Current gate:
 
 - total AIR56 deploy subset: `>=75%`
-- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware report builder, hardware acceptance validator: `>=95%`
+- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware binding validator, hardware report builder, hardware acceptance validator: `>=95%`
 - Linux bridge helper/runtime module floor: `>=75%`
 
 Production port target:

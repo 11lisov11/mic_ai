@@ -1,0 +1,62 @@
+{
+  "schema": "mic_theory.air56_unoq.hw_binding.v1",
+  "notes": "Template only. Replace every TODO and point adapter.source_files to the real STM32U585 FOC/inverter adapter source before claiming hardware binding ready.",
+  "board_id": "TODO",
+  "board_revision": "TODO",
+  "stm32": {
+    "mcu": "STM32U585",
+    "board_definition": "TODO",
+    "build_target": "air56_unoq_stm32u585_port"
+  },
+  "adapter": {
+    "mock_adapter_enabled": true,
+    "production_build_without_mock": false,
+    "source_files": [
+      "arduino/air56_unoq_ready/firmware/air56_unoq_example/air56_unoq_hw_port_template.cpp.example"
+    ]
+  },
+  "serial": {
+    "uart_instance": "TODO",
+    "tx_pin": "TODO",
+    "rx_pin": "TODO",
+    "baud": 921600,
+    "crc_enabled": true
+  },
+  "control_loop": {
+    "telemetry_period_ms": 10,
+    "command_timeout_ms": 100
+  },
+  "scaling": {
+    "current": {
+      "amp_per_adc_count": 0,
+      "offset_calibrated": false
+    },
+    "vdc": {
+      "volt_per_adc_count": 0
+    },
+    "speed": {
+      "source": "TODO",
+      "units": "rad_s"
+    },
+    "p_in": {
+      "validated": false
+    }
+  },
+  "faults": {
+    "inverter_fault_pin": "TODO",
+    "inverter_enable_pin": "TODO",
+    "fault_bits_mapped": false,
+    "safe_disable_verified": false
+  },
+  "symbol_map": {
+    "air56_foc_get_omega_meas_rad_s": "TODO",
+    "air56_foc_get_omega_ref_rad_s": "TODO",
+    "air56_foc_get_id_amp": "TODO",
+    "air56_foc_get_iq_amp": "TODO",
+    "air56_foc_get_vdc_volt": "TODO",
+    "air56_foc_get_irms_amp": "TODO",
+    "air56_foc_get_pin_watt": "TODO",
+    "air56_foc_get_status_bits": "TODO",
+    "air56_foc_set_id_ref_amp": "TODO"
+  }
+}

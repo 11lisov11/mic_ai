@@ -45,6 +45,11 @@ Checks:
 - Implement all `air56_foc_*` functions from `air56_unoq_hw_port.h`.
 - Start from `air56_unoq_hw_port_template.cpp.example` and replace each
   `#error` block with the real FOC/inverter call.
+- Fill `arduino/air56_unoq_ready/hardware_binding.template.json` with the
+  real board binding details and point `adapter.source_files` to the real
+  adapter source.
+- Validate the manifest and adapter source:
+  `python tools/air56_unoq_validate_hw_binding.py --manifest <filled hardware binding manifest>`.
 - Run FOC with AI disabled and nominal `id_ref`.
 - Validate current offsets, current sign, speed sign, `Vdc`, `P_in`, and fault bits.
 - Confirm `air56_foc_set_id_ref_amp()` changes the FOC flux reference only through safe limits.
@@ -53,6 +58,7 @@ Pass criteria:
 
 - No fake telemetry remains in the motor-connected build.
 - The host production-port smoke links without `AIR56_UNOQ_USE_MOCK_HW`; the final board build still must link against the real STM32U585 FOC/inverter project.
+- `hardware_binding_ready=true` from `air56_unoq_validate_hw_binding.py`.
 - Speed and current scaling match independent instruments within the configured tolerance.
 - Fault bits trip on known-safe injected fault conditions.
 
