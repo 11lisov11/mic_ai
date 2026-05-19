@@ -23,7 +23,7 @@ Hardware-productization is now tracked separately:
 - Split architecture is fixed: `STM32U585` owns realtime FOC/safety/fallback; `QRB2210/Linux` owns AI `id_ref` decisions.
 - Repository-ready as of this plan: firmware adapter contract, mock-only compile target, env-based Linux service, bridge startup checks, bridge fallback command, staged bring-up protocol.
 - Additional repo-side hardening: Stage 0 protocol loopback self-test, deploy-smoke runner, and STM32U585 adapter template.
-- Hardware acceptance is now machine-checkable with `tools/air56_unoq_build_hardware_report.py` plus `tools/air56_unoq_hardware_acceptance.py`; it still requires real Stage 0-4 board logs.
+- Hardware acceptance is now machine-checkable with `tools/air56_unoq_analyze_stage4_ab.py`, `tools/air56_unoq_build_hardware_report.py`, and `tools/air56_unoq_hardware_acceptance.py`; it still requires real Stage 0-4 board logs.
 - Not yet physically complete: the real STM32U585 FOC/inverter layer must implement `air56_foc_*` symbols and pass board bring-up.
 
 Historical strict-verified `2-motor` release kept for provenance:
@@ -109,6 +109,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add a small regression check that fails if the root plan reports `100%` while hardware completion items are still open.
 - [x] Add a machine-checkable AIR56 UNO Q hardware Stage 0-4 acceptance report validator.
 - [x] Add a fail-safe Stage 0-4 log-to-report builder so real board logs become reproducible acceptance evidence instead of hand-edited JSON.
+- [x] Add a fail-safe Stage 4 physical A/B analyzer so FOC baseline vs MIC/AI CSV logs are checked for power, tracking, guard, current/thermal, and fallback regressions.
 
 ### C. STM32U585 Production Hardware Binding
 
@@ -153,6 +154,7 @@ This checklist tracks what is still not complete after the research release. It 
   - `python tools/run_air56_unoq_deploy_smoke.py`
   - `python tools/check_air56_unoq_coverage_gate.py`
   - `python tools/check_air56_unoq_firmware_static.py --mode production-port`
+  - `python tools/air56_unoq_analyze_stage4_ab.py --foc-no-load-csv <foc_no_load.csv> --foc-load-step-csv <foc_load_step.csv> --ai-no-load-csv <ai_no_load.csv> --ai-load-step-csv <ai_load_step.csv> --max-current-rms-a <limit> --out-json <stage4_ab_summary.json>`
   - `python tools/air56_unoq_build_hardware_report.py --board-id <board> --operator <name> --stage0-json <stage0.json> --stage1-json <stage1.json> --stage2-json <stage2.json> --stage2-csv <stage2.csv> --stage3-json <stage3.json> --stage4-json <stage4.json> --out-json <filled real hardware report>`
   - `python tools/air56_unoq_hardware_acceptance.py --report <filled real hardware report>`
   - production firmware build without mock hardware
@@ -173,10 +175,12 @@ Commands run during this audit:
   - after hardware acceptance validator: `passed = true`, total AIR56 deploy subset coverage `87.08%`, `tools/air56_unoq_hardware_acceptance.py = 98.57%`
   - after production-port link smoke: `passed = true`, total AIR56 deploy subset coverage `87.12%`, `tools/check_air56_unoq_firmware_static.py = 96.67%`
   - after hardware log builder: `passed = true`, total AIR56 deploy subset coverage `89.48%`, `tools/air56_unoq_build_hardware_report.py = 100.00%`
+  - after Stage 4 A/B analyzer: `passed = true`, total AIR56 deploy subset coverage `90.70%`, `tools/air56_unoq_analyze_stage4_ab.py = 100.00%`
 - `python -m pytest -q -m "not slow and not hardware"`
   - initial audit result: `257 passed, 14 deselected`
   - after repo-side hardening: `270 passed, 14 deselected`
   - after hardware log builder: `290 passed, 18 deselected`
+  - after Stage 4 A/B analyzer: `297 passed, 18 deselected`
 - `python -m pytest -q tests/test_air56_unoq_bridge.py tests/test_report_plan_completion_smoke.py`
   - result: `40 passed`
 - `python -m pytest -q tests/test_air56_unoq_deploy_package.py tests/test_air56_unoq_bridge.py tests/test_report_plan_completion_smoke.py`
@@ -184,7 +188,7 @@ Commands run during this audit:
 
 Not run during this audit:
 
-- full slow `python -m pytest -q`
+- slow-only `python -m pytest -q -m "slow and not hardware"`
 - PlatformIO production build against real board FOC/inverter sources
 - hardware-marked physical tests
 - physical AIR56 Stage 0-4 bring-up
@@ -265,6 +269,7 @@ Full repository regression must remain green before final push:
 - current `2026-05-19` result after hardware acceptance validator: `300 passed`
 - current `2026-05-19` result after production-port link smoke: `301 passed`
 - current `2026-05-19` result after hardware log builder: `308 passed`
+- current `2026-05-19` result after Stage 4 A/B analyzer: `315 passed`
 
 Weak-hardware fast profile:
 
@@ -272,6 +277,7 @@ Weak-hardware fast profile:
 - `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
 - current `2026-05-19` result after train3 refresh implementation: `274 passed, 18 deselected`
 - current `2026-05-19` result after hardware log builder: `290 passed, 18 deselected`
+- current `2026-05-19` result after Stage 4 A/B analyzer: `297 passed, 18 deselected`
 
 Slow research profile:
 
@@ -280,8 +286,9 @@ Slow research profile:
 
 AIR56 UNO Q targeted deploy regression:
 
-- `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py tests/test_air56_unoq_hardware_acceptance.py tests/test_air56_unoq_build_hardware_report.py tests/test_air56_unoq_stage0_loopback.py`
+- `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py tests/test_air56_unoq_hardware_acceptance.py tests/test_air56_unoq_build_hardware_report.py tests/test_air56_unoq_analyze_stage4_ab.py tests/test_air56_unoq_stage0_loopback.py`
 - current `2026-05-19` deploy smoke targeted result after hardware log builder: `94 passed`
+- current `2026-05-19` deploy smoke targeted result after Stage 4 A/B analyzer: `101 passed`
 
 AIR56 UNO Q combined repo-side deploy smoke:
 
@@ -295,6 +302,7 @@ AIR56 UNO Q host firmware static checks:
 
 AIR56 UNO Q physical hardware acceptance validator:
 
+- `python tools/air56_unoq_analyze_stage4_ab.py --foc-no-load-csv <foc_no_load.csv> --foc-load-step-csv <foc_load_step.csv> --ai-no-load-csv <ai_no_load.csv> --ai-load-step-csv <ai_load_step.csv> --max-current-rms-a <limit> --out-json arduino/air56_unoq_ready/hardware_logs_template/stage4_ab_summary.real.json`
 - `python tools/air56_unoq_build_hardware_report.py --board-id <board> --operator <name> --stage0-json <stage0.json> --stage1-json <stage1.json> --stage2-json <stage2.json> --stage2-csv <stage2.csv> --stage3-json <stage3.json> --stage4-json <stage4.json> --out-json arduino/air56_unoq_ready/hardware_acceptance_report.filled.json`
 - `python tools/air56_unoq_hardware_acceptance.py --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json`
 - required result before hardware-ready claim: `hardware_ready = true`
@@ -304,7 +312,7 @@ AIR56 UNO Q production-critical coverage gate:
 - `python tools/check_air56_unoq_coverage_gate.py`
 - current thresholds:
   - total AIR56 deploy subset: `>=75%`
-  - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, hardware report builder, hardware acceptance validator: `>=95%`
+  - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware report builder, hardware acceptance validator: `>=95%`
   - Linux bridge helper/runtime module floor: `>=75%`
 
 ## Guardrails

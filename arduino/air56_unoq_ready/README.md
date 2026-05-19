@@ -33,6 +33,7 @@ The firmware no longer contains fake production sensor readings inside `air56_un
   - `air56_unoq_bridge.env.example`: `/etc/default` template
 - `../../tools/air56_unoq_bridge.py`: QRB2210 Linux AI bridge
 - `../../tools/air56_unoq_stage0_loopback.py`: protocol self-test for Stage 0
+- `../../tools/air56_unoq_analyze_stage4_ab.py`: analyzes physical Stage 4 FOC vs MIC/AI A/B CSV logs
 - `../../tools/air56_unoq_build_hardware_report.py`: builds the physical Stage 0-4 report from board logs
 - `../../tools/air56_unoq_hardware_acceptance.py`: physical Stage 0-4 acceptance validator
 - `../../tools/run_air56_unoq_deploy_smoke.py`: one-command repo-side deploy smoke runner
@@ -74,6 +75,14 @@ python tools/check_air56_unoq_coverage_gate.py
 Validate real hardware acceptance after Stage 0-4 runs:
 
 ```bash
+python tools/air56_unoq_analyze_stage4_ab.py \
+  --foc-no-load-csv <real_foc_no_load.csv> \
+  --foc-load-step-csv <real_foc_load_step.csv> \
+  --ai-no-load-csv <real_ai_no_load.csv> \
+  --ai-load-step-csv <real_ai_load_step.csv> \
+  --max-current-rms-a <air56_safe_current_limit> \
+  --out-json .tmp_pytest/stage4_ab_summary.json
+
 python tools/air56_unoq_build_hardware_report.py \
   --board-id unoq-air56-bench-001 \
   --operator bench \
@@ -82,7 +91,7 @@ python tools/air56_unoq_build_hardware_report.py \
   --stage2-json arduino/air56_unoq_ready/hardware_logs_template/stage2_telemetry.json \
   --stage2-csv arduino/air56_unoq_ready/hardware_logs_template/stage2_telemetry.csv \
   --stage3-json arduino/air56_unoq_ready/hardware_logs_template/stage3_ai_tight.json \
-  --stage4-json arduino/air56_unoq_ready/hardware_logs_template/stage4_ab_summary.json \
+  --stage4-json .tmp_pytest/stage4_ab_summary.json \
   --out-json arduino/air56_unoq_ready/hardware_acceptance_report.filled.json
 
 python tools/air56_unoq_hardware_acceptance.py \
@@ -94,7 +103,7 @@ The checked-in `hardware_logs_template/` files intentionally do not pass. Replac
 Current gate:
 
 - total AIR56 deploy subset: `>=75%`
-- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, hardware report builder, hardware acceptance validator: `>=95%`
+- protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware report builder, hardware acceptance validator: `>=95%`
 - Linux bridge helper/runtime module floor: `>=75%`
 
 Production port target:

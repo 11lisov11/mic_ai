@@ -1,0 +1,3 @@
+t_ms,omega_meas,omega_ref,p_in,i_rms,guard_fail,fallback_event,thermal_fault
+0,138.0,144.5,140.0,9.5,1,1,1
+10,137.0,144.5,140.0,9.5,1,1,1
