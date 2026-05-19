@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 import sys
@@ -152,6 +153,50 @@ def _collect_checkpoint_paths(pattern: str) -> List[Path]:
     return sorted(Path().glob(text))
 
 
+def _resolve_existing_path_for_hash(path_text: str) -> Path | None:
+    text = str(path_text).strip()
+    if not text:
+        return None
+    path = Path(text).expanduser()
+    candidates = [path]
+    if not path.is_absolute():
+        candidates.append(ROOT / path)
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except Exception:
+            resolved = candidate
+        if resolved.exists() and resolved.is_file():
+            return resolved
+    return None
+
+
+def _file_sha256(path: Path | None) -> str:
+    if path is None or not path.exists() or not path.is_file():
+        return ""
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _checkpoint_fingerprints(checkpoints: List[Path]) -> List[Dict[str, object]]:
+    rows: List[Dict[str, object]] = []
+    for ckpt in checkpoints:
+        path = ckpt.resolve()
+        rows.append(
+            {
+                "path": str(path),
+                "name": path.name,
+                "exists": bool(path.exists()),
+                "size": int(path.stat().st_size) if path.exists() and path.is_file() else 0,
+                "sha256": _file_sha256(path),
+            }
+        )
+    return rows
+
+
 def _mean_score(rows: List[Dict[str, object]]) -> float:
     if not rows:
         return 0.0
@@ -254,6 +299,10 @@ def _scan_state_signature(
     motor: str,
     config_path: str,
     checkpoint_glob: str,
+    config_sha256: str = "",
+    candidate_json_sha256: str = "",
+    acceptance_envelopes_sha256: str = "",
+    checkpoint_fingerprints: List[Dict[str, object]] | None = None,
     ai_control_mode: str,
     candidate_json: str,
     candidate_index: int,
@@ -264,17 +313,22 @@ def _scan_state_signature(
     use_envelope_acceptance: bool,
 ) -> Dict[str, object]:
     return {
+        "signature_version": 2,
         "motor": str(motor),
         "config_path": str(config_path),
+        "config_sha256": str(config_sha256),
         "checkpoint_glob": str(checkpoint_glob),
+        "checkpoint_fingerprints": [dict(row) for row in (checkpoint_fingerprints or [])],
         "ai_control_mode": str(ai_control_mode),
         "candidate_json": str(candidate_json),
+        "candidate_json_sha256": str(candidate_json_sha256),
         "candidate_index": int(candidate_index),
         "candidate_tag": str(candidate_tag),
         "candidate_tags": list(candidate_tags or []),
         "seeds": list(seeds),
         "scenarios": list(scenarios),
         "use_envelope_acceptance": bool(use_envelope_acceptance),
+        "acceptance_envelopes_sha256": str(acceptance_envelopes_sha256),
     }
 
 
@@ -377,6 +431,10 @@ def scan_checkpoints(
         acceptance_envelopes_path = Path(DEFAULT_ACCEPTANCE_ENVELOPES).expanduser().resolve()
     else:
         acceptance_envelopes_path = Path(acceptance_envelopes).expanduser().resolve()
+    config_path_text = "" if config_path is None else str(config_path)
+    config_hash_path = _resolve_existing_path_for_hash(config_path_text)
+    candidate_hash_path = _resolve_existing_path_for_hash(str(candidate_json))
+    checkpoint_hashes = _checkpoint_fingerprints(checkpoints)
 
     env_cfg, _, _ = _load_env_and_agent(
         str(config_path or MOTOR_REGISTRY[str(motor)].config_path),
@@ -411,16 +469,20 @@ def scan_checkpoints(
 
     signature = _scan_state_signature(
         motor=str(motor),
-        config_path="" if config_path is None else str(config_path),
+        config_path=config_path_text,
+        config_sha256=_file_sha256(config_hash_path),
         checkpoint_glob=str(checkpoint_glob),
+        checkpoint_fingerprints=checkpoint_hashes,
         ai_control_mode=ai_mode,
         candidate_json=str(candidate_json),
+        candidate_json_sha256=_file_sha256(candidate_hash_path),
         candidate_index=int(candidate_index),
         candidate_tag=str(candidate_tag),
         candidate_tags=candidate_tags_list,
         seeds=seeds_list,
         scenarios=scenarios_list,
         use_envelope_acceptance=bool(use_envelope_acceptance),
+        acceptance_envelopes_sha256=_file_sha256(acceptance_envelopes_path),
     )
 
     evaluated_rows: List[Dict[str, object]] = []
@@ -645,8 +707,10 @@ def scan_checkpoints(
     summary = {
         "motor": str(motor),
         "checkpoint_glob": str(checkpoint_glob),
+        "checkpoint_fingerprints": checkpoint_hashes,
         "ai_control_mode": ai_mode,
         "candidate_json": str(candidate_json),
+        "candidate_json_sha256": _file_sha256(candidate_hash_path),
         "candidate_index": int(candidate_index),
         "candidate_tag": str(candidate_tag),
         "candidate_tags": list(candidate_tags_list),
@@ -672,6 +736,7 @@ def scan_checkpoints(
         },
         "use_envelope_acceptance": bool(use_envelope_acceptance),
         "acceptance_envelopes": str(acceptance_envelopes_path),
+        "acceptance_envelopes_sha256": _file_sha256(acceptance_envelopes_path),
         "selector_mode": "canonical_envelope_then_aggregate" if bool(use_envelope_acceptance) else "aggregate_only",
         "score_mean": _mean_score(evaluated_rows),
         "best": evaluated_rows[0] if evaluated_rows else None,

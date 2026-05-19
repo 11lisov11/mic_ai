@@ -1,7 +1,0 @@
-motor,seed,controller,avg_power_saving_pct,avg_eta_gain_pct,err_failures,start_stop_power_saving_pct,worst_current_peak_ratio,worst_current_mean_ratio,avg_controller_speed_err,checkpoint,supervisor_source,run_tag,perturb_level
-air56,101,PI,0.0,0.0,0.0,0.0,1.0,1.0,0.0574421081542968,,baseline,baseline,0.0
-air56,101,FOC,0.0,0.0,0.0,0.0,1.0,1.0,0.0574421081542968,,,baseline,0.0
-air56,101,MIC,-63.30048123240297,-33.80661526572286,1.0,0.0,3.733524021658068,1.4740484100653015,0.6316072235107422,,rule,baseline,0.0
-air56,101,PI,0.0,0.0,0.0,0.0,1.0,1.0,0.0581897048950195,,baseline,perturb_0p2,0.2
-air56,101,FOC,0.0,0.0,0.0,0.0,1.0,1.0,0.0581897048950195,,,perturb_0p2,0.2
-air56,101,MIC,-19.924090915615245,-9.834180898486787,1.0,0.0,2.448767389066929,1.1320864146605718,0.3230199203491211,,rule,perturb_0p2,0.2

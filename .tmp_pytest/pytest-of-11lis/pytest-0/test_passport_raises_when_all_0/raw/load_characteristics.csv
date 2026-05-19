@@ -1,3 +1,0 @@
-policy,load_factor,p2_kw,i_rms,n2_rpm,eta_pct,cos_phi
-FOC,1.0,0.0,,0.0,0.0,
-MIC_AI,1.0,0.0,0.0,0.0,0.0,0.0

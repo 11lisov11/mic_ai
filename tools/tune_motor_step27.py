@@ -84,7 +84,12 @@ def _normalize_candidate_value(key: str, value: object) -> object:
 def _load_custom_candidates(path: Path, *, base: Dict[str, object]) -> List[Dict[str, object]]:
     payload = json.loads(path.read_text(encoding="utf-8-sig"))
     if isinstance(payload, dict):
-        raw_candidates = payload.get("candidates", [])
+        if isinstance(payload.get("candidates"), list):
+            raw_candidates = payload.get("candidates", [])
+        elif "tag" in payload:
+            raw_candidates = [payload]
+        else:
+            raw_candidates = []
     elif isinstance(payload, list):
         raw_candidates = payload
     else:

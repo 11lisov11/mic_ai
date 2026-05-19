@@ -4,6 +4,9 @@ import argparse
 import csv
 import hashlib
 import json
+import math
+import re
+import shutil
 import sys
 import time
 from datetime import datetime, timezone
@@ -33,6 +36,39 @@ MOTOR_REGISTRY: Dict[str, MotorSpec] = {
     "al31": MotorSpec("al31", "config/env_research_al31_4_06kw.py"),
     "ao2": MotorSpec("ao2", "config/env_research_ao2_32_4_3kw.py"),
 }
+
+CANONICAL_STEP27_SELECTION: Dict[str, Dict[str, str]] = {
+    "air56": {
+        "ai_control_mode": "ai_id_ref_hybrid",
+        "candidate_json": "outputs/tmp_air56_rand007_soft_track_single_20260326.json",
+        "candidate_tag": "rand007_soft_track",
+        "checkpoint_path": (
+            "outputs/air56_ep002_loadheavy_wspeed2_20260408h/results_run/"
+            "20260408_203735_tmp_air56_ep022_mix04_train_20260322_ai_id_ref/eval/actor_ep001.pth"
+        ),
+    },
+    "al31": {
+        "ai_control_mode": "ai_id_ref",
+        "candidate_json": "outputs/tmp_al31_mid04_ultrafine2_20260328.json",
+        "candidate_tag": "mid04_speed_dn_04",
+        "checkpoint_path": (
+            "outputs/al31_anchor_ep008_medium4_20260328a/results_run/"
+            "20260328_110425_tmp_al31_mid04_train_20260322_ai_id_ref/eval/actor_ep_init.pth"
+        ),
+    },
+    "ao2": {
+        "ai_control_mode": "ai_id_ref",
+        "candidate_json": "config/step27_ao2_current_repro_candidate_20260519.json",
+        "candidate_tag": "ao2_current_repro_rand017",
+        "checkpoint_path": "outputs/ao2_tuned_rampfocus_pilot_20260412m/shared/checkpoints/env_backlog_ao2_nameplate_foc_tuned/best_actor.pth",
+    },
+}
+
+
+def _slug(text: str) -> str:
+    value = re.sub(r"[^a-zA-Z0-9]+", "_", str(text).strip().lower())
+    value = value.strip("_")
+    return value or "run"
 
 
 def _parse_csv_list(text: str) -> List[str]:
@@ -168,6 +204,123 @@ def _checkpoint_paths_exist(row: Dict[str, object]) -> bool:
     return True
 
 
+def _resolve_step27_selection_spec(motor_key: str, args: argparse.Namespace) -> Dict[str, str]:
+    profile = str(getattr(args, "step27_profile", "canonical")).strip().lower()
+    if profile != "canonical":
+        raise ValueError(f"Unsupported Step27 selection profile: {profile}")
+    key = str(motor_key).strip().lower()
+    if key not in CANONICAL_STEP27_SELECTION:
+        raise KeyError(f"No canonical Step27 selection spec for motor={motor_key}")
+    spec = dict(CANONICAL_STEP27_SELECTION[key])
+    candidate_path = _resolve_path(spec["candidate_json"])
+    if not candidate_path.exists():
+        raise FileNotFoundError(f"Step27 candidate json for {key} does not exist: {candidate_path}")
+    spec["candidate_json"] = str(candidate_path)
+    checkpoint_text = str(spec.get("checkpoint_path", "")).strip()
+    if checkpoint_text:
+        checkpoint_path = _resolve_path(checkpoint_text)
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(f"Step27 canonical checkpoint for {key} does not exist: {checkpoint_path}")
+        spec["checkpoint_path"] = str(checkpoint_path)
+    return spec
+
+
+def _run_step27_selection(
+    *,
+    row: Dict[str, object],
+    motor: MotorSpec,
+    args: argparse.Namespace,
+    run_root: Path,
+) -> Dict[str, object]:
+    if not bool(getattr(args, "step27_select", False)):
+        return row
+
+    from tools.scan_step27_checkpoints import scan_checkpoints
+
+    run_dir = _resolve_path(str(row.get("run_dir", "")))
+    eval_dir = run_dir / "eval"
+    if not eval_dir.exists():
+        raise FileNotFoundError(f"Step27 selection eval dir does not exist: {eval_dir}")
+
+    spec = _resolve_step27_selection_spec(motor.key, args)
+    included_canonical_checkpoint = ""
+    canonical_eval_checkpoint = eval_dir / "actor_ep_canonical_baseline.pth"
+    if bool(getattr(args, "step27_include_canonical_baseline", True)):
+        checkpoint_text = str(spec.get("checkpoint_path", "")).strip()
+        if not checkpoint_text:
+            raise ValueError(f"Step27 canonical baseline is enabled, but no checkpoint_path is configured for {motor.key}")
+        source_checkpoint = _resolve_path(checkpoint_text)
+        included_canonical_checkpoint = str(source_checkpoint)
+        if source_checkpoint.resolve() != canonical_eval_checkpoint.resolve():
+            shutil.copyfile(source_checkpoint, canonical_eval_checkpoint)
+    elif canonical_eval_checkpoint.exists():
+        canonical_eval_checkpoint.unlink()
+
+    seed_text = str(getattr(args, "step27_seeds", "") or "").strip()
+    selection_seeds = _parse_int_csv(seed_text) if seed_text else _parse_int_csv(str(args.seeds))
+    selection_scenarios = _parse_csv_list(str(getattr(args, "step27_scenarios", "") or args.eval_scenarios))
+    out_dir = (
+        run_root
+        / "step27_selection"
+        / _slug(f"{row.get('stage', '')}_seed{int(row.get('seed', 0))}_{motor.key}")
+    )
+    summary = scan_checkpoints(
+        motor=motor.key,
+        config_path=motor.config_path,
+        checkpoint_glob=str(eval_dir),
+        ai_control_mode=str(spec["ai_control_mode"]),
+        candidate_json=str(spec["candidate_json"]),
+        candidate_tag=str(spec["candidate_tag"]),
+        seeds=selection_seeds,
+        scenarios=selection_scenarios,
+        out_dir=out_dir,
+        use_envelope_acceptance=bool(getattr(args, "step27_use_envelope_acceptance", True)),
+        acceptance_envelopes=Path(str(getattr(args, "step27_acceptance_envelopes", "config/acceptance_envelopes_3motors.json"))),
+        min_avg_power_saving_pct=float(getattr(args, "step27_min_avg_power_saving_pct", 0.0)),
+        min_avg_eta_gain_pct=float(getattr(args, "step27_min_avg_eta_gain_pct", 0.0)),
+        max_avg_eta_gain_pct=float(getattr(args, "step27_max_avg_eta_gain_pct", 25.0)),
+        max_err_failures=float(getattr(args, "step27_max_err_failures", 2.0)),
+        min_start_stop_saving_pct=float(getattr(args, "step27_min_start_stop_saving_pct", -0.5)),
+        max_start_stop_saving_pct=float(getattr(args, "step27_max_start_stop_saving_pct", 20.0)),
+        max_worst_current_peak_ratio=float(getattr(args, "step27_max_worst_current_peak_ratio", 1.30)),
+        max_worst_current_mean_ratio=float(getattr(args, "step27_max_worst_current_mean_ratio", 1.20)),
+        top_k=int(getattr(args, "step27_top_k", 10)),
+        resume=bool(getattr(args, "step27_resume", False)),
+    )
+    best = dict(summary.get("best") or {})
+    selected_checkpoint = _resolve_path(str(best.get("checkpoint", "")))
+    if not selected_checkpoint.exists():
+        raise FileNotFoundError(f"Step27 selected checkpoint does not exist: {selected_checkpoint}")
+
+    promoted = (run_dir / "best_actor_step27_train3.pth").resolve()
+    shutil.copyfile(selected_checkpoint, promoted)
+
+    selected = dict(row)
+    selected["best_checkpoint_train_internal"] = str(row.get("best_checkpoint", ""))
+    selected["best_checkpoint"] = str(promoted)
+    selected["step27_select_enabled"] = True
+    selected["step27_profile"] = str(getattr(args, "step27_profile", "canonical"))
+    selected["step27_ai_control_mode"] = str(spec["ai_control_mode"])
+    selected["step27_candidate_json"] = str(spec["candidate_json"])
+    selected["step27_candidate_tag"] = str(spec["candidate_tag"])
+    selected["step27_scan_summary_json"] = str((out_dir / f"{motor.key}_checkpoint_scan_summary.json").resolve())
+    selected["step27_scan_rows_json"] = str((out_dir / f"{motor.key}_checkpoint_scan.json").resolve())
+    selected["step27_selected_checkpoint"] = str(selected_checkpoint)
+    selected["step27_promoted_checkpoint"] = str(promoted)
+    selected["step27_included_canonical_checkpoint"] = str(included_canonical_checkpoint)
+    selected["step27_selected_is_canonical_baseline"] = (
+        bool(included_canonical_checkpoint) and selected_checkpoint.resolve() == canonical_eval_checkpoint.resolve()
+    )
+    selected["step27_acceptance_pass"] = bool(best.get("acceptance_pass", False))
+    selected["step27_envelope_all_rows_pass"] = bool(best.get("envelope_all_rows_pass", False))
+    selected["step27_avg_power_saving_pct"] = _safe_float(best.get("avg_power_saving_pct"))
+    selected["step27_avg_eta_gain_pct"] = _safe_float(best.get("avg_eta_gain_pct"))
+    selected["step27_err_failures"] = _safe_float(best.get("err_failures"))
+    selected["step27_worst_current_peak_ratio"] = _safe_float(best.get("worst_current_peak_ratio"))
+    selected["step27_worst_current_mean_ratio"] = _safe_float(best.get("worst_current_mean_ratio"))
+    return selected
+
+
 def _build_protocol_snapshot(
     *,
     args: argparse.Namespace,
@@ -199,6 +352,11 @@ def _build_protocol_snapshot(
         "control_mode": str(args.control_mode),
         "resume_manifest": "" if resume_manifest is None else str(Path(resume_manifest).resolve()),
         "eval_first": bool(args.eval_first),
+        "step27_select": bool(getattr(args, "step27_select", False)),
+        "step27_profile": str(getattr(args, "step27_profile", "canonical")),
+        "step27_include_canonical_baseline": bool(getattr(args, "step27_include_canonical_baseline", True)),
+        "step27_seeds": str(getattr(args, "step27_seeds", "")),
+        "step27_scenarios": str(getattr(args, "step27_scenarios", "")),
     }
     protocol_hash = hashlib.sha256(json.dumps(protocol, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
     payload = {
@@ -299,11 +457,16 @@ def _summarize_run(
         eta_degradation = bool(eta_delta > float(args.degradation_eta_delta))
 
     speed_ok = bool(final_speed <= float(args.accept_max_speed_error))
-    eta_ok = bool(final_eta >= float(args.accept_min_eta_energy))
+    eta_min_ok = bool(math.isfinite(final_eta) and final_eta >= float(args.accept_min_eta_energy))
+    eta_max_ok = bool(math.isfinite(final_eta) and final_eta <= float(args.accept_max_eta_energy))
+    eta_ok = bool(eta_min_ok and eta_max_ok)
     current_ok = bool(final_current <= float(args.accept_max_current_rms))
     p_in_ok = True if args.accept_max_p_in_pos is None else bool(final_p_in <= float(args.accept_max_p_in_pos))
     degradation_ok = bool(not speed_degradation and not eta_degradation)
-    acceptance_pass = bool(speed_ok and eta_ok and current_ok and p_in_ok and degradation_ok)
+    training_episode_acceptance_pass = bool(speed_ok and eta_ok and current_ok and p_in_ok and degradation_ok)
+    step27_enabled = bool(getattr(args, "step27_select", False))
+    step27_acceptance_pass = bool(row.get("step27_acceptance_pass", False))
+    acceptance_pass = bool(step27_acceptance_pass) if step27_enabled else training_episode_acceptance_pass
 
     actor_snapshots: List[Path] = []
     eval_dir = run_dir_path / "eval"
@@ -338,19 +501,31 @@ def _summarize_run(
         "eval_actor_snapshots": int(len(actor_snapshots)),
         "episodes_log": str(episodes_log_path),
         "run_dir": str(run_dir_path),
+        "step27_select_enabled": bool(row.get("step27_select_enabled", False)),
+        "step27_acceptance_pass": bool(row.get("step27_acceptance_pass", False)),
+        "step27_avg_power_saving_pct": row.get("step27_avg_power_saving_pct", ""),
+        "step27_avg_eta_gain_pct": row.get("step27_avg_eta_gain_pct", ""),
+        "step27_err_failures": row.get("step27_err_failures", ""),
     }
     acceptance_row: Dict[str, object] = {
         "motor": row.get("motor", ""),
         "seed": int(row.get("seed", 0)),
         "stage": row.get("stage", ""),
+        "acceptance_source": "step27" if step27_enabled else "training_episode",
         "speed_ok": speed_ok,
         "eta_ok": eta_ok,
+        "eta_min_ok": eta_min_ok,
+        "eta_max_ok": eta_max_ok,
         "current_ok": current_ok,
         "p_in_ok": p_in_ok,
         "degradation_ok": degradation_ok,
+        "training_episode_acceptance_pass": training_episode_acceptance_pass,
+        "step27_acceptance_pass": step27_acceptance_pass if step27_enabled else "",
+        "step27_envelope_all_rows_pass": row.get("step27_envelope_all_rows_pass", ""),
         "acceptance_pass": acceptance_pass,
         "accept_max_speed_error": float(args.accept_max_speed_error),
         "accept_min_eta_energy": float(args.accept_min_eta_energy),
+        "accept_max_eta_energy": float(args.accept_max_eta_energy),
         "accept_max_current_rms": float(args.accept_max_current_rms),
         "accept_max_p_in_pos": "" if args.accept_max_p_in_pos is None else float(args.accept_max_p_in_pos),
         "degradation_window": int(args.degradation_window),
@@ -363,10 +538,12 @@ def _summarize_run(
         "stage": row.get("stage", ""),
         "best_checkpoint": str(best_ckpt_path),
         "best_checkpoint_sha256": _file_sha256(best_ckpt_path),
+        "best_checkpoint_train_internal": str(row.get("best_checkpoint_train_internal", "")),
         "last_checkpoint": str(last_ckpt_path),
         "last_checkpoint_sha256": _file_sha256(last_ckpt_path),
         "episodes_log": str(episodes_log_path),
         "episodes_log_sha256": _file_sha256(episodes_log_path),
+        "step27_scan_summary_json": str(row.get("step27_scan_summary_json", "")),
     }
     return summary_row, acceptance_row, snapshot_rows, registry_row
 
@@ -438,8 +615,28 @@ def _run_train(
     stage: str,
     init_checkpoint: str | None,
     kwargs: Dict[str, object],
+    run_root: Path,
 ) -> Dict[str, object]:
-    res = train_id_ref(env_config=motor.config_path, init_checkpoint=init_checkpoint, **kwargs)
+    run_slug = _slug(f"{stage}_seed{int(seed)}_{motor.key}")
+    run_kwargs = dict(kwargs)
+
+    # train_ai_id_ref writes best_actor.pth and episode logs under env-name paths.
+    # Keep every motor/seed/stage isolated so manifests remain reproducible.
+    output_base = run_kwargs.get("output_dir")
+    if output_base is None or not str(output_base).strip():
+        output_base_path = (run_root / "ai_outputs").resolve()
+    else:
+        output_base_path = Path(str(output_base)).expanduser().resolve()
+    results_base = run_kwargs.get("results_root")
+    if results_base is None or not str(results_base).strip():
+        results_base_path = (run_root / "results_run").resolve()
+    else:
+        results_base_path = Path(str(results_base)).expanduser().resolve()
+
+    run_kwargs["output_dir"] = str((output_base_path / run_slug).resolve())
+    run_kwargs["results_root"] = str((results_base_path / run_slug).resolve())
+
+    res = train_id_ref(env_config=motor.config_path, init_checkpoint=init_checkpoint, **run_kwargs)
     return {
         "motor": motor.key,
         "seed": int(seed),
@@ -477,7 +674,7 @@ def main() -> None:
     parser.add_argument("--joint-cycle-episodes", type=int, default=40)
     parser.add_argument("--control-mode", default="ai_id_ref", choices=["ai_id_ref", "ai_current"])
     parser.add_argument("--episodes", type=int, default=120)
-    parser.add_argument("--episode-steps", type=int, default=200)
+    parser.add_argument("--episode-steps", type=int, default=2400)
     parser.add_argument("--fast", action="store_true")
     parser.add_argument("--time-budget-min", type=float, default=None)
     parser.add_argument("--scenarios", default="speed_step,ramp,load_step,start_stop")
@@ -522,11 +719,46 @@ def main() -> None:
     parser.add_argument("--update-every-episodes", type=int, default=1)
     parser.add_argument("--accept-max-speed-error", type=float, default=30.0)
     parser.add_argument("--accept-min-eta-energy", type=float, default=0.0)
+    parser.add_argument("--accept-max-eta-energy", type=float, default=1.2)
     parser.add_argument("--accept-max-current-rms", type=float, default=10.0)
     parser.add_argument("--accept-max-p-in-pos", type=float, default=None)
     parser.add_argument("--degradation-window", type=int, default=5)
     parser.add_argument("--degradation-speed-delta", type=float, default=2.0)
     parser.add_argument("--degradation-eta-delta", type=float, default=0.05)
+    parser.add_argument("--step27-select", action="store_true", help="Select/promote the final checkpoint by Step27 scan.")
+    parser.add_argument("--step27-profile", default="canonical", choices=["canonical"])
+    parser.add_argument(
+        "--step27-seeds",
+        default="",
+        help="Comma-separated Step27 scan seeds. Empty means reuse --seeds.",
+    )
+    parser.add_argument("--step27-scenarios", default="speed_step,ramp,load_step,start_stop")
+    parser.add_argument("--step27-acceptance-envelopes", default="config/acceptance_envelopes_3motors.json")
+    parser.add_argument("--step27-use-envelope-acceptance", dest="step27_use_envelope_acceptance", action="store_true")
+    parser.add_argument("--step27-no-envelope-acceptance", dest="step27_use_envelope_acceptance", action="store_false")
+    parser.add_argument(
+        "--step27-include-canonical-baseline",
+        dest="step27_include_canonical_baseline",
+        action="store_true",
+        help="Include the already accepted canonical release checkpoint in Step27 selection.",
+    )
+    parser.add_argument(
+        "--step27-no-include-canonical-baseline",
+        dest="step27_include_canonical_baseline",
+        action="store_false",
+        help="Evaluate only checkpoints produced by this training run.",
+    )
+    parser.add_argument("--step27-min-avg-power-saving-pct", type=float, default=0.0)
+    parser.add_argument("--step27-min-avg-eta-gain-pct", type=float, default=0.0)
+    parser.add_argument("--step27-max-avg-eta-gain-pct", type=float, default=25.0)
+    parser.add_argument("--step27-max-err-failures", type=float, default=2.0)
+    parser.add_argument("--step27-min-start-stop-saving-pct", type=float, default=-0.5)
+    parser.add_argument("--step27-max-start-stop-saving-pct", type=float, default=20.0)
+    parser.add_argument("--step27-max-worst-current-peak-ratio", type=float, default=1.30)
+    parser.add_argument("--step27-max-worst-current-mean-ratio", type=float, default=1.20)
+    parser.add_argument("--step27-top-k", type=int, default=10)
+    parser.add_argument("--step27-resume", action="store_true")
+    parser.set_defaults(step27_use_envelope_acceptance=True, step27_include_canonical_baseline=True)
     args = parser.parse_args()
 
     motors = _resolve_motors(args.motors)
@@ -537,6 +769,7 @@ def main() -> None:
 
     run_rows: List[Dict[str, object]] = []
     per_seed_shared: Dict[str, str] = {}
+    per_seed_motor_shared: Dict[str, Dict[str, str]] = {}
 
     base_manifest_data: Dict[str, object] | None = None
     if args.base_manifest:
@@ -586,7 +819,15 @@ def main() -> None:
                 print(f"[train3] mode={args.mode} seed={seed} motor={motor.key} stage={stage} reused=true")
                 return reused
 
-        row = _run_train(motor=motor, seed=seed, stage=stage, init_checkpoint=init_checkpoint, kwargs=kwargs)
+        row = _run_train(
+            motor=motor,
+            seed=seed,
+            stage=stage,
+            init_checkpoint=init_checkpoint,
+            kwargs=kwargs,
+            run_root=run_root,
+        )
+        row = _run_step27_selection(row=row, motor=motor, args=args, run_root=run_root)
         row["reused"] = False
         row["reused_from_manifest"] = ""
         return row
@@ -608,6 +849,7 @@ def main() -> None:
 
         if str(args.mode) == "joint-domain-randomized":
             carry_ckpt: str | None = None
+            motor_ckpts: Dict[str, str] = {}
             for cycle in range(int(args.joint_cycles)):
                 kwargs_joint = dict(kwargs)
                 kwargs_joint["episodes"] = int(args.joint_cycle_episodes)
@@ -622,20 +864,30 @@ def main() -> None:
                     )
                     run_rows.append(row)
                     carry_ckpt = str(row["best_checkpoint"]) if str(row["best_checkpoint"]) else carry_ckpt
+                    if str(row["best_checkpoint"]):
+                        motor_ckpts[motor.key] = str(row["best_checkpoint"])
                     print(
                         f"[train3] mode=joint seed={seed} cycle={cycle + 1} motor={motor.key} best={row['best_checkpoint']}"
                     )
             per_seed_shared[str(seed)] = "" if carry_ckpt is None else str(carry_ckpt)
+            per_seed_motor_shared[str(seed)] = dict(motor_ckpts)
             continue
 
         # fine_tune_per_motor
         if base_manifest_data is None:
             raise ValueError("Mode fine_tune_per_motor requires --base-manifest from a joint run.")
         shared = dict(base_manifest_data.get("per_seed_shared_checkpoints", {}))
-        init_ckpt_seed = str(shared.get(str(seed), ""))
-        if not init_ckpt_seed:
+        shared_by_seed_motor = dict(base_manifest_data.get("per_seed_motor_checkpoints", {}))
+        motor_shared = shared_by_seed_motor.get(str(seed), {})
+        if not isinstance(motor_shared, dict):
+            motor_shared = {}
+        fallback_seed_ckpt = str(shared.get(str(seed), ""))
+        if not fallback_seed_ckpt and not motor_shared:
             raise ValueError(f"Base manifest does not contain shared checkpoint for seed={seed}.")
         for motor in motors:
+            init_ckpt_seed = str(motor_shared.get(motor.key, "") or fallback_seed_ckpt)
+            if not init_ckpt_seed:
+                raise ValueError(f"Base manifest does not contain checkpoint for seed={seed}, motor={motor.key}.")
             row = _maybe_reuse_or_train(
                 motor=motor,
                 seed=seed,
@@ -682,8 +934,13 @@ def main() -> None:
         "base_manifest": None if args.base_manifest is None else str(Path(args.base_manifest).resolve()),
         "resume_manifest": None if args.resume_manifest is None else str(Path(args.resume_manifest).resolve()),
         "eval_first": bool(args.eval_first),
+        "step27_select": bool(args.step27_select),
+        "step27_profile": str(args.step27_profile),
+        "step27_seeds": _parse_int_csv(str(args.step27_seeds)) if str(args.step27_seeds).strip() else seeds,
+        "step27_scenarios": _parse_csv_list(str(args.step27_scenarios)),
         "protocol_hash": str(protocol_payload.get("protocol_hash", "")),
         "per_seed_shared_checkpoints": per_seed_shared,
+        "per_seed_motor_checkpoints": per_seed_motor_shared,
         "artifacts": {
             "training_runs_csv": str(run_root / "training_runs_3motors.csv"),
             "training_summaries_csv": str(run_root / "training_run_summaries_3motors.csv"),

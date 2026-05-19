@@ -1,3 +1,0 @@
-motor,seed,stage,speed_ok,eta_ok,current_ok,p_in_ok,degradation_ok,acceptance_pass,accept_max_speed_error,accept_min_eta_energy,accept_max_current_rms,accept_max_p_in_pos,degradation_window,degradation_speed_delta,degradation_eta_delta
-air56,101,joint_cycle_1,True,True,True,True,True,True,30.0,0.0,10.0,,5,2.0,0.05
-al31,101,joint_cycle_1,True,True,True,True,True,True,30.0,0.0,10.0,,5,2.0,0.05

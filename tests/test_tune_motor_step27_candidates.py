@@ -96,6 +96,33 @@ def test_load_custom_candidates_from_object_payload_assigns_default_tag(tmp_path
     assert row["id_ref_alpha"] == 0.27
 
 
+def test_load_custom_candidates_accepts_single_candidate_object(tmp_path: Path) -> None:
+    path = tmp_path / "selected_candidate.json"
+    path.write_text(
+        json.dumps(
+            {
+                "tag": "bridge_base",
+                "objective": "p_in",
+                "id_ref_alpha": 0.1728,
+                "delta_id_max": 0.1074,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    rows = _load_custom_candidates(path, base=_base_candidate())
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["tag"] == "bridge_base"
+    assert row["source"] == "config"
+    assert row["objective"] == "p_in"
+    assert row["id_ref_alpha"] == 0.1728
+    assert row["delta_id_max"] == 0.1074
+
+
 def test_score_penalizes_envelope_fail_when_enabled() -> None:
     aggregate_green_but_envelope_red = {
         "avg_power_saving_pct": 1.0,

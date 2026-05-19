@@ -4,19 +4,27 @@ Repository for the MIC/AI motor-control research stack, reproducibility pipeline
 
 ## Current Status
 
-As of `2026-04-12`, the full `3-motor` research/release project is closed:
+As of the `2026-05-19` reproducibility audit, the current-code `3-motor` Step27 baseline is green:
 
 - `AIR56`
 - `AL31`
 - `AO2`
 
-Canonical strict-verified release:
+Historical strict-verified release package:
 
 - [20260412_postrestore_ai_3motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release)
 - verify artifact: [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
 - `verification_ok = true`
 
-Hardware-productization status as of `2026-05-05`:
+Current-code Step27 reproducibility baseline:
+
+- `AIR56`: `+1.072%` avg power saving, `+0.112%` eta gain, `0` err failures
+- `AL31`: `+3.180%` avg power saving, `+0.007%` eta gain, `0` err failures
+- `AO2`: `+0.512%` avg power saving, `+1.724%` eta gain, `0` err failures
+- all three have `envelope_fail_count = 0`
+- strict recheck output: [canonical_step27_recheck_fixed_20260519](C:/mic_theory/outputs/canonical_step27_recheck_fixed_20260519)
+
+Hardware-productization status as of `2026-05-19`:
 
 - `AIR56 UNO Q` is the first board deployment path.
 - The split architecture is implemented as a deploy package: STM32U585 owns FOC/safety/fallback, QRB2210/Linux runs the AI `id_ref` decision layer.
@@ -31,20 +39,23 @@ Historical milestone kept for provenance:
 
 `AO2` is no longer a suspended backlog branch.
 
-The final closure path was:
+The current reproducible closure path is:
 
 - diagnose the physical mismatch of the old `AO2` runtime config
 - rebuild `AO2` around a nameplate-first operating point
 - add optional `field_weakening` support to FOC
 - retune the live `AO2` config and keep the tuned AI actor
-- verify the result under strict `Step27/Step28` `p0.2`
+- retune the `AO2` supervisor/id_ref candidate after the `2026-05-19` stale-cache audit
+- verify the result under current strict `Step27` envelope checks
 
 The diagnostic trail is intentionally kept in the repository:
 
 - [env_backlog_ao2_nameplate_first.py](C:/mic_theory/config/env_backlog_ao2_nameplate_first.py)
 - [env_backlog_ao2_nameplate_foc_tuned.py](C:/mic_theory/config/env_backlog_ao2_nameplate_foc_tuned.py)
 - [diagnose_motor_nominal_consistency.py](C:/mic_theory/tools/diagnose_motor_nominal_consistency.py)
-- [ao2 fw strict pass](C:/mic_theory/outputs/ao2_fw_grid_20260412af/fw_c/ao2_checkpoint_scan_summary.json)
+- current AO2 candidate: [step27_ao2_current_repro_candidate_20260519.json](C:/mic_theory/config/step27_ao2_current_repro_candidate_20260519.json)
+- current AO2 strict scan: [ao2_current_repro_strict_scan_20260519](C:/mic_theory/outputs/ao2_current_repro_strict_scan_20260519)
+- old `fw_c` scan is preserved as provenance, but it is no longer the canonical current-code acceptance source because the `2026-05-19` audit found stale resume-cache risk in Step27 scans.
 
 ## Main Entry Points
 
@@ -92,12 +103,18 @@ python tools/step27_pipeline.py ^
 
 ## Validation Snapshot
 
-- strict 3-motor `Step28` verify: green
-- `AO2` motor acceptance in the release package: green
+- historical strict 3-motor `Step28` verify: green
+- current-code strict Step27 canonical recheck: green for `AIR56`, `AL31`, `AO2`
+- `train_3motors_pipeline.py --step27-select` smoke: `3/3` runs passed and selected canonical baselines when fresh 20-step checkpoints were worse
+- Step27 scan resume-state now hashes config, candidate, acceptance envelope, and checkpoint content to prevent stale acceptance reuse.
+- `AO2` live config now uses `ao2_current_repro_rand017`
   - [motor_tuning_acceptance_summary.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/derived_ieee/motor_tuning_acceptance_summary.json)
 - latest focused regression after AO2 FOC/hybrid fixes:
   - `python -m pytest -q tests/test_step27_report_markdown.py tests/test_step27_hybrid_trigger.py tests/test_vector_foc_field_weakening.py tests/test_scan_step27_checkpoints.py tests/test_train_ai_id_ref_external_step27.py tests/test_diagnose_motor_nominal_consistency.py`
-  - `60 passed`
+  - prior audit result: `60 passed`
+- latest focused regression after the `2026-05-19` training/Step27 fixes:
+  - `python -m pytest -q tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py tests/test_train_3motors_pipeline_smoke.py tests/test_train_3motors_pipeline_joint_and_finetune_smoke.py tests/test_train_3motors_pipeline_resume_eval_first_smoke.py`
+  - `34 passed`
 - AIR56 UNO Q focused deploy regression:
   - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
 - AIR56 UNO Q firmware static compile smoke:
@@ -109,6 +126,7 @@ python tools/step27_pipeline.py ^
   - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke `>=95%`, bridge helper/runtime floor `>=75%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
+  - current `2026-05-19` result: `272 passed, 18 deselected`
 
 ## Repository Structure
 
@@ -125,6 +143,7 @@ python tools/step27_pipeline.py ^
 
 - RL checkpoints are not fully stored in git history.
 - The canonical `AO2` live config is now [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py).
+- The canonical current-code `AO2` candidate is [step27_ao2_current_repro_candidate_20260519.json](C:/mic_theory/config/step27_ao2_current_repro_candidate_20260519.json).
 - The canonical checkpoint registry is [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json).
 - The root plan in [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md) has priority over archived plans.
 - `AIR56` deploy package for `UNO Q` is available in [arduino/air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready). It is a split hardware-productization package, not proof that a motor-connected STM32U585 build has already passed physical acceptance.

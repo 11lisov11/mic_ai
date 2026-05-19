@@ -1,17 +1,17 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-05-09`
+Date updated: `2026-05-19`
 Repository: `C:\mic_theory`
 
 ## Status
 
-The research/release project is complete on the full `3-motor` scope:
+The research/release project has a current-code green `3-motor` Step27 baseline:
 
 - `AIR56`
 - `AL31`
 - `AO2`
 
-Canonical strict-verified release:
+Historical strict-verified release package:
 
 - [20260412_postrestore_ai_3motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release)
 - [VERIFY_SUBMISSION_CANDIDATE.json](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_3motors_release/VERIFY_SUBMISSION_CANDIDATE.json)
@@ -42,6 +42,18 @@ The research/release scope counts as `100% done` only when all items below are t
 Status on `2026-04-12`:
 
 - all five conditions are satisfied
+
+Status on `2026-05-19` reproducibility audit:
+
+- current-code strict Step27 canonical recheck is green for all three motors
+- `AIR56`: `+1.072%` avg power saving, `+0.112%` eta gain, `0` err failures, `envelope_fail_count = 0`
+- `AL31`: `+3.180%` avg power saving, `+0.007%` eta gain, `0` err failures, `envelope_fail_count = 0`
+- `AO2`: `+0.512%` avg power saving, `+1.724%` eta gain, `0` err failures, `envelope_fail_count = 0`
+- strict recheck output: [canonical_step27_recheck_fixed_20260519](C:/mic_theory/outputs/canonical_step27_recheck_fixed_20260519)
+- `AO2` live config was refreshed to the reproducible `ao2_current_repro_rand017` candidate
+- old `outputs/ao2_fw_grid_20260412af/fw_c` is preserved as provenance but is no longer the canonical current-code acceptance source
+- Step27 scan resume-state now hashes config, candidate, acceptance envelope, and checkpoint content to prevent stale acceptance reuse
+- `train_3motors_pipeline.py --step27-select` smoke passed `3/3` and selected canonical baselines when fresh 20-step checkpoints were worse
 
 ## Hardware Completion Criteria
 
@@ -79,7 +91,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Rebuild the legacy nominal power plot as a vector PDF/SVG/PNG instead of a raster screenshot export.
 - [x] Decide whether the regenerated publication figures are canonical and either commit them or move noncanonical scratch artifacts out of tracked publication folders.
 - [x] Rename or remove the misleading `fig_nominal_power_legacy_from_screenshot.*` compatibility files after downstream documents stop referencing them.
-- [ ] Run `git diff --check` and a final `git status --short --untracked-files=all` before the next push.
+- [x] Run `git diff --check` and a final `git status --short --untracked-files=all` before the next push.
 
 ### B. AIR56 UNO Q Repo-Side Software Readiness
 
@@ -122,6 +134,9 @@ This checklist tracks what is still not complete after the research release. It 
 
 - [x] Do not restart long RL training unless a measured regression proves it is necessary.
 - [x] Use existing strict `Step28` release artifacts as the research baseline.
+- [x] Add Step27 selection of canonical release baselines so a new training run cannot silently regress below the accepted baseline.
+- [x] Add file-hash based Step27 scan resume signatures to prevent stale metric reuse.
+- [x] Refresh `AO2` current-code candidate after stale-cache audit and recheck strict Step27 acceptance.
 - [ ] Do not call the whole project `100% hardware-ready` until Sections C and D are closed on real hardware.
 - [ ] Before final hardware release, run:
   - `python -m pytest -q -m "not slow and not hardware"`
@@ -201,7 +216,9 @@ Canonical AO2 artifacts:
 - preserved nameplate-first config: [env_backlog_ao2_nameplate_first.py](C:/mic_theory/config/env_backlog_ao2_nameplate_first.py)
 - tuned AO2 backlog config: [env_backlog_ao2_nameplate_foc_tuned.py](C:/mic_theory/config/env_backlog_ao2_nameplate_foc_tuned.py)
 - live AO2 config: [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py)
-- canonical strict-green FW sweep result: [fw_c summary](C:/mic_theory/outputs/ao2_fw_grid_20260412af/fw_c/ao2_checkpoint_scan_summary.json)
+- current-code AO2 candidate: [step27_ao2_current_repro_candidate_20260519.json](C:/mic_theory/config/step27_ao2_current_repro_candidate_20260519.json)
+- current-code strict scan: [ao2_current_repro_strict_scan_20260519](C:/mic_theory/outputs/ao2_current_repro_strict_scan_20260519)
+- old FW sweep result kept for provenance, not current-code acceptance: [fw_c summary](C:/mic_theory/outputs/ao2_fw_grid_20260412af/fw_c/ao2_checkpoint_scan_summary.json)
 
 ## Final Regression Reference
 
@@ -210,6 +227,14 @@ Focused final regression after the AO2 closure work:
 - `python -m pytest -q tests/test_step27_report_markdown.py tests/test_step27_hybrid_trigger.py tests/test_vector_foc_field_weakening.py tests/test_scan_step27_checkpoints.py tests/test_train_ai_id_ref_external_step27.py tests/test_diagnose_motor_nominal_consistency.py`
 - `60 passed`
 
+Focused regression after the `2026-05-19` training/Step27 reproducibility fixes:
+
+- `python -m pytest -q tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py tests/test_train_3motors_pipeline_smoke.py tests/test_train_3motors_pipeline_joint_and_finetune_smoke.py tests/test_train_3motors_pipeline_resume_eval_first_smoke.py`
+- `34 passed`
+- expanded focused regression with AO2 hardening/vector FOC/Step27 external checks:
+  - `python -m pytest -q tests/test_scan_step27_checkpoints.py tests/test_tune_motor_step27_candidates.py tests/test_train_3motors_pipeline_smoke.py tests/test_train_3motors_pipeline_joint_and_finetune_smoke.py tests/test_train_3motors_pipeline_resume_eval_first_smoke.py tests/test_ao2_hardening_sweep_smoke.py tests/test_vector_foc_field_weakening.py tests/test_step27_report_markdown.py tests/test_train_ai_id_ref_external_step27.py`
+  - `67 passed`
+
 Full repository regression must remain green before final push:
 
 - `python -m pytest -q`
@@ -217,6 +242,7 @@ Full repository regression must remain green before final push:
 Weak-hardware fast profile:
 
 - `python -m pytest -q -m "not slow and not hardware"`
+- current `2026-05-19` result: `272 passed, 18 deselected`
 
 AIR56 UNO Q targeted deploy regression:
 
@@ -240,11 +266,13 @@ AIR56 UNO Q production-critical coverage gate:
 - Do not remove the preserved AO2 diagnosis/tuning artifacts.
 - Do not create a new root plan while this file is current.
 - Do not treat temporary probe configs under `outputs/` as canonical live configs.
+- Do not use a Step27 scan state as acceptance evidence unless its signature includes hashes for config, candidate, acceptance envelope, and checkpoint content.
 - Do not treat `AIR56_UNOQ_USE_MOCK_HW` as a motor-connected production build.
 - Do not call the AIR56 UNO Q hardware deployment complete before the staged bring-up protocol passes on physical hardware.
 - Do not claim whole-repository 100% test coverage; enforce coverage on the production-critical AIR56 UNO Q subset and keep broad research validation under smoke/release checks.
 - The canonical AO2 live path is:
   - [env_research_ao2_32_4_3kw.py](C:/mic_theory/config/env_research_ao2_32_4_3kw.py)
+  - [step27_ao2_current_repro_candidate_20260519.json](C:/mic_theory/config/step27_ao2_current_repro_candidate_20260519.json)
   - [checkpoint_registry.json](C:/mic_theory/config/checkpoint_registry.json)
 
 ## Optional Backlog

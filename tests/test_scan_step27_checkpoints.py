@@ -10,7 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools.scan_step27_checkpoints import _scan_state_signature, _select_candidate, _select_candidates, scan_checkpoints
+from tools.scan_step27_checkpoints import (
+    _checkpoint_fingerprints,
+    _file_sha256,
+    _scan_state_signature,
+    _select_candidate,
+    _select_candidates,
+    scan_checkpoints,
+)
 from tools.step27_pipeline import _load_agent
 from tools.tune_motor_step27 import DEFAULT_ACCEPTANCE_ENVELOPES
 from mic_ai.ai.agents.ppo_voltage import PPOVoltageAgent
@@ -809,15 +816,19 @@ def test_scan_checkpoints_resume_reuses_saved_state(tmp_path: Path, monkeypatch:
     signature = _scan_state_signature(
         motor="ao2",
         config_path="",
+        config_sha256="",
         ai_control_mode="ai_id_ref",
         checkpoint_glob="unused",
+        checkpoint_fingerprints=_checkpoint_fingerprints([ckpt0, ckpt1, ckpt2]),
         candidate_json=str(candidate_json),
+        candidate_json_sha256=_file_sha256(candidate_json),
         candidate_index=0,
         candidate_tag="",
         candidate_tags=[],
         seeds=[101],
         scenarios=["speed_step"],
         use_envelope_acceptance=False,
+        acceptance_envelopes_sha256=_file_sha256(Path(DEFAULT_ACCEPTANCE_ENVELOPES).resolve()),
     )
     state_path.write_text(
         json.dumps(
@@ -930,6 +941,64 @@ def test_scan_checkpoints_resume_reuses_saved_state(tmp_path: Path, monkeypatch:
     assert progress["processed_count"] == 3
     assert state["complete"] is True
     assert len(state["evaluated_rows"]) == 3
+
+
+def test_scan_checkpoints_resume_rejects_stale_candidate_hash(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ckpt = tmp_path / "actor_ep000.pth"
+    ckpt.write_bytes(b"checkpoint")
+    candidate_json = tmp_path / "candidate.json"
+    candidate_json.write_text(json.dumps([{"tag": "base_current"}]), encoding="utf-8")
+
+    out_dir = tmp_path / "scan_out_stale"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    signature = _scan_state_signature(
+        motor="ao2",
+        config_path="",
+        config_sha256="",
+        checkpoint_glob="unused",
+        checkpoint_fingerprints=_checkpoint_fingerprints([ckpt]),
+        ai_control_mode="ai_id_ref",
+        candidate_json=str(candidate_json),
+        candidate_json_sha256=_file_sha256(candidate_json),
+        candidate_index=0,
+        candidate_tag="",
+        candidate_tags=[],
+        seeds=[101],
+        scenarios=["speed_step"],
+        use_envelope_acceptance=False,
+        acceptance_envelopes_sha256=_file_sha256(Path(DEFAULT_ACCEPTANCE_ENVELOPES).resolve()),
+    )
+    (out_dir / "ao2_checkpoint_scan_state.json").write_text(
+        json.dumps(
+            {
+                "signature": signature,
+                "complete": False,
+                "last_checkpoint_name": "",
+                "evaluated_rows": [],
+                "skipped_rows": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    candidate_json.write_text(json.dumps([{"tag": "base_current", "bias_max": 0.99}]), encoding="utf-8")
+
+    monkeypatch.setattr("tools.scan_step27_checkpoints._collect_checkpoint_paths", lambda _pattern: [ckpt])
+    monkeypatch.setattr("tools.scan_step27_checkpoints._load_env_and_agent", lambda *args, **kwargs: (object(), None, None))
+    monkeypatch.setattr("tools.scan_step27_checkpoints._select_candidate", lambda *args, **kwargs: (_base_candidate(), 1))
+
+    with pytest.raises(ValueError, match="Resume state does not match"):
+        scan_checkpoints(
+            motor="ao2",
+            checkpoint_glob="unused",
+            candidate_json=str(candidate_json),
+            seeds=[101],
+            scenarios=["speed_step"],
+            out_dir=out_dir,
+            top_k=5,
+            resume=True,
+        )
 
 
 def test_scan_checkpoints_allows_ai_voltage_without_candidate_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
