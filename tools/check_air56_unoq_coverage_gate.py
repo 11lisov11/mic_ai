@@ -20,6 +20,7 @@ TESTS = [
     "tests/test_air56_unoq_analyze_stage4_ab.py",
     "tests/test_air56_unoq_validate_hw_binding.py",
     "tests/test_air56_unoq_hardware_release_gate.py",
+    "tests/test_air56_unoq_package_hardware_release.py",
     "tests/test_air56_unoq_tooling.py",
     "tests/test_air56_unoq_deploy_package.py",
 ]
@@ -33,6 +34,7 @@ COV_MODULES = [
     "tools.air56_unoq_analyze_stage4_ab",
     "tools.air56_unoq_validate_hw_binding",
     "tools.air56_unoq_hardware_release_gate",
+    "tools.air56_unoq_package_hardware_release",
     "tools.check_air56_unoq_firmware_static",
     "tools.run_air56_unoq_deploy_smoke",
 ]
@@ -48,6 +50,7 @@ MIN_BY_FILE = {
     "tools/air56_unoq_analyze_stage4_ab.py": 95.0,
     "tools/air56_unoq_validate_hw_binding.py": 95.0,
     "tools/air56_unoq_hardware_release_gate.py": 95.0,
+    "tools/air56_unoq_package_hardware_release.py": 95.0,
     # The bridge runtime owns serial/UDP/torch infinite-loop integration; keep
     # a real helper/runtime floor while leaving physical bring-up to hardware
     # tests.

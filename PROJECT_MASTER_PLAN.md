@@ -23,7 +23,7 @@ Hardware-productization is now tracked separately:
 - Split architecture is fixed: `STM32U585` owns realtime FOC/safety/fallback; `QRB2210/Linux` owns AI `id_ref` decisions.
 - Repository-ready as of this plan: firmware adapter contract, mock-only compile target, env-based Linux service, bridge startup checks, bridge fallback command, staged bring-up protocol.
 - Additional repo-side hardening: Stage 0 protocol loopback self-test, deploy-smoke runner, and STM32U585 adapter template.
-- Hardware acceptance is now machine-checkable with `tools/air56_unoq_validate_hw_binding.py`, `tools/air56_unoq_analyze_stage4_ab.py`, `tools/air56_unoq_build_hardware_report.py`, `tools/air56_unoq_hardware_acceptance.py`, and `tools/air56_unoq_hardware_release_gate.py`; it still requires the real STM32U585 adapter plus real Stage 0-4 board logs.
+- Hardware acceptance is now machine-checkable with `tools/air56_unoq_validate_hw_binding.py`, `tools/air56_unoq_analyze_stage4_ab.py`, `tools/air56_unoq_build_hardware_report.py`, `tools/air56_unoq_hardware_acceptance.py`, `tools/air56_unoq_hardware_release_gate.py`, and `tools/air56_unoq_package_hardware_release.py`; it still requires the real STM32U585 adapter plus real Stage 0-4 board logs.
 - Not yet physically complete: the real STM32U585 FOC/inverter layer must implement `air56_foc_*` symbols and pass board bring-up.
 
 Historical strict-verified `2-motor` release kept for provenance:
@@ -112,6 +112,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add a fail-safe Stage 4 physical A/B analyzer so FOC baseline vs MIC/AI CSV logs are checked for power, tracking, guard, current/thermal, and fallback regressions.
 - [x] Add a fail-safe STM32U585 hardware binding validator for board pinout/scaling/fault manifest and production `air56_foc_*` adapter source.
 - [x] Add a final fail-safe AIR56 hardware release gate aggregating hardware binding, physical acceptance, deploy smoke, and coverage evidence.
+- [x] Add a final AIR56 hardware release evidence packager with SHA-256 hashes for binding, acceptance, smoke, coverage, and gate evidence.
 
 ### C. STM32U585 Production Hardware Binding
 
@@ -162,6 +163,7 @@ This checklist tracks what is still not complete after the research release. It 
   - `python tools/air56_unoq_build_hardware_report.py --board-id <board> --operator <name> --stage0-json <stage0.json> --stage1-json <stage1.json> --stage2-json <stage2.json> --stage2-csv <stage2.csv> --stage3-json <stage3.json> --stage4-json <stage4.json> --out-json <filled real hardware report>`
   - `python tools/air56_unoq_hardware_acceptance.py --report <filled real hardware report>`
   - `python tools/air56_unoq_hardware_release_gate.py --binding-manifest <filled real hardware binding manifest> --hardware-report <filled real hardware report> --deploy-smoke-json <deploy smoke report> --coverage-json <coverage gate json>`
+  - `python tools/air56_unoq_package_hardware_release.py --package-tag <tag> --out-dir <release package dir> --binding-manifest <filled real hardware binding manifest> --hardware-report <filled real hardware report> --deploy-smoke-json <deploy smoke report> --coverage-json <coverage gate json>`
   - production firmware build without mock hardware
   - physical Stage 0-4 bring-up protocol
 
@@ -183,6 +185,7 @@ Commands run during this audit:
   - after Stage 4 A/B analyzer: `passed = true`, total AIR56 deploy subset coverage `90.70%`, `tools/air56_unoq_analyze_stage4_ab.py = 100.00%`
   - after hardware binding validator: `passed = true`, total AIR56 deploy subset coverage `91.57%`, `tools/air56_unoq_validate_hw_binding.py = 100.00%`
   - after hardware release gate: `passed = true`, total AIR56 deploy subset coverage `92.06%`, `tools/air56_unoq_hardware_release_gate.py = 100.00%`
+  - after hardware release packager: `passed = true`, total AIR56 deploy subset coverage `92.42%`, `tools/air56_unoq_package_hardware_release.py = 100.00%`
 - `python -m pytest -q -m "not slow and not hardware"`
   - initial audit result: `257 passed, 14 deselected`
   - after repo-side hardening: `270 passed, 14 deselected`
@@ -190,6 +193,7 @@ Commands run during this audit:
   - after Stage 4 A/B analyzer: `297 passed, 18 deselected`
   - after hardware binding validator: `303 passed, 18 deselected`
   - after hardware release gate: `308 passed, 18 deselected`
+  - after hardware release packager: `313 passed, 18 deselected`
 - `python -m pytest -q tests/test_air56_unoq_bridge.py tests/test_report_plan_completion_smoke.py`
   - result: `40 passed`
 - `python -m pytest -q tests/test_air56_unoq_deploy_package.py tests/test_air56_unoq_bridge.py tests/test_report_plan_completion_smoke.py`
@@ -281,6 +285,7 @@ Full repository regression must remain green before final push:
 - current `2026-05-19` result after Stage 4 A/B analyzer: `315 passed`
 - current `2026-05-19` result after hardware binding validator: `321 passed`
 - current `2026-05-19` result after hardware release gate: `326 passed`
+- current `2026-05-19` result after hardware release packager: `331 passed`
 
 Weak-hardware fast profile:
 
@@ -291,6 +296,7 @@ Weak-hardware fast profile:
 - current `2026-05-19` result after Stage 4 A/B analyzer: `297 passed, 18 deselected`
 - current `2026-05-19` result after hardware binding validator: `303 passed, 18 deselected`
 - current `2026-05-19` result after hardware release gate: `308 passed, 18 deselected`
+- current `2026-05-19` result after hardware release packager: `313 passed, 18 deselected`
 
 Slow research profile:
 
@@ -304,6 +310,7 @@ AIR56 UNO Q targeted deploy regression:
 - current `2026-05-19` deploy smoke targeted result after Stage 4 A/B analyzer: `101 passed`
 - current `2026-05-19` deploy smoke targeted result after hardware binding validator: `107 passed`
 - current `2026-05-19` deploy smoke targeted result after hardware release gate: `112 passed`
+- current `2026-05-19` deploy smoke targeted result after hardware release packager: `117 passed`
 
 AIR56 UNO Q combined repo-side deploy smoke:
 
@@ -322,6 +329,7 @@ AIR56 UNO Q physical hardware acceptance validator:
 - `python tools/air56_unoq_build_hardware_report.py --board-id <board> --operator <name> --stage0-json <stage0.json> --stage1-json <stage1.json> --stage2-json <stage2.json> --stage2-csv <stage2.csv> --stage3-json <stage3.json> --stage4-json <stage4.json> --out-json arduino/air56_unoq_ready/hardware_acceptance_report.filled.json`
 - `python tools/air56_unoq_hardware_acceptance.py --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json`
 - `python tools/air56_unoq_hardware_release_gate.py --binding-manifest arduino/air56_unoq_ready/hardware_binding.filled.json --hardware-report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json --deploy-smoke-json .tmp_pytest/air56_unoq_deploy_smoke.json --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json`
+- `python tools/air56_unoq_package_hardware_release.py --package-tag <tag> --out-dir <release package dir> --binding-manifest arduino/air56_unoq_ready/hardware_binding.filled.json --hardware-report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json --deploy-smoke-json .tmp_pytest/air56_unoq_deploy_smoke.json --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json`
 - required result before hardware-ready claim: `hardware_ready = true`
   and `release_ready = true`
 
@@ -330,7 +338,7 @@ AIR56 UNO Q production-critical coverage gate:
 - `python tools/check_air56_unoq_coverage_gate.py`
 - current thresholds:
   - total AIR56 deploy subset: `>=75%`
-  - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware binding validator, hardware report builder, hardware acceptance validator, hardware release gate: `>=95%`
+  - protocol, Stage 0 loopback, firmware static compile, deploy smoke runner, Stage 4 A/B analyzer, hardware binding validator, hardware report builder, hardware acceptance validator, hardware release gate, hardware release packager: `>=95%`
   - Linux bridge helper/runtime module floor: `>=75%`
 
 ## Guardrails

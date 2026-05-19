@@ -84,6 +84,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [air56_unoq_validate_hw_binding.py](C:/mic_theory/tools/air56_unoq_validate_hw_binding.py): validates STM32U585 pinout/scaling/fault binding and production `air56_foc_*` adapter source
 - [air56_unoq_hardware_acceptance.py](C:/mic_theory/tools/air56_unoq_hardware_acceptance.py): validator for real Stage 0-4 hardware evidence
 - [air56_unoq_hardware_release_gate.py](C:/mic_theory/tools/air56_unoq_hardware_release_gate.py): final AIR56 hardware release gate aggregator
+- [air56_unoq_package_hardware_release.py](C:/mic_theory/tools/air56_unoq_package_hardware_release.py): packages final AIR56 hardware release evidence with SHA-256 hashes
 - [run_air56_unoq_deploy_smoke.py](C:/mic_theory/tools/run_air56_unoq_deploy_smoke.py): one-command AIR56 UNO Q repo-side smoke
 - [air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready): AIR56 UNO Q split deploy package
 - [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md): physical bring-up protocol
@@ -152,6 +153,7 @@ python tools/step27_pipeline.py ^
   - current `2026-05-19` result after Stage 4 A/B analyzer: `passed = true`, targeted pytest `101 passed`
   - current `2026-05-19` result after hardware binding validator: `passed = true`, targeted pytest `107 passed`
   - current `2026-05-19` result after hardware release gate: `passed = true`, targeted pytest `112 passed`
+  - current `2026-05-19` result after hardware release packager: `passed = true`, targeted pytest `117 passed`
 - AIR56 UNO Q hardware report builder from real Stage 0-4 logs:
   - `python tools/air56_unoq_analyze_stage4_ab.py --foc-no-load-csv <foc_no_load.csv> --foc-load-step-csv <foc_load_step.csv> --ai-no-load-csv <ai_no_load.csv> --ai-load-step-csv <ai_load_step.csv> --max-current-rms-a <limit> --out-json <stage4_ab_summary.json>`
   - `python tools/air56_unoq_build_hardware_report.py --board-id <board> --operator <name> --stage0-json <stage0.json> --stage1-json <stage1.json> --stage2-json <stage2.json> --stage2-csv <stage2.csv> --stage3-json <stage3.json> --stage4-json <stage4.json> --out-json <hardware_report.json>`
@@ -161,13 +163,17 @@ python tools/step27_pipeline.py ^
 - AIR56 UNO Q final hardware release gate:
   - `python tools/air56_unoq_hardware_release_gate.py --binding-manifest <hardware_binding.filled.json> --hardware-report <hardware_acceptance_report.filled.json> --deploy-smoke-json <deploy_smoke.json> --coverage-json <coverage_air56_unoq_gate.json>`
   - required result before release-ready claim: `release_ready = true`
+- AIR56 UNO Q final hardware release package:
+  - `python tools/air56_unoq_package_hardware_release.py --package-tag <tag> --out-dir <release_dir> --binding-manifest <hardware_binding.filled.json> --hardware-report <hardware_acceptance_report.filled.json> --deploy-smoke-json <deploy_smoke.json> --coverage-json <coverage_air56_unoq_gate.json>`
+  - writes `hardware_release_manifest.json` with SHA-256 hashes for every evidence file
 - AIR56 UNO Q production-critical coverage gate:
   - `python tools/check_air56_unoq_coverage_gate.py`
-  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke/stage4-analyzer/hardware-binding/hardware-report/hardware-acceptance/release-gate `>=95%`, bridge helper/runtime floor `>=75%`
+  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke/stage4-analyzer/hardware-binding/hardware-report/hardware-acceptance/release-gate/release-packager `>=95%`, bridge helper/runtime floor `>=75%`
   - current `2026-05-19` result after hardware log builder: `passed = true`, total AIR56 deploy subset coverage `89.48%`, `tools/air56_unoq_build_hardware_report.py = 100.00%`
   - current `2026-05-19` result after Stage 4 A/B analyzer: `passed = true`, total AIR56 deploy subset coverage `90.70%`, `tools/air56_unoq_analyze_stage4_ab.py = 100.00%`
   - current `2026-05-19` result after hardware binding validator: `passed = true`, total AIR56 deploy subset coverage `91.57%`, `tools/air56_unoq_validate_hw_binding.py = 100.00%`
   - current `2026-05-19` result after hardware release gate: `passed = true`, total AIR56 deploy subset coverage `92.06%`, `tools/air56_unoq_hardware_release_gate.py = 100.00%`
+  - current `2026-05-19` result after hardware release packager: `passed = true`, total AIR56 deploy subset coverage `92.42%`, `tools/air56_unoq_package_hardware_release.py = 100.00%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
   - `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
@@ -175,6 +181,7 @@ python tools/step27_pipeline.py ^
   - current `2026-05-19` result after Stage 4 A/B analyzer: `297 passed, 18 deselected`
   - current `2026-05-19` result after hardware binding validator: `303 passed, 18 deselected`
   - current `2026-05-19` result after hardware release gate: `308 passed, 18 deselected`
+  - current `2026-05-19` result after hardware release packager: `313 passed, 18 deselected`
 - slow research profile:
   - `python -m pytest -q -m "slow and not hardware"`
   - `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
@@ -184,6 +191,7 @@ python tools/step27_pipeline.py ^
   - current `2026-05-19` result after Stage 4 A/B analyzer: `315 passed`
   - current `2026-05-19` result after hardware binding validator: `321 passed`
   - current `2026-05-19` result after hardware release gate: `326 passed`
+  - current `2026-05-19` result after hardware release packager: `331 passed`
 
 ## Repository Structure
 
@@ -208,4 +216,5 @@ python tools/step27_pipeline.py ^
 - The Stage 4 A/B analyzer is fail-safe: it only passes when physical MIC/AI logs do not regress power, tracking, guard failures, current/thermal limits, or fallback stability against FOC logs.
 - The hardware binding validator is fail-safe: template manifests, mock adapter source, constant-return stubs, and undocumented `air56_foc_*` mappings produce `hardware_binding_ready=false`.
 - The hardware release gate is fail-safe: it only passes when binding, physical acceptance, deploy smoke, and coverage evidence are all green.
+- The hardware release packager is fail-safe by default: it still writes evidence for diagnosis, but returns nonzero unless `release_ready=true` or `--allow-not-ready` is explicitly used.
 - Whole-repository coverage is not expected to be 100% because this repo contains many research CLI and long-running reproduction scripts. Coverage gating is enforced on the production-critical AIR56 UNO Q deploy subset instead.

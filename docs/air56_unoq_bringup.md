@@ -190,9 +190,18 @@ python tools/air56_unoq_hardware_release_gate.py \
   --deploy-smoke-json .tmp_pytest/air56_unoq_deploy_smoke.json \
   --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json \
   --out-json .tmp_pytest/air56_unoq_hardware_release_gate.json
+
+python tools/air56_unoq_package_hardware_release.py \
+  --package-tag air56_unoq_real_bringup_001 \
+  --out-dir .tmp_pytest/air56_unoq_hardware_release_package \
+  --binding-manifest <filled hardware binding manifest> \
+  --hardware-report .tmp_pytest/air56_unoq_hardware_acceptance_report.json \
+  --deploy-smoke-json .tmp_pytest/air56_unoq_deploy_smoke.json \
+  --coverage-json .tmp_pytest/coverage_air56_unoq_gate.json
 ```
 
 `hardware_ready=true` and `release_ready=true` are required before the root plan can call AIR56 UNO Q board deployment `100%` complete.
+The release package must contain `hardware_release_manifest.json` and SHA-256 hashes for every evidence file.
 
 Required log semantics:
 
