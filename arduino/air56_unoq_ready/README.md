@@ -49,8 +49,13 @@ pio run -d arduino/air56_unoq_ready/firmware/air56_unoq_example -e air56_unoq_st
 If PlatformIO is not installed on the workstation, run the host static compile smoke:
 
 ```bash
-python tools/check_air56_unoq_firmware_static.py
+python tools/check_air56_unoq_firmware_static.py --mode mock
+python tools/check_air56_unoq_firmware_static.py --mode production-port
 ```
+
+The `production-port` smoke does not prove the real inverter HAL. It proves the
+firmware source links without `AIR56_UNOQ_USE_MOCK_HW` when a board-side
+implementation of the `air56_foc_*` contract is supplied.
 
 Run the full repo-side deploy smoke:
 

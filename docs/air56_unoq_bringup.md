@@ -13,7 +13,9 @@ Checks:
 - Build the mock firmware target:
   `pio run -d arduino/air56_unoq_ready/firmware/air56_unoq_example -e air56_unoq_stm32u585_mock`
 - If PlatformIO is unavailable on the workstation, run the host static compile
-  smoke: `python tools/check_air56_unoq_firmware_static.py`.
+  smoke:
+  `python tools/check_air56_unoq_firmware_static.py --mode mock`
+  `python tools/check_air56_unoq_firmware_static.py --mode production-port`
 - Run the protocol self-test:
   `python tools/air56_unoq_stage0_loopback.py --packets 32`.
 - Run the combined repo-side smoke:
@@ -38,6 +40,8 @@ Goal: prove the real hardware adapter and FOC layer independently.
 Checks:
 
 - Build production target without `AIR56_UNOQ_USE_MOCK_HW`.
+- Run the host production-port link smoke first:
+  `python tools/check_air56_unoq_firmware_static.py --mode production-port`.
 - Implement all `air56_foc_*` functions from `air56_unoq_hw_port.h`.
 - Start from `air56_unoq_hw_port_template.cpp.example` and replace each
   `#error` block with the real FOC/inverter call.
@@ -48,6 +52,7 @@ Checks:
 Pass criteria:
 
 - No fake telemetry remains in the motor-connected build.
+- The host production-port smoke links without `AIR56_UNOQ_USE_MOCK_HW`; the final board build still must link against the real STM32U585 FOC/inverter project.
 - Speed and current scaling match independent instruments within the configured tolerance.
 - Fault bits trip on known-safe injected fault conditions.
 

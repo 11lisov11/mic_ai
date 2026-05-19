@@ -131,6 +131,9 @@ def test_air56_unoq_static_compile_smoke_script_exists() -> None:
     script = ROOT / "tools" / "check_air56_unoq_firmware_static.py"
     text = script.read_text(encoding="utf-8")
     assert "AIR56_UNOQ_USE_MOCK_HW=1" in text
+    assert "AIR56_UNOQ_PRODUCTION_PORT=1" in text
+    assert "air56_foc_get_omega_meas_rad_s" in text
+    assert "production-port" in text
     assert "air56_unoq_example.ino" in text
 
 
@@ -146,7 +149,9 @@ def test_air56_unoq_deploy_smoke_entrypoint_exists() -> None:
     script = ROOT / "tools" / "run_air56_unoq_deploy_smoke.py"
     text = script.read_text(encoding="utf-8")
     assert "tools/air56_unoq_stage0_loopback.py" in text
+    assert "firmware_static_production_port_link" in text
     assert "tests/test_air56_unoq_stage0_loopback.py" in text
+    assert "tests/test_air56_unoq_hardware_acceptance.py" in text
 
 
 def test_air56_unoq_hardware_acceptance_template_and_tool_exist() -> None:

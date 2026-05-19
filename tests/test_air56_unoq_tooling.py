@@ -24,7 +24,29 @@ def test_static_compile_main_uses_compiler_and_temp_files(monkeypatch, tmp_path)
     cmd, check = calls[0]
     assert check is True
     assert "-DAIR56_UNOQ_USE_MOCK_HW=1" in cmd
-    assert "air56_unoq_static_compile.o" in cmd[-1]
+    assert "air56_unoq_static_mock" in cmd[-1]
+
+
+def test_static_compile_main_supports_production_port_link(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    def fake_run(cmd, check):
+        calls.append((cmd, check))
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["check_air56_unoq_firmware_static.py", "--compiler", "fake-g++", "--mode", "production-port"],
+    )
+    monkeypatch.setattr(check_air56_unoq_firmware_static.shutil, "which", lambda name: str(tmp_path / name))
+    monkeypatch.setattr(check_air56_unoq_firmware_static.subprocess, "run", fake_run)
+
+    assert check_air56_unoq_firmware_static.main() == 0
+    cmd, check = calls[0]
+    assert check is True
+    assert "-DAIR56_UNOQ_PRODUCTION_PORT=1" in cmd
+    assert "-DAIR56_UNOQ_USE_MOCK_HW=1" not in cmd
+    assert "air56_unoq_static_production-port" in cmd[-1]
 
 
 def test_static_compile_main_fails_without_compiler(monkeypatch) -> None:
@@ -69,7 +91,8 @@ def test_deploy_smoke_cli_dry_run_writes_json(tmp_path, monkeypatch, capsys) -> 
     assert run_air56_unoq_deploy_smoke.main() == 0
     payload = json.loads(out_json.read_text(encoding="utf-8"))
     assert payload["passed"] is True
-    assert len(payload["steps"]) == 4
+    assert len(payload["steps"]) == 5
+    assert "firmware_static_production_port_link" in {step["name"] for step in payload["steps"]}
     assert "targeted_pytest" in capsys.readouterr().out
 
 

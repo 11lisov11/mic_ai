@@ -136,8 +136,9 @@ python tools/step27_pipeline.py ^
   - selected strict recheck: `3/3` pass
 - AIR56 UNO Q focused deploy regression:
   - `python -m pytest -q tests/test_uno_q_protocol.py tests/test_uno_q_bridge.py tests/test_air56_unoq_bridge.py tests/test_air56_unoq_deploy_package.py`
-- AIR56 UNO Q firmware static compile smoke:
-  - `python tools/check_air56_unoq_firmware_static.py`
+- AIR56 UNO Q firmware static compile/link smoke:
+  - `python tools/check_air56_unoq_firmware_static.py --mode mock`
+  - `python tools/check_air56_unoq_firmware_static.py --mode production-port`
 - AIR56 UNO Q one-command repo-side deploy smoke:
   - `python tools/run_air56_unoq_deploy_smoke.py`
 - AIR56 UNO Q physical hardware acceptance validator:
@@ -155,7 +156,7 @@ python tools/step27_pipeline.py ^
   - `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
 - full repository regression after train3 refresh implementation:
   - `python -m pytest -q`
-  - current `2026-05-19` result after hardware acceptance validator: `300 passed`
+  - current `2026-05-19` result after production-port link smoke: `301 passed`
 
 ## Repository Structure
 

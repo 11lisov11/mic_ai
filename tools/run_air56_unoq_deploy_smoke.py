@@ -52,6 +52,7 @@ def main() -> int:
                 "py_compile",
                 "tools/air56_unoq_bridge.py",
                 "tools/air56_unoq_stage0_loopback.py",
+                "tools/air56_unoq_hardware_acceptance.py",
                 "tools/check_air56_unoq_firmware_static.py",
             ],
             dry_run=bool(args.dry_run),
@@ -62,8 +63,13 @@ def main() -> int:
             dry_run=bool(args.dry_run),
         ),
         _run_step(
-            "firmware_static_compile",
-            [sys.executable, "tools/check_air56_unoq_firmware_static.py"],
+            "firmware_static_mock_compile",
+            [sys.executable, "tools/check_air56_unoq_firmware_static.py", "--mode", "mock"],
+            dry_run=bool(args.dry_run),
+        ),
+        _run_step(
+            "firmware_static_production_port_link",
+            [sys.executable, "tools/check_air56_unoq_firmware_static.py", "--mode", "production-port"],
             dry_run=bool(args.dry_run),
         ),
         _run_step(
@@ -77,6 +83,7 @@ def main() -> int:
                 "tests/test_uno_q_bridge.py",
                 "tests/test_air56_unoq_bridge.py",
                 "tests/test_air56_unoq_deploy_package.py",
+                "tests/test_air56_unoq_hardware_acceptance.py",
                 "tests/test_air56_unoq_stage0_loopback.py",
             ],
             dry_run=bool(args.dry_run),

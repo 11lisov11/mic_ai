@@ -101,6 +101,7 @@ This checklist tracks what is still not complete after the research release. It 
 ### B. AIR56 UNO Q Repo-Side Software Readiness
 
 - [x] Protocol, Linux bridge, Stage 0 loopback, firmware static compile, and deploy smoke pass locally.
+- [x] Host production-port firmware link smoke passes without `AIR56_UNOQ_USE_MOCK_HW` when the `air56_foc_*` contract is supplied by a test shim.
 - [x] Focused AIR56 UNO Q tests pass locally.
 - [x] Weak-hardware fast test profile passes locally.
 - [x] AIR56 UNO Q production-critical coverage gate passes locally.
@@ -149,6 +150,7 @@ This checklist tracks what is still not complete after the research release. It 
   - `python -m pytest -q -m "not slow and not hardware"`
   - `python tools/run_air56_unoq_deploy_smoke.py`
   - `python tools/check_air56_unoq_coverage_gate.py`
+  - `python tools/check_air56_unoq_firmware_static.py --mode production-port`
   - `python tools/air56_unoq_hardware_acceptance.py --report <filled real hardware report>`
   - production firmware build without mock hardware
   - physical Stage 0-4 bring-up protocol
@@ -166,6 +168,7 @@ Commands run during this audit:
   - after bridge coverage hardening: `passed = true`, total AIR56 deploy subset coverage `86.22%`, `tools/air56_unoq_bridge.py = 79.16%`, bridge floor raised to `75%`
   - after train3 refresh implementation: `passed = true`, total AIR56 deploy subset coverage `85.90%`, `tools/air56_unoq_bridge.py = 78.75%`
   - after hardware acceptance validator: `passed = true`, total AIR56 deploy subset coverage `87.08%`, `tools/air56_unoq_hardware_acceptance.py = 98.57%`
+  - after production-port link smoke: `passed = true`, total AIR56 deploy subset coverage `87.12%`, `tools/check_air56_unoq_firmware_static.py = 96.67%`
 - `python -m pytest -q -m "not slow and not hardware"`
   - initial audit result: `257 passed, 14 deselected`
   - after repo-side hardening: `270 passed, 14 deselected`
@@ -255,6 +258,7 @@ Full repository regression must remain green before final push:
 - `python -m pytest -q`
 - current `2026-05-19` result after train3 refresh implementation: `292 passed`
 - current `2026-05-19` result after hardware acceptance validator: `300 passed`
+- current `2026-05-19` result after production-port link smoke: `301 passed`
 
 Weak-hardware fast profile:
 
@@ -274,6 +278,12 @@ AIR56 UNO Q targeted deploy regression:
 AIR56 UNO Q combined repo-side deploy smoke:
 
 - `python tools/run_air56_unoq_deploy_smoke.py`
+
+AIR56 UNO Q host firmware static checks:
+
+- `python tools/check_air56_unoq_firmware_static.py --mode mock`
+- `python tools/check_air56_unoq_firmware_static.py --mode production-port`
+- The production-port host smoke is not a substitute for the final real STM32U585 inverter/HAL build; it verifies the repo firmware path links without the mock adapter when the production `air56_foc_*` contract is supplied.
 
 AIR56 UNO Q physical hardware acceptance validator:
 
