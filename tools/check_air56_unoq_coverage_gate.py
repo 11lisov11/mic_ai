@@ -15,6 +15,7 @@ TESTS = [
     "tests/test_uno_q_protocol.py",
     "tests/test_air56_unoq_stage0_loopback.py",
     "tests/test_air56_unoq_bridge.py",
+    "tests/test_air56_unoq_hardware_acceptance.py",
     "tests/test_air56_unoq_tooling.py",
     "tests/test_air56_unoq_deploy_package.py",
 ]
@@ -23,6 +24,7 @@ COV_MODULES = [
     "tools.uno_q_protocol",
     "tools.air56_unoq_stage0_loopback",
     "tools.air56_unoq_bridge",
+    "tools.air56_unoq_hardware_acceptance",
     "tools.check_air56_unoq_firmware_static",
     "tools.run_air56_unoq_deploy_smoke",
 ]
@@ -33,6 +35,7 @@ MIN_BY_FILE = {
     "tools/air56_unoq_stage0_loopback.py": 95.0,
     "tools/check_air56_unoq_firmware_static.py": 95.0,
     "tools/run_air56_unoq_deploy_smoke.py": 95.0,
+    "tools/air56_unoq_hardware_acceptance.py": 95.0,
     # The bridge runtime owns serial/UDP/torch infinite-loop integration; keep
     # a real helper/runtime floor while leaving physical bring-up to hardware
     # tests.

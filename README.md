@@ -79,6 +79,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [train_3motors_pipeline.py](C:/mic_theory/tools/train_3motors_pipeline.py): multi-motor training pipeline
 - [air56_unoq_bridge.py](C:/mic_theory/tools/air56_unoq_bridge.py): QRB2210 Linux bridge for AIR56 UNO Q
 - [air56_unoq_stage0_loopback.py](C:/mic_theory/tools/air56_unoq_stage0_loopback.py): Stage 0 protocol self-test
+- [air56_unoq_hardware_acceptance.py](C:/mic_theory/tools/air56_unoq_hardware_acceptance.py): validator for real Stage 0-4 hardware evidence
 - [run_air56_unoq_deploy_smoke.py](C:/mic_theory/tools/run_air56_unoq_deploy_smoke.py): one-command AIR56 UNO Q repo-side smoke
 - [air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready): AIR56 UNO Q split deploy package
 - [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md): physical bring-up protocol
@@ -139,9 +140,12 @@ python tools/step27_pipeline.py ^
   - `python tools/check_air56_unoq_firmware_static.py`
 - AIR56 UNO Q one-command repo-side deploy smoke:
   - `python tools/run_air56_unoq_deploy_smoke.py`
+- AIR56 UNO Q physical hardware acceptance validator:
+  - `python tools/air56_unoq_hardware_acceptance.py --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json`
+  - required result before hardware-ready claim: `hardware_ready = true`
 - AIR56 UNO Q production-critical coverage gate:
   - `python tools/check_air56_unoq_coverage_gate.py`
-  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke `>=95%`, bridge helper/runtime floor `>=75%`
+  - current gate: total `>=75%`, protocol/loopback/static/deploy-smoke/hardware-acceptance `>=95%`, bridge helper/runtime floor `>=75%`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
   - `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
@@ -151,7 +155,7 @@ python tools/step27_pipeline.py ^
   - `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
 - full repository regression after train3 refresh implementation:
   - `python -m pytest -q`
-  - `292 passed`
+  - current `2026-05-19` result after hardware acceptance validator: `300 passed`
 
 ## Repository Structure
 

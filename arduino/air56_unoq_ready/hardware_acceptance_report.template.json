@@ -1,0 +1,52 @@
+{
+  "schema": "mic_theory.air56_unoq.hardware_acceptance.v1",
+  "board_id": "unoq-air56-bench-001",
+  "operator": "fill-me",
+  "created_utc": "2026-05-19T00:00:00Z",
+  "notes": "Fill this file from real AIR56 UNO Q hardware bring-up logs. Do not mark hardware ready from mock or simulation runs.",
+  "stages": {
+    "stage0": {
+      "passed": false,
+      "struct_sizes_ok": false,
+      "crc_error_rejected": false,
+      "loopback_duration_s": 0,
+      "fallback_ms": 999,
+      "telemetry_period_ms_max": 999
+    },
+    "stage1": {
+      "passed": false,
+      "mock_adapter_enabled": true,
+      "production_build_without_mock": false,
+      "current_scaling_ok": false,
+      "speed_scaling_ok": false,
+      "vdc_scaling_ok": false,
+      "p_in_estimate_ok": false,
+      "fault_bits_ok": false,
+      "safe_disable_ok": false
+    },
+    "stage2": {
+      "passed": false,
+      "ai_enabled": false,
+      "bridge_dry_run": false,
+      "telemetry_period_ms_max": 999,
+      "decoded_telemetry_mismatch_pct": 999
+    },
+    "stage3": {
+      "passed": false,
+      "ai_enabled": false,
+      "id_ref_limits_tight": false,
+      "disable_on_fault": false,
+      "fallback_ms": 999,
+      "tracking_guard_regression": true
+    },
+    "stage4": {
+      "passed": false,
+      "documented": false,
+      "guard_fail_delta": 999,
+      "tracking_guard_regression": true,
+      "current_thermal_limit_ok": false,
+      "fallback_oscillation": true,
+      "power_saving_pct": -999
+    }
+  }
+}

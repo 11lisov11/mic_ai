@@ -147,3 +147,14 @@ def test_air56_unoq_deploy_smoke_entrypoint_exists() -> None:
     text = script.read_text(encoding="utf-8")
     assert "tools/air56_unoq_stage0_loopback.py" in text
     assert "tests/test_air56_unoq_stage0_loopback.py" in text
+
+
+def test_air56_unoq_hardware_acceptance_template_and_tool_exist() -> None:
+    tool = ROOT / "tools" / "air56_unoq_hardware_acceptance.py"
+    template = PKG / "hardware_acceptance_report.template.json"
+    bringup = ROOT / "docs" / "air56_unoq_bringup.md"
+
+    assert tool.exists()
+    assert template.exists()
+    assert "mic_theory.air56_unoq.hardware_acceptance.v1" in template.read_text(encoding="utf-8")
+    assert "air56_unoq_hardware_acceptance.py" in bringup.read_text(encoding="utf-8")

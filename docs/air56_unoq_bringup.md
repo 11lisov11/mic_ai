@@ -113,6 +113,25 @@ Pass criteria:
 - AI-enabled run does not exceed configured current/thermal limits.
 - AIR56 physical result is documented separately from the simulation release.
 
+## Hardware Acceptance Report
+
+After the real board runs pass, copy and fill:
+
+```bash
+cp arduino/air56_unoq_ready/hardware_acceptance_report.template.json \
+  .tmp_pytest/air56_unoq_hardware_acceptance_report.json
+```
+
+Validate the report:
+
+```bash
+python tools/air56_unoq_hardware_acceptance.py \
+  --report .tmp_pytest/air56_unoq_hardware_acceptance_report.json \
+  --out-json .tmp_pytest/air56_unoq_hardware_acceptance_summary.json
+```
+
+`hardware_ready=true` is required before the root plan can call AIR56 UNO Q board deployment `100%` complete.
+
 ## Fast Verification Commands
 
 Use this profile during normal development on weak hardware:

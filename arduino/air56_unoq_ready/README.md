@@ -33,8 +33,10 @@ The firmware no longer contains fake production sensor readings inside `air56_un
   - `air56_unoq_bridge.env.example`: `/etc/default` template
 - `../../tools/air56_unoq_bridge.py`: QRB2210 Linux AI bridge
 - `../../tools/air56_unoq_stage0_loopback.py`: protocol self-test for Stage 0
+- `../../tools/air56_unoq_hardware_acceptance.py`: physical Stage 0-4 acceptance validator
 - `../../tools/run_air56_unoq_deploy_smoke.py`: one-command repo-side deploy smoke runner
 - `../../docs/air56_unoq_bringup.md`: staged hardware bring-up protocol
+- `hardware_acceptance_report.template.json`: fill from real board logs before claiming hardware-ready
 
 ## STM32U585 Firmware Build
 
@@ -60,6 +62,13 @@ Run the production-critical coverage gate:
 
 ```bash
 python tools/check_air56_unoq_coverage_gate.py
+```
+
+Validate real hardware acceptance after Stage 0-4 runs:
+
+```bash
+python tools/air56_unoq_hardware_acceptance.py \
+  --report arduino/air56_unoq_ready/hardware_acceptance_report.filled.json
 ```
 
 Current gate:
