@@ -25,12 +25,15 @@ Current-code Step27 reproducibility baseline after the `2026-05-19` full trainin
 - strict recheck output: [final_selected_strict_recheck_20260519](C:/mic_theory/outputs/train3_fullprog_20260519/final_selected_strict_recheck_20260519)
 - tracked refresh manifest: [20260519_train3_refresh](C:/mic_theory/paper/ieee_2026/data/release/20260519_train3_refresh/research_refresh_manifest.json)
 
-Hardware-productization status as of `2026-05-19`:
+Hardware-productization status as of `2026-05-20`:
 
 - `AIR56 UNO Q` is the first board deployment path.
 - The split architecture is implemented as a deploy package: STM32U585 owns FOC/safety/fallback, QRB2210/Linux runs the AI `id_ref` decision layer.
 - The repo now contains the firmware hardware-adapter contract, Linux bridge startup/fallback checks, and a Stage 0-4 log-to-report hardware acceptance builder.
 - Physical board deployment is not complete until the real STM32U585 FOC/inverter layer implements the `air56_foc_*` adapter symbols and passes the staged bring-up protocol.
+- A second practical deploy path is prepared for a commercial Delta MS300 `VFD4A8MS21ANSAA` drive: PC/QRB2210 -> isolated USB-RS485 -> MS300 -> AIR56.
+- The Delta MS300 path is repo-side ready for safe Modbus RTU self-check, read-only telemetry, guarded frequency writes, guarded run/stop, CSV logging, and staged bring-up.
+- With a commercial VFD, MIC/AI cannot directly command the researched `id_ref` actuator; the MS300 owns fast current/vector loops, so this path is a slow supervisory frequency/profile layer until deeper drive-side controls are proven.
 
 Historical milestone kept for provenance:
 
@@ -88,6 +91,12 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [run_air56_unoq_deploy_smoke.py](C:/mic_theory/tools/run_air56_unoq_deploy_smoke.py): one-command AIR56 UNO Q repo-side smoke
 - [air56_unoq_ready](C:/mic_theory/arduino/air56_unoq_ready): AIR56 UNO Q split deploy package
 - [air56_unoq_bringup.md](C:/mic_theory/docs/air56_unoq_bringup.md): physical bring-up protocol
+- [delta_ms300_modbus.py](C:/mic_theory/tools/delta_ms300_modbus.py): Delta MS300 Modbus RTU protocol, safety gates, and CLI
+- [delta_ms300_modbus_bridge.py](C:/mic_theory/tools/delta_ms300_modbus_bridge.py): Delta MS300 bridge wrapper
+- [run_delta_ms300_deploy_smoke.py](C:/mic_theory/tools/run_delta_ms300_deploy_smoke.py): one-command Delta MS300 repo-side smoke
+- [vfd_delta_ms300_air56.json](C:/mic_theory/config/vfd_delta_ms300_air56.json): safe default AIR56 Delta MS300 config
+- [delta_ms300_air56_ready](C:/mic_theory/vfd/delta_ms300_air56_ready): Delta MS300 deploy package
+- [delta_ms300_air56_bringup.md](C:/mic_theory/docs/delta_ms300_air56_bringup.md): Delta MS300 physical bring-up protocol
 - [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
 
 ## Quick Start
@@ -119,6 +128,20 @@ python tools/step27_pipeline.py ^
   --seed-perturbation ^
   --seed-perturb-level 0.2 ^
   --out-dir outputs/step27_3motors_current
+```
+
+Run the Delta MS300 repo-side smoke before connecting hardware:
+
+```bash
+python tools/run_delta_ms300_deploy_smoke.py
+```
+
+Run a read-only Delta MS300 check after wiring an isolated USB-RS485 adapter and
+editing `config/vfd_delta_ms300_air56.json` for the real COM port:
+
+```bash
+python tools/delta_ms300_modbus_bridge.py --config config/vfd_delta_ms300_air56.json self-check
+python tools/delta_ms300_modbus_bridge.py --config config/vfd_delta_ms300_air56.json read-once
 ```
 
 ## Validation Snapshot
@@ -174,6 +197,12 @@ python tools/step27_pipeline.py ^
   - current `2026-05-19` result after hardware binding validator: `passed = true`, total AIR56 deploy subset coverage `91.57%`, `tools/air56_unoq_validate_hw_binding.py = 100.00%`
   - current `2026-05-19` result after hardware release gate: `passed = true`, total AIR56 deploy subset coverage `92.06%`, `tools/air56_unoq_hardware_release_gate.py = 100.00%`
   - current `2026-05-19` result after hardware release packager: `passed = true`, total AIR56 deploy subset coverage `92.42%`, `tools/air56_unoq_package_hardware_release.py = 100.00%`
+- Delta MS300 AIR56 repo-side deploy smoke:
+  - `python tools/run_delta_ms300_deploy_smoke.py`
+  - current `2026-05-20` result: `passed = true`, targeted pytest `20 passed`
+- Delta MS300 AIR56 targeted regression:
+  - `python -m pytest -q tests/test_delta_ms300_modbus.py`
+  - current `2026-05-20` result: `20 passed`
 - weak-hardware fast profile:
   - `python -m pytest -q -m "not slow and not hardware"`
   - `scripts/run_fast_tests.ps1` or `scripts/run_fast_tests.sh`
@@ -182,6 +211,7 @@ python tools/step27_pipeline.py ^
   - current `2026-05-19` result after hardware binding validator: `303 passed, 18 deselected`
   - current `2026-05-19` result after hardware release gate: `308 passed, 18 deselected`
   - current `2026-05-19` result after hardware release packager: `313 passed, 18 deselected`
+  - current `2026-05-20` result after Delta MS300 deploy package: `333 passed, 18 deselected`
 - slow research profile:
   - `python -m pytest -q -m "slow and not hardware"`
   - `scripts/run_slow_tests.ps1` or `scripts/run_slow_tests.sh`
@@ -192,6 +222,7 @@ python tools/step27_pipeline.py ^
   - current `2026-05-19` result after hardware binding validator: `321 passed`
   - current `2026-05-19` result after hardware release gate: `326 passed`
   - current `2026-05-19` result after hardware release packager: `331 passed`
+  - current `2026-05-20` result after Delta MS300 deploy package: `351 passed`
 
 ## Repository Structure
 
@@ -200,6 +231,7 @@ python tools/step27_pipeline.py ^
 - `mic_ai/`: AI, metrics, training, runtime tools
 - `tools/`: orchestration and reproducibility scripts
 - `tests/`: regression and smoke tests
+- `vfd/`: commercial VFD deploy packages such as Delta MS300 AIR56
 - `paper/`: publication and submission artifacts
 - `outputs/`: experimental and reproduce artifacts
 - `docs/`: documentation and archived planning materials
@@ -217,4 +249,6 @@ python tools/step27_pipeline.py ^
 - The hardware binding validator is fail-safe: template manifests, mock adapter source, constant-return stubs, and undocumented `air56_foc_*` mappings produce `hardware_binding_ready=false`.
 - The hardware release gate is fail-safe: it only passes when binding, physical acceptance, deploy smoke, and coverage evidence are all green.
 - The hardware release packager is fail-safe by default: it still writes evidence for diagnosis, but returns nonzero unless `release_ready=true` or `--allow-not-ready` is explicitly used.
+- `Delta MS300` support is fail-safe by default: checked-in config does not allow writes or run commands until both the JSON safety flags and CLI arming flags are explicitly enabled.
+- The Delta MS300 path is a commercial-VFD supervisory path, not a direct replacement for the STM32U585 `id_ref` actuator used in the research release.
 - Whole-repository coverage is not expected to be 100% because this repo contains many research CLI and long-running reproduction scripts. Coverage gating is enforced on the production-critical AIR56 UNO Q deploy subset instead.

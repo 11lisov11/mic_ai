@@ -1,6 +1,6 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-05-19`
+Date updated: `2026-05-20`
 Repository: `C:\mic_theory`
 
 ## Status
@@ -25,6 +25,10 @@ Hardware-productization is now tracked separately:
 - Additional repo-side hardening: Stage 0 protocol loopback self-test, deploy-smoke runner, and STM32U585 adapter template.
 - Hardware acceptance is now machine-checkable with `tools/air56_unoq_validate_hw_binding.py`, `tools/air56_unoq_analyze_stage4_ab.py`, `tools/air56_unoq_build_hardware_report.py`, `tools/air56_unoq_hardware_acceptance.py`, `tools/air56_unoq_hardware_release_gate.py`, and `tools/air56_unoq_package_hardware_release.py`; it still requires the real STM32U585 adapter plus real Stage 0-4 board logs.
 - Not yet physically complete: the real STM32U585 FOC/inverter layer must implement `air56_foc_*` symbols and pass board bring-up.
+- `Delta MS300 VFD` is now a second active productization path for the user-specified `VFD4A8MS21ANSAA` inverter.
+- Delta MS300 architecture is fixed: `PC/QRB2210/Linux` sends guarded Modbus RTU commands through isolated USB-RS485; the MS300 owns fast current/vector loops and motor protection.
+- Repository-ready for Delta MS300: safe default config, Modbus RTU CRC/framing helpers, read-only self-check, guarded frequency writes, guarded run/stop, CSV monitor, Linux/Windows wrappers, staged bring-up docs, and automated smoke tests.
+- Not yet physically complete for Delta MS300: real USB-RS485 Stage 0, no-load run, baseline logs, MIC/AI supervisory logs, and loaded A/B evidence must be captured on the actual drive/motor.
 
 Historical strict-verified `2-motor` release kept for provenance:
 
@@ -82,6 +86,24 @@ Status on `2026-05-09` audit:
 - weak-hardware fast pytest profile is green
 - production-critical AIR56 UNO Q coverage gate is green
 - physical board deployment is still not complete because the real STM32U585 FOC/inverter adapter and staged motor tests are not present in this repository
+
+## Delta MS300 VFD Completion Criteria
+
+The `Delta MS300 VFD` AIR56 path counts as hardware-complete only when all items below are true.
+
+1. Read-only Modbus Stage 0 passes on the real isolated USB-RS485 link.
+2. Optional frequency-command write probe passes while the motor remains stopped.
+3. MS300 motor nameplate, command source, frequency source, and serial parameters are confirmed on the keypad/manual revision.
+4. VFD-only no-load run at low frequency passes with safe stop and no fault.
+5. Baseline VFD frequency profile is logged to CSV.
+6. MIC/AI supervisory frequency/profile layer is enabled with strict frequency and ramp limits.
+7. Stage 4 physical A/B logs show no regression in current, DC bus, fault status, tracking, or power guardrails.
+
+Status on `2026-05-20`:
+
+- repo-side Delta MS300 deploy package is implemented
+- automated dry-run smoke is green
+- physical MS300 drive tests are still open because the real inverter is not connected in this environment
 
 ## Active Rework Plan After 2026-05-09 Audit
 
@@ -166,6 +188,41 @@ This checklist tracks what is still not complete after the research release. It 
   - `python tools/air56_unoq_package_hardware_release.py --package-tag <tag> --out-dir <release package dir> --binding-manifest <filled real hardware binding manifest> --hardware-report <filled real hardware report> --deploy-smoke-json <deploy smoke report> --coverage-json <coverage gate json>`
   - production firmware build without mock hardware
   - physical Stage 0-4 bring-up protocol
+
+### F. Delta MS300 VFD AIR56 Productization
+
+- [x] Add safe default Delta MS300 AIR56 config with `allow_write=false` and `allow_run=false`.
+- [x] Implement Modbus RTU CRC/framing, read holding registers, write single register, and strict response validation.
+- [x] Implement safety gates so frequency writes require config and CLI arming.
+- [x] Implement safety gates so run commands require separate config and CLI arming.
+- [x] Add read-only self-check, Stage 0 probe, monitor, CSV logging, stop, and run-forward CLI modes.
+- [x] Add Linux env/service template and Windows Stage 0 helper.
+- [x] Add staged Delta MS300 AIR56 bring-up documentation.
+- [x] Add repo-side Delta MS300 smoke runner.
+- [x] Add targeted Delta MS300 regression tests.
+- [ ] Stage 0 read-only Modbus must pass on the actual Delta MS300 USB-RS485 link.
+- [ ] Stage 0 optional frequency write probe must pass while the motor remains stopped.
+- [ ] MS300 keypad parameters must be confirmed against the real manual revision and saved with bench notes.
+- [ ] Stage 1 VFD-only no-load AIR56 run must pass at low frequency with safe stop and no fault.
+- [ ] Stage 2 baseline VFD profile must be logged to CSV.
+- [ ] Stage 3 MIC/AI supervisory profile must run with strict frequency/ramp limits and no automatic run authority.
+- [ ] Stage 4 Delta MS300 physical A/B comparison must document baseline vs MIC/AI supervisory logs.
+- [ ] Delta MS300 hardware-ready claim must remain false until real Stage 0-4 evidence exists.
+
+### 2026-05-20 Delta MS300 Commands
+
+Commands run during this audit:
+
+- `python -m pytest -q tests/test_delta_ms300_modbus.py`
+  - result: `20 passed`
+- `python tools/run_delta_ms300_deploy_smoke.py --out-json .tmp_pytest/delta_ms300_smoke.json`
+  - result: `passed = true`
+- `python tools/delta_ms300_modbus_bridge.py --dry-run --csv-log .tmp_pytest/delta_ms300_monitor.csv monitor --samples 2 --period-s 0.001`
+  - result: `passed`, CSV monitor output written
+- `.venv\Scripts\python.exe -m pytest -q -m "not slow and not hardware"`
+  - result: `333 passed, 18 deselected`
+- `.venv\Scripts\python.exe -m pytest -q`
+  - result: `351 passed`
 
 ### 2026-05-09 Audit Commands
 

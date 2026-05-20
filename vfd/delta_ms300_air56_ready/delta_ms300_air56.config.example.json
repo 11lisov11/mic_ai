@@ -1,0 +1,54 @@
+{
+  "schema": "mic_theory.delta_ms300.air56_config.v1",
+  "drive_model": "VFD4A8MS21ANSAA",
+  "motor_name": "AIR56",
+  "serial": {
+    "port": "COM3",
+    "baud": 9600,
+    "bytesize": 8,
+    "parity": "N",
+    "stopbits": 2,
+    "timeout_s": 0.3,
+    "slave_id": 1
+  },
+  "safety": {
+    "max_frequency_hz": 50.0,
+    "min_frequency_hz": 0.0,
+    "max_delta_hz_per_s": 2.0,
+    "command_timeout_s": 0.5,
+    "allow_write": false,
+    "allow_run": false,
+    "stop_on_exit": true,
+    "current_limit_a": 4.8,
+    "dc_bus_limit_v": 410.0
+  },
+  "registers": {
+    "command": "0x2000",
+    "frequency_command": "0x2001",
+    "fault_code": "0x2100",
+    "status": "0x2101",
+    "output_frequency": "0x2103",
+    "output_current": "0x2104",
+    "dc_bus_voltage": "0x2105",
+    "output_voltage": "0x2106",
+    "output_power": "0x210F"
+  },
+  "scales": {
+    "frequency_hz": 100.0,
+    "current_a": 100.0,
+    "voltage_v": 10.0,
+    "power_kw": 100.0
+  },
+  "command_words": {
+    "stop": 1,
+    "run_forward": 18,
+    "run_reverse": 34,
+    "reset": 2
+  },
+  "required_drive_parameters": {
+    "Pr.00-20": "frequency command source = RS-485 / communication; verify exact value in your MS300 manual revision",
+    "Pr.00-21": "operation command source = RS-485 / communication; verify exact value in your MS300 manual revision",
+    "Pr.09-00": "Modbus slave address = 1",
+    "Pr.09-01/09-04": "serial baud/protocol must match this file: 9600, 8N2, Modbus RTU"
+  }
+}

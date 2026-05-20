@@ -1,0 +1,17 @@
+[Unit]
+Description=MIC Theory Delta MS300 AIR56 read-only monitor
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/mic_theory/delta_ms300_air56.env
+ExecStart=/bin/sh -lc 'cd "$MIC_THEORY_ROOT" && exec /usr/bin/python3 "$MIC_THEORY_ROOT/tools/delta_ms300_modbus_bridge.py" --config "$CONFIG" --csv-log "$CSV_LOG" "$MODE" --period-s "$PERIOD_S"'
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/mic_theory /tmp
+
+[Install]
+WantedBy=multi-user.target

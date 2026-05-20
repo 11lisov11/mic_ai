@@ -1,0 +1,6 @@
+{
+  "schema": "mic_theory.delta_ms300.stage0_modbus.v1",
+  "passed": false,
+  "template": true,
+  "note": "Replace this file with real read-only MS300 Stage 0 output from tools/delta_ms300_modbus_bridge.py."
+}
