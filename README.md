@@ -35,6 +35,13 @@ Hardware-productization status as of `2026-05-20`:
 - The Delta MS300 path is repo-side ready for safe Modbus RTU self-check, read-only telemetry, guarded frequency writes, guarded run/stop, CSV logging, and staged bring-up.
 - With a commercial VFD, MIC/AI cannot directly command the researched `id_ref` actuator; the MS300 owns fast current/vector loops, so this path is a slow supervisory frequency/profile layer until deeper drive-side controls are proven.
 
+New theory branch status as of `2026-05-22`:
+
+- `Safe Neural Horizon PWM with Event-Triggered Twin Feedback` is implemented as a host-level research scaffold.
+- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, and MC=100 smoke.
+- Current claim is deliberately limited: `HOST_SIMULATION_ONLY`, no MCU/HIL/bench proof.
+- First findings are recorded in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md), including two fixed modeling/control bugs.
+
 Historical milestone kept for provenance:
 
 - [20260412_postrestore_ai_2motors_release](C:/mic_theory/paper/ieee_2026/data/step28/20260412_postrestore_ai_2motors_release)
@@ -97,6 +104,12 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [vfd_delta_ms300_air56.json](C:/mic_theory/config/vfd_delta_ms300_air56.json): safe default AIR56 Delta MS300 config
 - [delta_ms300_air56_ready](C:/mic_theory/vfd/delta_ms300_air56_ready): Delta MS300 deploy package
 - [delta_ms300_air56_bringup.md](C:/mic_theory/docs/delta_ms300_air56_bringup.md): Delta MS300 physical bring-up protocol
+- [induction_motor_alpha_beta.py](C:/mic_theory/models/induction_motor_alpha_beta.py): alpha-beta induction motor model for the new Safety Neural Horizon PWM research track
+- [two_level_inverter.py](C:/mic_theory/models/two_level_inverter.py): key-level two-level inverter vector model
+- [ai_pwm_gateway.py](C:/mic_theory/safety/ai_pwm_gateway.py): protected AI-PWM Safety Gateway and no-shoot-through waveform helpers
+- [safe_neural_horizon_pwm.py](C:/mic_theory/control/safe_neural_horizon_pwm.py): event-triggered neural-horizon AI-PWM controller scaffold
+- [run_safe_neural_horizon_pwm_study.py](C:/mic_theory/tools/run_safe_neural_horizon_pwm_study.py): quick host-level MC smoke for the new research track
+- [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md): current theory report, limitations, and next work
 - [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
 
 ## Quick Start
@@ -134,6 +147,12 @@ Run the Delta MS300 repo-side smoke before connecting hardware:
 
 ```bash
 python tools/run_delta_ms300_deploy_smoke.py
+```
+
+Run the new Safe Neural Horizon PWM host-level smoke:
+
+```bash
+python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json
 ```
 
 Run a read-only Delta MS300 check after wiring an isolated USB-RS485 adapter and

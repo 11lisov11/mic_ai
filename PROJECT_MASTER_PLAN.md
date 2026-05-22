@@ -1,6 +1,6 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-05-20`
+Date updated: `2026-05-22`
 Repository: `C:\mic_theory`
 
 ## Status
@@ -29,6 +29,9 @@ Hardware-productization is now tracked separately:
 - Delta MS300 architecture is fixed: `PC/QRB2210/Linux` sends guarded Modbus RTU commands through isolated USB-RS485; the MS300 owns fast current/vector loops and motor protection.
 - Repository-ready for Delta MS300: safe default config, Modbus RTU CRC/framing helpers, read-only self-check, guarded frequency writes, guarded run/stop, CSV monitor, Linux/Windows wrappers, staged bring-up docs, and automated smoke tests.
 - Not yet physically complete for Delta MS300: real USB-RS485 Stage 0, no-load run, baseline logs, MIC/AI supervisory logs, and loaded A/B evidence must be captured on the actual drive/motor.
+- A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
+- New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, and MC=100 smoke are implemented.
+- New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
 
 Historical strict-verified `2-motor` release kept for provenance:
 
@@ -104,6 +107,30 @@ Status on `2026-05-20`:
 - repo-side Delta MS300 deploy package is implemented
 - automated dry-run smoke is green
 - physical MS300 drive tests are still open because the real inverter is not connected in this environment
+
+## Safe Neural Horizon PWM Research Criteria
+
+The new `Safe Neural Horizon PWM` research track counts as theory-complete only when all items below are true.
+
+1. Alpha-beta induction motor model covers flux, current, torque, mechanics, parameter drift, saturation hooks, current/voltage limits, dead-time/Vdc effects.
+2. Two-level inverter model covers all 8 vectors, common-mode voltage, dead-time, min-pulse, switching/conduction loss proxies, and thermal proxy.
+3. Safety Gateway proves and tests no-shoot-through timing waveforms for every vector transition.
+4. AI-PWM compares one-step, H=2, H=3, H=4, thermal cost, spectral cost, and feedback economy variants.
+5. Neural twin includes domain randomization, multi-step loss protocol, uncertainty/confidence, and online adaptation experiment.
+6. Event-triggered feedback is compared with fixed 10 kHz, 5 kHz, 2 kHz, 1 kHz, 500 Hz, 200 Hz, and sensorless/current-only proxies.
+7. Strong baselines exist: FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat predictive current control, sensorless/adaptive FOC.
+8. Robust scenario matrix covers start, load, reverse, braking, low speed, field weakening, DC-link sag, heating, sensor faults, OOD, and fault injection.
+9. Monte Carlo reaches at least `N=100` for first study and `N=500..1000` for final paper candidate.
+10. Ablation study and Pareto fronts are generated.
+11. Scientific report and article draft state exactly what is host-simulated and what still requires MCU/HIL/bench.
+
+Status on `2026-05-22`:
+
+- host-level scaffold is implemented
+- no-shoot-through waveform invariant tests pass for all 8x8 vector transitions
+- MC=100 smoke runs and records zero safety waveform violations for the new H=2 variant
+- two bugs were found and fixed: pre-step current reporting in the alpha-beta model, and missing flux-building cost that made startup select zero vector
+- strong key-level baselines, full robust matrix, final ablation, Pareto, HIL, and bench work are still open
 
 ## Active Rework Plan After 2026-05-09 Audit
 
@@ -208,6 +235,31 @@ This checklist tracks what is still not complete after the research release. It 
 - [ ] Stage 3 MIC/AI supervisory profile must run with strict frequency/ramp limits and no automatic run authority.
 - [ ] Stage 4 Delta MS300 physical A/B comparison must document baseline vs MIC/AI supervisory logs.
 - [ ] Delta MS300 hardware-ready claim must remain false until real Stage 0-4 evidence exists.
+
+### G. Safe Neural Horizon PWM Research Track
+
+- [x] Add stationary alpha-beta induction motor model for the new theory branch.
+- [x] Add two-level inverter vector model with nonideal voltage/loss/common-mode proxies.
+- [x] Add protected AI-PWM Safety Gateway with valid vector, min-pulse, current, Vdc, Tj, confidence, risk, watchdog, switching-budget, and fault-latch checks.
+- [x] Add host test that all 8x8 vector transitions generate no shoot-through gate waveform.
+- [x] Add neural-horizon AI-PWM controller scaffold with H=1..4 search support.
+- [x] Add neural-cost-shaping and event-triggered feedback/twin scaffold without claiming trained optimality.
+- [x] Add host-level H=4 bounded sequence-selection smoke.
+- [x] Add host-level fault-injection tests for invalid vector, min-pulse, confidence, overcurrent, undervoltage, overtemperature, and watchdog.
+- [x] Add fast MC smoke runner that writes to `.tmp_pytest/` instead of tracked output paths.
+- [x] Run first `N=100` host-level smoke for the new branch.
+- [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
+- [ ] Add strong key-level FOC-SVM baseline using the same inverter/dead-time/min-pulse/current constraints.
+- [ ] Add tuned FCS-MPC baseline separate from the current one-step proxy.
+- [ ] Add DTC and DTC-SVM baselines.
+- [ ] Add deadbeat predictive current-control baseline.
+- [ ] Add sensorless/adaptive FOC proxy.
+- [ ] Run robust scenario matrix from the research TZ.
+- [ ] Run fault-injection matrix for invalid vector, raw shoot-through request, too-short pulse, dead-time violation, overcurrent, overtemperature, undervoltage, and watchdog.
+- [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants.
+- [ ] Generate Pareto fronts.
+- [ ] Generate publication-grade plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto.
+- [ ] Prepare article draft; clearly mark MCU/HIL/bench as not done.
 
 ### 2026-05-20 Delta MS300 Commands
 

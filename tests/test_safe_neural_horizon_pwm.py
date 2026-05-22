@@ -1,0 +1,208 @@
+from __future__ import annotations
+
+import math
+
+from config.env import create_default_env
+from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
+from models.induction_motor_alpha_beta import AlphaBetaInductionMotorModel, AlphaBetaMotorParams
+from models.two_level_inverter import (
+    TwoLevelInverterParams,
+    alpha_beta_voltage,
+    phase_voltages,
+    switch_events,
+    vector_bits,
+    vector_id_from_bits,
+)
+from safety.ai_pwm_gateway import (
+    AIPwmRequest,
+    AIPwmSafetyGateway,
+    FaultFlag,
+    GatewayLimits,
+    has_shoot_through,
+    transition_waveform,
+)
+from tools.run_safe_neural_horizon_pwm_study import run_study
+
+
+def _motor_params() -> AlphaBetaMotorParams:
+    return AlphaBetaMotorParams.from_motor_params(create_default_env().motor)
+
+
+def _inverter_params() -> TwoLevelInverterParams:
+    return TwoLevelInverterParams(Vdc=300.0, f_pwm=10_000.0, dead_time_s=1e-6, min_pulse_s=2e-6)
+
+
+def _safe_request(vector_id: int = 3) -> AIPwmRequest:
+    return AIPwmRequest(
+        vector_id=vector_id,
+        dwell_s=100e-6,
+        confidence=0.9,
+        predicted_i_abs=0.5,
+        measured_i_abs=0.4,
+        vdc=300.0,
+        tj_c=40.0,
+        predicted_risk=0.1,
+    )
+
+
+def test_alpha_beta_motor_step_is_finite() -> None:
+    params = _motor_params()
+    model = AlphaBetaInductionMotorModel(params)
+    step = model.step(10.0, -5.0, load_torque_nm=0.0, dt=1e-4)
+    assert math.isfinite(step.state.psi_s_alpha)
+    assert math.isfinite(step.currents.i_s_alpha)
+    assert math.isfinite(step.torque_nm)
+
+
+def test_two_level_inverter_vector_mapping_and_voltage() -> None:
+    assert vector_bits(0b101) == (1, 0, 1)
+    assert vector_id_from_bits((1, 0, 1)) == 0b101
+    va, vb, vc = phase_voltages(0b100, 300.0)
+    assert va > 0.0
+    assert vb < 0.0
+    assert vc < 0.0
+    assert abs(va + vb + vc) < 1e-9
+    alpha, beta = alpha_beta_voltage(0b100, _inverter_params())
+    assert alpha > 0.0
+    assert math.isfinite(beta)
+    assert switch_events(0b000, 0b111) == 3
+
+
+def test_gateway_transition_waveforms_never_shoot_through() -> None:
+    for prev in range(8):
+        for nxt in range(8):
+            wave = transition_waveform(prev, nxt, dead_time_ticks=3)
+            assert not has_shoot_through(wave)
+
+
+def test_gateway_accepts_safe_vector_and_blocks_invalid_with_latch() -> None:
+    gateway = AIPwmSafetyGateway(GatewayLimits())
+    decision = gateway.evaluate(_safe_request(2))
+    assert decision.accepted is True
+    assert decision.pwm_enabled is True
+    assert decision.vector_id == 2
+
+    bad = gateway.evaluate(_safe_request(99))
+    assert bad.accepted is False
+    assert bad.pwm_enabled is False
+    assert bad.fault_latched is True
+    assert FaultFlag.INVALID_VECTOR_FAULT in bad.fault_flags
+
+
+def test_gateway_soft_fault_falls_back_without_latching() -> None:
+    gateway = AIPwmSafetyGateway(GatewayLimits(i_soft_a=1.0, i_trip_a=4.0))
+    decision = gateway.evaluate(_safe_request(4))
+    assert decision.accepted is True
+    soft = gateway.evaluate(
+        AIPwmRequest(
+            vector_id=5,
+            dwell_s=100e-6,
+            confidence=0.9,
+            predicted_i_abs=1.1,
+            measured_i_abs=0.5,
+            vdc=300.0,
+            tj_c=40.0,
+            predicted_risk=0.1,
+        )
+    )
+    assert soft.accepted is False
+    assert soft.pwm_enabled is True
+    assert soft.vector_id == 4
+    assert soft.fault_latched is False
+    assert FaultFlag.CURRENT_SOFT_FAULT in soft.fault_flags
+
+
+def test_controller_step_uses_gateway_and_returns_safe_decision() -> None:
+    motor = _motor_params()
+    inverter = _inverter_params()
+    gateway = AIPwmSafetyGateway(
+        GatewayLimits(
+            t_pwm_s=inverter.t_pwm_s,
+            min_pulse_s=inverter.min_pulse_s,
+            i_soft_a=20.0,
+            i_trip_a=30.0,
+            vdc_min_v=50.0,
+            vdc_max_v=500.0,
+        )
+    )
+    controller = SafeNeuralHorizonPwmController(
+        motor,
+        inverter,
+        gateway,
+        NeuralHorizonConfig(horizon=2, dt_s=inverter.t_pwm_s, max_branching=4),
+    )
+    result = controller.step(omega_ref=50.0, load_torque_nm=0.1, measured_i_abs=0.0, vdc=inverter.Vdc)
+    assert 0 <= result.vector_id <= 7
+    assert result.decision.gates.shoot_through is False
+    assert result.confidence > 0.0
+    assert math.isfinite(result.metrics["cost"])
+
+
+def test_controller_h4_sequence_selection_is_bounded() -> None:
+    motor = _motor_params()
+    inverter = _inverter_params()
+    gateway = AIPwmSafetyGateway(GatewayLimits(i_soft_a=20.0, i_trip_a=30.0, vdc_max_v=500.0))
+    controller = SafeNeuralHorizonPwmController(
+        motor,
+        inverter,
+        gateway,
+        NeuralHorizonConfig(horizon=4, dt_s=inverter.t_pwm_s, max_branching=3),
+    )
+    sequence, metrics = controller.select_sequence(
+        omega_ref=25.0,
+        load_torque_nm=0.0,
+        feedback_requested=False,
+    )
+    assert len(sequence) == 4
+    assert all(0 <= vector_id <= 7 for vector_id in sequence)
+    assert math.isfinite(metrics["cost"])
+
+
+def test_gateway_fault_injection_matrix() -> None:
+    cases = [
+        (_safe_request(9), FaultFlag.INVALID_VECTOR_FAULT, True),
+        (
+            AIPwmRequest(1, 1e-7, 0.9, 0.5, 0.4, 300.0, 40.0, 0.1),
+            FaultFlag.MIN_PULSE_FAULT,
+            False,
+        ),
+        (
+            AIPwmRequest(1, 100e-6, 0.1, 0.5, 0.4, 300.0, 40.0, 0.1),
+            FaultFlag.AI_CONFIDENCE_FAULT,
+            False,
+        ),
+        (
+            AIPwmRequest(1, 100e-6, 0.9, 0.5, 5.0, 300.0, 40.0, 0.1),
+            FaultFlag.OC_FAULT,
+            True,
+        ),
+        (
+            AIPwmRequest(1, 100e-6, 0.9, 0.5, 0.4, 20.0, 40.0, 0.1),
+            FaultFlag.UNDERVOLTAGE_FAULT,
+            True,
+        ),
+        (
+            AIPwmRequest(1, 100e-6, 0.9, 0.5, 0.4, 300.0, 130.0, 0.1),
+            FaultFlag.OVERTEMP_FAULT,
+            True,
+        ),
+        (
+            AIPwmRequest(1, 100e-6, 0.9, 0.5, 0.4, 300.0, 40.0, 0.1, watchdog_ok=False),
+            FaultFlag.WATCHDOG_FAULT,
+            True,
+        ),
+    ]
+    for request, expected, should_latch in cases:
+        gateway = AIPwmSafetyGateway(GatewayLimits(i_trip_a=4.0, vdc_min_v=40.0, vdc_max_v=500.0))
+        decision = gateway.evaluate(request)
+        assert expected in decision.fault_flags
+        assert decision.fault_latched is should_latch
+
+
+def test_safe_neural_horizon_pwm_study_quick_smoke() -> None:
+    payload = run_study(mc=2, steps=40, seed=11, quick=True)
+    assert payload["hardware_claim"] is False
+    controllers = payload["controllers"]
+    assert "safe_neural_horizon_pwm_h2" in controllers
+    for metrics in controllers.values():
+        assert metrics["safety_violations"]["worst"] == 0.0
