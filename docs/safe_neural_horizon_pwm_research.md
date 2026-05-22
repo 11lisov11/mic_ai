@@ -206,7 +206,7 @@ python -m pytest -q tests/test_safe_neural_horizon_pwm.py
 Current result:
 
 ```text
-9 passed
+13 passed
 ```
 
 The test file includes:
@@ -220,6 +220,7 @@ The test file includes:
 - overtemperature fault injection
 - watchdog fault injection
 - H=4 bounded sequence-selection smoke
+- matrix, Pareto, fault-summary, and markdown-report builder smoke
 
 ## AI Controller And AI-PWM
 
@@ -311,6 +312,13 @@ Non-quick mode also includes H=3 and H=4 smoke variants:
 python tools/run_safe_neural_horizon_pwm_study.py --mc 3 --steps 40 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_h4_smoke.json
 ```
 
+Matrix mode adds scenario, ablation, Pareto, and fault-injection summaries:
+
+```bash
+python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 5 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json
+python tools/build_safe_neural_horizon_pwm_report.py --input-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json --out-md .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.md
+```
+
 | Controller | Mean speed error | Mean current | Max current mean | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | protected_ai_pwm_h1_proxy | 84.043 | 2.007 | 3.704 | 30.99 | 0.983 | 9.56 | 0.53 | 0 | 6 |
@@ -326,18 +334,63 @@ Preliminary reading:
 - It does not yet prove superiority over FOC-SVM, DTC-SVM, or a tuned production FCS-MPC.
 - Safety waveform violations were zero in this host-level test.
 
+## Host-Level Scenario Matrix Smoke
+
+Command run:
+
+```bash
+python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 5 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json
+```
+
+Scope:
+
+- `N = 5` per scenario/controller pair
+- scenarios:
+  - `start_no_load`
+  - `start_with_load`
+  - `load_step`
+  - `load_shed`
+  - `reverse`
+  - `low_speed`
+  - `dc_sag`
+  - `sensor_dropout`
+- proxy baselines:
+  - `foc_svm_key_proxy`
+  - `fcs_mpc_one_step_proxy`
+  - `dtc_hysteresis_proxy`
+  - `dtc_svm_proxy`
+  - `deadbeat_current_proxy`
+  - `sensorless_adaptive_foc_proxy`
+
+Important limitation:
+
+- These are host-level proxies used to expose trade-offs and bugs. They are not yet the final strong baselines required for a paper claim.
+
+Observed pattern in the `MC=5` matrix:
+
+- `safe_neural_horizon_pwm_h4_sparse` often reduces feedback and switching, but it can increase current stress and fallback/fault events. This is useful, not a failure of the study: sparse/horizon control must be current-constrained harder before it can be promoted.
+- `fcs_mpc_one_step_proxy` generally keeps current low but switches more frequently and uses dense feedback.
+- `foc_svm_key_proxy` is a useful conservative proxy with lower switching, but it is not a full tuned FOC-SVM implementation.
+- `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
+- Fault-injection summary reports `all_cases_no_shoot_through = true`.
+
+Report builder:
+
+- `tools/build_safe_neural_horizon_pwm_report.py`
+- output used during this audit: `.tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.md`
+
 ## Baselines Still Needed
 
 The current comparison is not enough for publication.
 
 Required next baselines:
 
-- key-level FOC-SVM with the same inverter/dead-time/min-pulse/current limits
-- tuned FCS-MPC current/torque/flux baseline
-- DTC hysteresis
-- DTC-SVM
-- deadbeat predictive current control
-- sensorless/adaptive FOC proxy
+- replace `foc_svm_key_proxy` with a tuned key-level FOC-SVM with the same inverter/dead-time/min-pulse/current limits
+- replace `fcs_mpc_one_step_proxy` with tuned FCS-MPC current/torque/flux baseline
+- replace `dtc_hysteresis_proxy` with tuned DTC hysteresis
+- replace `dtc_svm_proxy` with tuned DTC-SVM
+- replace `deadbeat_current_proxy` with tuned deadbeat predictive current control
+- replace `sensorless_adaptive_foc_proxy` with MRAS/EKF/adaptive FOC
 - current protected AI-PWM release model
 
 ## Required Robust Tests Still Open

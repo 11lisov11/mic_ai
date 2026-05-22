@@ -21,7 +21,8 @@ from safety.ai_pwm_gateway import (
     has_shoot_through,
     transition_waveform,
 )
-from tools.run_safe_neural_horizon_pwm_study import run_study
+from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_injection_matrix, run_matrix, run_study
+from tools.build_safe_neural_horizon_pwm_report import build_report
 
 
 def _motor_params() -> AlphaBetaMotorParams:
@@ -204,5 +205,55 @@ def test_safe_neural_horizon_pwm_study_quick_smoke() -> None:
     assert payload["hardware_claim"] is False
     controllers = payload["controllers"]
     assert "safe_neural_horizon_pwm_h2" in controllers
+    assert "pareto_front" in payload
     for metrics in controllers.values():
         assert metrics["safety_violations"]["worst"] == 0.0
+
+
+def test_safe_neural_horizon_pwm_matrix_smoke() -> None:
+    payload = run_matrix(mc=1, steps=20, seed=5, quick=True, scenarios=["start_no_load"], include_ablation=True)
+    assert payload["hardware_claim"] is False
+    assert payload["fault_injection"]["all_cases_no_shoot_through"] is True
+    scenario = payload["matrix"]["start_no_load"]
+    assert "foc_svm_key_proxy" in scenario
+    assert "safe_neural_horizon_pwm_h2" in scenario
+    assert scenario["safe_neural_horizon_pwm_h2"]["safety_violations"]["worst"] == 0.0
+    assert payload["ablation"]["pareto_front"]
+
+
+def test_gateway_fault_injection_matrix_summary() -> None:
+    payload = run_fault_injection_matrix()
+    assert payload["all_cases_no_shoot_through"] is True
+    assert payload["cases"]["invalid_vector"]["fault_latched"] is True
+    assert payload["cases"]["low_confidence"]["accepted"] is False
+
+
+def test_pareto_front_keeps_nondominated_controller() -> None:
+    controllers = {
+        "bad": {
+            "mean_abs_speed_error": {"mean": 2.0},
+            "mean_current_abs": {"mean": 2.0},
+            "torque_ripple_proxy": {"mean": 2.0},
+            "switch_events": {"mean": 2.0},
+            "feedback_usage_ratio": {"mean": 2.0},
+            "fallback_count": {"mean": 2.0},
+        },
+        "good": {
+            "mean_abs_speed_error": {"mean": 1.0},
+            "mean_current_abs": {"mean": 1.0},
+            "torque_ripple_proxy": {"mean": 1.0},
+            "switch_events": {"mean": 1.0},
+            "feedback_usage_ratio": {"mean": 1.0},
+            "fallback_count": {"mean": 1.0},
+        },
+    }
+    assert pareto_front(controllers) == ["good"]
+
+
+def test_build_safe_neural_horizon_pwm_report_from_matrix() -> None:
+    payload = run_matrix(mc=1, steps=12, seed=3, quick=True, scenarios=["load_step"], include_ablation=True)
+    report = build_report(payload)
+    assert "Safe Neural Horizon PWM Host Research Report" in report
+    assert "hardware_claim: `False`" in report
+    assert "load_step" in report
+    assert "Fault Injection" in report

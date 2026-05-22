@@ -109,6 +109,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [ai_pwm_gateway.py](C:/mic_theory/safety/ai_pwm_gateway.py): protected AI-PWM Safety Gateway and no-shoot-through waveform helpers
 - [safe_neural_horizon_pwm.py](C:/mic_theory/control/safe_neural_horizon_pwm.py): event-triggered neural-horizon AI-PWM controller scaffold
 - [run_safe_neural_horizon_pwm_study.py](C:/mic_theory/tools/run_safe_neural_horizon_pwm_study.py): quick host-level MC smoke for the new research track
+- [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
 - [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md): current theory report, limitations, and next work
 - [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
 
@@ -153,6 +154,13 @@ Run the new Safe Neural Horizon PWM host-level smoke:
 
 ```bash
 python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json
+```
+
+Run the host-level scenario/ablation/Pareto matrix for the new research track:
+
+```bash
+python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 5 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json
+python tools/build_safe_neural_horizon_pwm_report.py --input-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json --out-md .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.md
 ```
 
 Run a read-only Delta MS300 check after wiring an isolated USB-RS485 adapter and
