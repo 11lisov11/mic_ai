@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="896" viewBox="0 0 1100 896">
+<rect width="100%" height="100%" fill="#fbfaf7"/>
+<text x="550" y="34" text-anchor="middle" font-family="Georgia,serif" font-size="24" fill="#1b1b1b">SNH-PWM H2 scenario speed-error summary</text>
+<text x="218" y="80" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">start_no_load</text>
+<rect x="230" y="66" width="376.51" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="612.51" y="80" font-family="Georgia,serif" font-size="12" fill="#333">84.01</text>
+<text x="218" y="106" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">start_with_load</text>
+<rect x="230" y="92" width="377.43" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="613.43" y="106" font-family="Georgia,serif" font-size="12" fill="#333">84.22</text>
+<text x="218" y="132" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">ramp_to_rated</text>
+<rect x="230" y="118" width="412.62" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="648.62" y="132" font-family="Georgia,serif" font-size="12" fill="#333">92.07</text>
+<text x="218" y="158" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">load_step</text>
+<rect x="230" y="144" width="376.56" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="612.56" y="158" font-family="Georgia,serif" font-size="12" fill="#333">84.02</text>
+<text x="218" y="184" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">load_shed</text>
+<rect x="230" y="170" width="422.79" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="658.79" y="184" font-family="Georgia,serif" font-size="12" fill="#333">94.34</text>
+<text x="218" y="210" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">reverse</text>
+<rect x="230" y="196" width="281.25" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="517.25" y="210" font-family="Georgia,serif" font-size="12" fill="#333">62.75</text>
+<text x="218" y="236" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">braking</text>
+<rect x="230" y="222" width="199.53" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="435.53" y="236" font-family="Georgia,serif" font-size="12" fill="#333">44.52</text>
+<text x="218" y="262" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">regeneration</text>
+<rect x="230" y="248" width="269.71" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="505.71" y="262" font-family="Georgia,serif" font-size="12" fill="#333">60.18</text>
+<text x="218" y="288" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">low_speed</text>
+<rect x="230" y="274" width="105.61" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="341.61" y="288" font-family="Georgia,serif" font-size="12" fill="#333">23.56</text>
+<text x="218" y="314" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">zero_speed</text>
+<rect x="230" y="300" width="0.46" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="236.46" y="314" font-family="Georgia,serif" font-size="12" fill="#333">0.10</text>
+<text x="218" y="340" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">field_weakening</text>
+<rect x="230" y="326" width="810.00" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="1046.00" y="340" font-family="Georgia,serif" font-size="12" fill="#333">180.73</text>
+<text x="218" y="366" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">overload</text>
+<rect x="230" y="352" width="387.68" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="623.68" y="366" font-family="Georgia,serif" font-size="12" fill="#333">86.50</text>
+<text x="218" y="392" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">dc_sag</text>
+<rect x="230" y="378" width="397.10" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="633.10" y="392" font-family="Georgia,serif" font-size="12" fill="#333">88.60</text>
+<text x="218" y="418" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">motor_heating</text>
+<rect x="230" y="404" width="387.76" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="623.76" y="418" font-family="Georgia,serif" font-size="12" fill="#333">86.52</text>
+<text x="218" y="444" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">inverter_heating</text>
+<rect x="230" y="430" width="387.82" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="623.82" y="444" font-family="Georgia,serif" font-size="12" fill="#333">86.53</text>
+<text x="218" y="470" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">rs_error</text>
+<rect x="230" y="456" width="378.53" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="614.53" y="470" font-family="Georgia,serif" font-size="12" fill="#333">84.46</text>
+<text x="218" y="496" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">rr_error</text>
+<rect x="230" y="482" width="345.79" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.79" y="496" font-family="Georgia,serif" font-size="12" fill="#333">77.16</text>
+<text x="218" y="522" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">lm_error</text>
+<rect x="230" y="508" width="345.44" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.44" y="522" font-family="Georgia,serif" font-size="12" fill="#333">77.08</text>
+<text x="218" y="548" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">j_error</text>
+<rect x="230" y="534" width="345.40" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.40" y="548" font-family="Georgia,serif" font-size="12" fill="#333">77.07</text>
+<text x="218" y="574" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">random_load</text>
+<rect x="230" y="560" width="387.60" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="623.60" y="574" font-family="Georgia,serif" font-size="12" fill="#333">86.48</text>
+<text x="218" y="600" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">periodic_load</text>
+<rect x="230" y="586" width="387.53" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="623.53" y="600" font-family="Georgia,serif" font-size="12" fill="#333">86.47</text>
+<text x="218" y="626" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">shock_load</text>
+<rect x="230" y="612" width="387.29" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="623.29" y="626" font-family="Georgia,serif" font-size="12" fill="#333">86.42</text>
+<text x="218" y="652" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">two_mass_proxy</text>
+<rect x="230" y="638" width="352.31" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="588.31" y="652" font-family="Georgia,serif" font-size="12" fill="#333">78.61</text>
+<text x="218" y="678" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">current_sensor_noise</text>
+<rect x="230" y="664" width="345.44" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.44" y="678" font-family="Georgia,serif" font-size="12" fill="#333">77.08</text>
+<text x="218" y="704" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">speed_sensor_noise</text>
+<rect x="230" y="690" width="345.67" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.67" y="704" font-family="Georgia,serif" font-size="12" fill="#333">77.13</text>
+<text x="218" y="730" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">sensor_delay</text>
+<rect x="230" y="716" width="345.26" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.26" y="730" font-family="Georgia,serif" font-size="12" fill="#333">77.04</text>
+<text x="218" y="756" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">speed_sensor_failure</text>
+<rect x="230" y="742" width="345.72" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.72" y="756" font-family="Georgia,serif" font-size="12" fill="#333">77.14</text>
+<text x="218" y="782" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">current_sensor_failure</text>
+<rect x="230" y="768" width="346.40" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="582.40" y="782" font-family="Georgia,serif" font-size="12" fill="#333">77.29</text>
+<text x="218" y="808" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">ood</text>
+<rect x="230" y="794" width="345.58" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.58" y="808" font-family="Georgia,serif" font-size="12" fill="#333">77.11</text>
+<text x="218" y="834" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">fault_injection_runtime</text>
+<rect x="230" y="820" width="345.58" height="18" rx="3" fill="#b00020" opacity="0.82"/>
+<text x="581.58" y="834" font-family="Georgia,serif" font-size="12" fill="#333">77.11</text>
+<text x="218" y="860" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#333">sensor_dropout</text>
+<rect x="230" y="846" width="345.82" height="18" rx="3" fill="#0b6bcb" opacity="0.82"/>
+<text x="581.82" y="860" font-family="Georgia,serif" font-size="12" fill="#333">77.16</text>
+</svg>

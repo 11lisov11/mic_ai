@@ -14,6 +14,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.build_safe_neural_horizon_pwm_report import build_report
+from tools.build_safe_neural_horizon_pwm_figures import build_figures
+from tools.check_safe_neural_horizon_pwm_release import analyze_release
 
 
 def _sha256(path: Path) -> str:
@@ -128,12 +130,16 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
     report_md = out_dir / "safe_neural_horizon_pwm_report.md"
     article_md = out_dir / "safe_neural_horizon_pwm_article_draft.md"
     open_items_md = out_dir / "WHAT_IS_NOT_DONE.md"
+    acceptance_json = out_dir / "HOST_ACCEPTANCE_SUMMARY.json"
 
     _write(report_md, build_report(payload))
     _write(article_md, _article_draft(payload))
     _write(open_items_md, _open_items())
+    _write(acceptance_json, json.dumps(analyze_release(copied_json), ensure_ascii=False, indent=2) + "\n")
+    figure_files = build_figures(copied_json, out_dir / "figures")
 
-    files = [copied_json, report_md, article_md, open_items_md]
+    files = [copied_json, report_md, article_md, open_items_md, acceptance_json, *figure_files]
+    acceptance = json.loads(acceptance_json.read_text(encoding="utf-8"))
     manifest = {
         "tag": tag,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -156,6 +162,7 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
             "report_written": report_md.exists(),
             "article_draft_written": article_md.exists(),
             "open_items_written": open_items_md.exists(),
+            "host_release_ready": bool(acceptance.get("host_release_ready", False)),
             "hardware_ready": False,
         },
     }

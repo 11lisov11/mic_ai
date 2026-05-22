@@ -395,8 +395,27 @@ Tracked release package:
 
 - [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release)
 - [HOST_RELEASE_MANIFEST.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/HOST_RELEASE_MANIFEST.json)
+- [HOST_ACCEPTANCE_SUMMARY.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/HOST_ACCEPTANCE_SUMMARY.json)
 - [safe_neural_horizon_pwm_article_draft.md](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_article_draft.md)
 - [WHAT_IS_NOT_DONE.md](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/WHAT_IS_NOT_DONE.md)
+- aggregate figures:
+  - [fig_speed_error_vs_current.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/figures/fig_speed_error_vs_current.svg)
+  - [fig_feedback_vs_switching.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/figures/fig_feedback_vs_switching.svg)
+  - [fig_h2_scenario_speed_error.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/figures/fig_h2_scenario_speed_error.svg)
+
+Host-release gate:
+
+```bash
+python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+```
+
+Current host-release result:
+
+```text
+host_release_ready = true
+hardware_ready = false
+strong_baselines_ready = false
+```
 
 Observed pattern in the host matrix:
 

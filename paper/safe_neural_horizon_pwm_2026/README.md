@@ -12,7 +12,15 @@ Status:
 
 - `HOST_SIMULATION_ONLY`
 - `hardware_claim = false`
+- `host_release_ready = true`
+- `hardware_ready = false`
+- `strong_baselines_ready = false`
 
 Do not use this package as MCU, HIL, or bench evidence. The package is a reproducible
 software/theory release for the new AI-PWM research branch.
 
+Release gate:
+
+```bash
+python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+```

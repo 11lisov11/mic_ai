@@ -1,0 +1,32 @@
+{
+  "status": "safe_neural_horizon_pwm_host_release_check",
+  "host_release_ready": true,
+  "hardware_ready": false,
+  "checks": {
+    "hardware_claim_false": true,
+    "status_is_host": true,
+    "required_scenarios_present": true,
+    "scenario_count": 31,
+    "matrix_present": true,
+    "required_controllers_present": true,
+    "h2_no_safety_violations": true,
+    "h2_no_unexpected_fault_latches": true,
+    "fault_gateway_no_shoot_through": true,
+    "raw_shoot_through_detector_triggered": true,
+    "manifest_hashes_ok": true,
+    "strong_baselines_ready": false
+  },
+  "failures": [],
+  "warnings": [
+    "strong baselines are not complete; current FOC-SVM/FCS-MPC/DTC/deadbeat/sensorless entries are proxy controllers"
+  ],
+  "proxy_controllers": [
+    "deadbeat_current_proxy",
+    "dtc_hysteresis_proxy",
+    "dtc_svm_proxy",
+    "fcs_mpc_one_step_proxy",
+    "foc_svm_key_proxy",
+    "protected_ai_pwm_h1_proxy",
+    "sensorless_adaptive_foc_proxy"
+  ]
+}

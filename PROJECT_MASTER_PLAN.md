@@ -135,6 +135,7 @@ Status on `2026-05-22`:
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - tracked host release package exists: [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release)
+- host-release gate is machine-checkable and currently passes with `host_release_ready = true`, `hardware_ready = false`, `strong_baselines_ready = false`
 - two bugs were found and fixed: pre-step current reporting in the alpha-beta model, and missing flux-building cost that made startup select zero vector
 - strong key-level baselines, full robust matrix, final ablation, Pareto, HIL, and bench work are still open
 
@@ -261,6 +262,8 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add Pareto front extraction for host-level study outputs.
 - [x] Add markdown report builder for Safe Neural Horizon PWM JSON outputs.
 - [x] Add tracked Safe Neural Horizon PWM host release package with JSON results, markdown report, article draft, open-items file, and SHA-256 manifest.
+- [x] Add machine-checkable Safe Neural Horizon PWM host-release gate with manifest hash validation.
+- [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Replace proxy FOC-SVM with a tuned key-level FOC-SVM baseline using the same inverter/dead-time/min-pulse/current constraints.
 - [ ] Replace proxy FCS-MPC with a tuned FCS-MPC current/torque/flux baseline.
@@ -270,8 +273,8 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Expand robust host scenario matrix to the full 30-scenario research TZ plus one explicit dropout stress case.
 - [x] Expand fault-injection matrix to include raw shoot-through request emulation, no-dead-time transition emulation, and hardware-like desat/UVLO cases.
 - [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants with publication-scale MC.
-- [ ] Generate publication-grade Pareto fronts.
-- [ ] Generate publication-grade plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto.
+- [ ] Generate publication-grade Pareto fronts after replacing proxy baselines.
+- [ ] Generate publication-grade time-series plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto after trace logging is added.
 - [x] Prepare host-level article draft; clearly mark MCU/HIL/bench as not done.
 
 ### 2026-05-20 Delta MS300 Commands

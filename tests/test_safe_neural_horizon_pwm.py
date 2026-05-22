@@ -24,6 +24,8 @@ from safety.ai_pwm_gateway import (
 from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_injection_matrix, run_matrix, run_study
 from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
+from tools.check_safe_neural_horizon_pwm_release import analyze_release
+from tools.build_safe_neural_horizon_pwm_figures import build_figures
 
 
 def _motor_params() -> AlphaBetaMotorParams:
@@ -274,4 +276,19 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
     assert (out_dir / "safe_neural_horizon_pwm_article_draft.md").exists()
     assert (out_dir / "WHAT_IS_NOT_DONE.md").exists()
+    assert (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").exists()
+    assert (out_dir / "figures" / "safe_neural_horizon_pwm_summary.csv").exists()
+    assert (out_dir / "figures" / "fig_speed_error_vs_current.svg").exists()
     assert (out_dir / "HOST_RELEASE_MANIFEST.json").exists()
+
+
+def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:
+    payload = run_matrix(mc=1, steps=8, seed=4, quick=True, scenarios=["load_step"], include_ablation=False)
+    input_json = tmp_path / "result.json"
+    input_json.write_text(__import__("json").dumps(payload), encoding="utf-8")
+    check = analyze_release(input_json)
+    assert check["host_release_ready"] is False
+    assert "missing scenarios" in "\n".join(check["failures"])
+    files = build_figures(input_json, tmp_path / "figures")
+    assert len(files) == 4
+    assert all(path.exists() for path in files)
