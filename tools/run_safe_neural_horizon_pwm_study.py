@@ -22,7 +22,7 @@ from models.induction_motor_alpha_beta import (
     randomized_motor_params,
 )
 from models.two_level_inverter import TwoLevelInverterParams, alpha_beta_voltage, switch_events
-from safety.ai_pwm_gateway import AIPwmSafetyGateway, GatewayLimits, has_shoot_through, transition_waveform
+from safety.ai_pwm_gateway import AIPwmSafetyGateway, GateOutput, GatewayLimits, has_shoot_through, transition_waveform
 
 
 BASE_CONTROLLER_SPECS = [
@@ -44,11 +44,34 @@ EXTENDED_CONTROLLER_SPECS = [
 DEFAULT_SCENARIOS = [
     "start_no_load",
     "start_with_load",
+    "ramp_to_rated",
     "load_step",
     "load_shed",
     "reverse",
+    "braking",
+    "regeneration",
     "low_speed",
+    "zero_speed",
+    "field_weakening",
+    "overload",
     "dc_sag",
+    "motor_heating",
+    "inverter_heating",
+    "rs_error",
+    "rr_error",
+    "lm_error",
+    "j_error",
+    "random_load",
+    "periodic_load",
+    "shock_load",
+    "two_mass_proxy",
+    "current_sensor_noise",
+    "speed_sensor_noise",
+    "sensor_delay",
+    "speed_sensor_failure",
+    "current_sensor_failure",
+    "ood",
+    "fault_injection_runtime",
     "sensor_dropout",
 ]
 
@@ -241,16 +264,52 @@ def _scenario_values(name: str, k: int, steps: int, omega_nom: float) -> tuple[f
         return 0.6 * omega_nom * progress, 0.0, 1.0, False
     if name == "start_with_load":
         return 0.6 * omega_nom * progress, 0.35, 1.0, False
+    if name == "ramp_to_rated":
+        return 0.95 * omega_nom * min(1.0, k / max((3 * steps) // 4, 1)), 0.25, 1.0, False
     if name == "load_shed":
         return 0.6 * omega_nom, 0.45 if k < steps // 2 else 0.0, 1.0, False
     if name == "reverse":
         ref = 0.45 * omega_nom if k < steps // 2 else -0.35 * omega_nom
         return ref, 0.25, 1.0, False
+    if name == "braking":
+        ref = 0.75 * omega_nom if k < steps // 3 else 0.05 * omega_nom
+        return ref, 0.15, 1.0, False
+    if name == "regeneration":
+        ref = 0.65 * omega_nom if k < steps // 3 else 0.25 * omega_nom
+        load = -0.2 if k >= steps // 3 else 0.1
+        return ref, load, 1.08, False
     if name == "low_speed":
         return 0.15 * omega_nom, 0.15, 1.0, False
+    if name == "zero_speed":
+        return 0.0, 0.12, 1.0, False
+    if name == "field_weakening":
+        return 1.15 * omega_nom, 0.2, 0.92, False
+    if name == "overload":
+        return 0.55 * omega_nom, 0.9 if k >= steps // 3 else 0.25, 1.0, False
     if name == "dc_sag":
         vdc_scale = 0.68 if steps // 3 <= k < (2 * steps) // 3 else 1.0
         return 0.55 * omega_nom, 0.3, vdc_scale, False
+    if name == "motor_heating":
+        return 0.55 * omega_nom, 0.45, 1.0, False
+    if name == "inverter_heating":
+        return 0.55 * omega_nom, 0.45, 1.0, False
+    if name in {"rs_error", "rr_error", "lm_error", "j_error"}:
+        return 0.55 * omega_nom * progress if k < ramp_steps else 0.55 * omega_nom, 0.3, 1.0, False
+    if name == "random_load":
+        # Deterministic pseudo-random profile; domain randomization still uses rng per trial.
+        raw = math.sin(12.9898 * (k + 1)) * 43758.5453
+        frac = raw - math.floor(raw)
+        return 0.55 * omega_nom, 0.05 + 0.55 * frac, 1.0, False
+    if name == "shock_load":
+        load = 0.2
+        if steps // 2 <= k < steps // 2 + max(2, steps // 20):
+            load = 1.1
+        return 0.55 * omega_nom, load, 1.0, False
+    if name == "two_mass_proxy":
+        load = 0.3 + 0.12 * math.sin(2.0 * math.pi * k / max(steps // 6, 1))
+        return 0.5 * omega_nom, load, 1.0, False
+    if name in {"current_sensor_noise", "speed_sensor_noise", "sensor_delay", "speed_sensor_failure", "current_sensor_failure", "ood", "fault_injection_runtime"}:
+        return 0.55 * omega_nom * progress if k < ramp_steps else 0.55 * omega_nom, 0.3, 1.0, name in {"speed_sensor_failure", "sensor_delay"}
     if name == "sensor_dropout":
         return 0.55 * omega_nom * progress, 0.3, 1.0, True
     if name == "periodic_load":
@@ -272,6 +331,23 @@ def run_trial(
     scenario: str = "load_step",
 ) -> Dict[str, float]:
     real_params = randomized_motor_params(base_motor, rng)
+    scenario_name = str(scenario).strip().lower()
+    if scenario_name == "rs_error":
+        real_params = replace(real_params, Rs=real_params.Rs * 1.65)
+    elif scenario_name == "rr_error":
+        real_params = replace(real_params, Rr=real_params.Rr * 0.55)
+    elif scenario_name == "lm_error":
+        real_params = replace(real_params, Lm=max(1e-9, real_params.Lm * 0.72))
+    elif scenario_name == "j_error":
+        real_params = replace(real_params, J=max(1e-9, real_params.J * 2.2))
+    elif scenario_name == "ood":
+        real_params = replace(
+            real_params,
+            Rs=real_params.Rs * 2.0,
+            Rr=real_params.Rr * 0.45,
+            Lm=max(1e-9, real_params.Lm * 0.55),
+            J=max(1e-9, real_params.J * 2.5),
+        )
     real_motor = AlphaBetaInductionMotorModel(real_params, AlphaBetaMotorState())
     controller = _controller(
         label=label,
@@ -294,15 +370,37 @@ def run_trial(
     rejected_count = 0
     undervoltage_steps = 0
     prev_vector = 0
+    measured_state_history: list[AlphaBetaMotorState] = []
 
     for k in range(max(int(steps), 1)):
-        omega_ref, load_torque, vdc_scale, force_sensor_dropout = _scenario_values(scenario, k, steps, omega_nom)
+        omega_ref, load_torque, vdc_scale, force_sensor_dropout = _scenario_values(scenario_name, k, steps, omega_nom)
         step_inverter = replace(inverter, Vdc=float(inverter.Vdc) * float(vdc_scale))
         if vdc_scale < 0.75:
             undervoltage_steps += 1
 
         real_currents = real_motor.currents()
         measured_i_abs = real_currents.stator_abs
+        if scenario_name == "current_sensor_noise":
+            measured_i_abs = max(0.0, measured_i_abs + rng.gauss(0.0, 0.12 * max(base_motor.i_limit, 1e-6)))
+        elif scenario_name == "current_sensor_failure" and k > steps // 3:
+            measured_i_abs = 0.0
+        elif scenario_name == "fault_injection_runtime" and steps // 2 <= k < steps // 2 + max(2, steps // 20):
+            measured_i_abs = max(measured_i_abs, 1.2 * max(3.5 * base_motor.i_limit, 5.0))
+
+        measured_state_history.append(real_motor.state)
+        measured_state = real_motor.state
+        if scenario_name == "sensor_delay" and len(measured_state_history) > 6:
+            measured_state = measured_state_history[-6]
+        if scenario_name == "speed_sensor_noise":
+            measured_state = replace(measured_state, omega_m=measured_state.omega_m + rng.gauss(0.0, 0.03 * omega_nom))
+        elif scenario_name == "speed_sensor_failure" and k > steps // 3:
+            measured_state = replace(measured_state, omega_m=0.0)
+        elif scenario_name == "motor_heating":
+            measured_state = replace(measured_state, temp_s_c=95.0, temp_r_c=105.0)
+
+        if scenario_name == "inverter_heating" and k > steps // 3:
+            controller.tj_c = max(controller.tj_c, 115.0)
+
         speed_error_pre = omega_ref - controller.twin.state_hat.omega_m
         use_feedback = (
             k == 0
@@ -318,7 +416,7 @@ def run_trial(
         result = controller.step(
             omega_ref=omega_ref,
             load_torque_nm=load_torque,
-            measured_state=real_motor.state if use_feedback else None,
+            measured_state=measured_state if use_feedback else None,
             measured_i_abs=measured_i_abs,
             vdc=step_inverter.Vdc,
         )
@@ -450,6 +548,8 @@ def run_fault_injection_matrix() -> Dict[str, object]:
         "overcurrent": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.9, "predicted_i_abs": 0.2, "measured_i_abs": 4.5, "vdc": 300.0, "tj_c": 40.0},
         "overtemperature": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.9, "predicted_i_abs": 0.2, "measured_i_abs": 0.2, "vdc": 300.0, "tj_c": 130.0},
         "undervoltage": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.9, "predicted_i_abs": 0.2, "measured_i_abs": 0.2, "vdc": 40.0, "tj_c": 40.0},
+        "uvlo_like_undervoltage": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.9, "predicted_i_abs": 0.2, "measured_i_abs": 0.2, "vdc": 20.0, "tj_c": 40.0},
+        "desat_like_overcurrent": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.9, "predicted_i_abs": 0.2, "measured_i_abs": 8.0, "vdc": 300.0, "tj_c": 40.0},
         "low_confidence": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.1, "predicted_i_abs": 0.2, "measured_i_abs": 0.2, "vdc": 300.0, "tj_c": 40.0},
         "watchdog": {"vector_id": 1, "dwell_s": 100e-6, "confidence": 0.9, "predicted_i_abs": 0.2, "measured_i_abs": 0.2, "vdc": 300.0, "tj_c": 40.0, "watchdog_ok": False},
     }
@@ -468,9 +568,33 @@ def run_fault_injection_matrix() -> Dict[str, object]:
             "fault_latched": bool(decision.fault_latched),
             "shoot_through": bool(decision.gates.shoot_through),
         }
+    raw_shoot = GateOutput(AH=True, AL=True)
+    no_deadtime_wave = transition_waveform(0b100, 0b011, dead_time_ticks=0)
+    safe_deadtime_wave = transition_waveform(0b100, 0b011, dead_time_ticks=2)
+    results["raw_shoot_through_request_emulation"] = {
+        "accepted": False,
+        "pwm_enabled": False,
+        "fault_flags": 0,
+        "fault_latched": True,
+        "shoot_through": bool(raw_shoot.shoot_through),
+        "blocked_by_interface": True,
+    }
+    results["no_deadtime_transition_emulation"] = {
+        "accepted": False,
+        "pwm_enabled": False,
+        "fault_flags": 0,
+        "fault_latched": True,
+        "shoot_through": bool(has_shoot_through(no_deadtime_wave)),
+        "blocked_by_gateway_deadtime_path": not bool(has_shoot_through(safe_deadtime_wave)),
+    }
     return {
         "status": "host_gateway_fault_injection_only",
-        "all_cases_no_shoot_through": all(not dict(row)["shoot_through"] for row in results.values()),
+        "all_gateway_cases_no_shoot_through": all(
+            not dict(row)["shoot_through"]
+            for name, row in results.items()
+            if name not in {"raw_shoot_through_request_emulation"}
+        ),
+        "raw_shoot_through_detector_triggered": bool(results["raw_shoot_through_request_emulation"]["shoot_through"]),
         "cases": results,
     }
 

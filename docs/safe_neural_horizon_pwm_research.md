@@ -206,7 +206,7 @@ python -m pytest -q tests/test_safe_neural_horizon_pwm.py
 Current result:
 
 ```text
-13 passed
+14 passed
 ```
 
 The test file includes:
@@ -221,6 +221,7 @@ The test file includes:
 - watchdog fault injection
 - H=4 bounded sequence-selection smoke
 - matrix, Pareto, fault-summary, and markdown-report builder smoke
+- host-release packager smoke
 
 ## AI Controller And AI-PWM
 
@@ -312,11 +313,12 @@ Non-quick mode also includes H=3 and H=4 smoke variants:
 python tools/run_safe_neural_horizon_pwm_study.py --mc 3 --steps 40 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_h4_smoke.json
 ```
 
-Matrix mode adds scenario, ablation, Pareto, and fault-injection summaries:
+Matrix mode adds scenario, ablation, Pareto, and fault-injection summaries.
+The tracked host release uses the full host matrix:
 
 ```bash
-python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 5 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json
-python tools/build_safe_neural_horizon_pwm_report.py --input-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json --out-md .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.md
+python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release
 ```
 
 | Controller | Mean speed error | Mean current | Max current mean | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
@@ -334,25 +336,48 @@ Preliminary reading:
 - It does not yet prove superiority over FOC-SVM, DTC-SVM, or a tuned production FCS-MPC.
 - Safety waveform violations were zero in this host-level test.
 
-## Host-Level Scenario Matrix Smoke
+## Host-Level Scenario Matrix Release
 
 Command run:
 
 ```bash
-python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 5 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json
+python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
 ```
 
 Scope:
 
-- `N = 5` per scenario/controller pair
+- `N = 3` per scenario/controller pair
 - scenarios:
   - `start_no_load`
   - `start_with_load`
+  - `ramp_to_rated`
   - `load_step`
   - `load_shed`
   - `reverse`
+  - `braking`
+  - `regeneration`
   - `low_speed`
+  - `zero_speed`
+  - `field_weakening`
+  - `overload`
   - `dc_sag`
+  - `motor_heating`
+  - `inverter_heating`
+  - `rs_error`
+  - `rr_error`
+  - `lm_error`
+  - `j_error`
+  - `random_load`
+  - `periodic_load`
+  - `shock_load`
+  - `two_mass_proxy`
+  - `current_sensor_noise`
+  - `speed_sensor_noise`
+  - `sensor_delay`
+  - `speed_sensor_failure`
+  - `current_sensor_failure`
+  - `ood`
+  - `fault_injection_runtime`
   - `sensor_dropout`
 - proxy baselines:
   - `foc_svm_key_proxy`
@@ -366,13 +391,20 @@ Important limitation:
 
 - These are host-level proxies used to expose trade-offs and bugs. They are not yet the final strong baselines required for a paper claim.
 
-Observed pattern in the `MC=5` matrix:
+Tracked release package:
+
+- [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release)
+- [HOST_RELEASE_MANIFEST.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/HOST_RELEASE_MANIFEST.json)
+- [safe_neural_horizon_pwm_article_draft.md](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_article_draft.md)
+- [WHAT_IS_NOT_DONE.md](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/WHAT_IS_NOT_DONE.md)
+
+Observed pattern in the host matrix:
 
 - `safe_neural_horizon_pwm_h4_sparse` often reduces feedback and switching, but it can increase current stress and fallback/fault events. This is useful, not a failure of the study: sparse/horizon control must be current-constrained harder before it can be promoted.
 - `fcs_mpc_one_step_proxy` generally keeps current low but switches more frequently and uses dense feedback.
 - `foc_svm_key_proxy` is a useful conservative proxy with lower switching, but it is not a full tuned FOC-SVM implementation.
 - `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
-- Fault-injection summary reports `all_cases_no_shoot_through = true`.
+- Fault-injection summary reports `all_gateway_cases_no_shoot_through = true` and the raw shoot-through detector triggers on deliberately illegal raw gate emulation.
 
 Report builder:
 

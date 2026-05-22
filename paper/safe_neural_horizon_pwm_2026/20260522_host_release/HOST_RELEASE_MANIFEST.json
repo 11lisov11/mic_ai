@@ -1,0 +1,39 @@
+{
+  "tag": "20260522_safe_neural_horizon_pwm_host_release",
+  "generated_utc": "2026-05-22T20:39:45.349971+00:00",
+  "status": "HOST_SIMULATION_ONLY",
+  "hardware_claim": false,
+  "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
+  "reproduce_commands": [
+    "python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json",
+    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release"
+  ],
+  "files": [
+    {
+      "path": "safe_neural_horizon_pwm_results.json",
+      "bytes": 793188,
+      "sha256": "073402dadbadc37ddbabde13856105d59df60ecea1de5fe9b7f4e701bb695243"
+    },
+    {
+      "path": "safe_neural_horizon_pwm_report.md",
+      "bytes": 38545,
+      "sha256": "3cfca8dc8f4c1f98df565275761bb086701b8e68e66f4446696bca269074b084"
+    },
+    {
+      "path": "safe_neural_horizon_pwm_article_draft.md",
+      "bytes": 3313,
+      "sha256": "a7f94f6e008069b4bd03b7804086fcb75c8b8e12e52a643e80f567ad0068aae8"
+    },
+    {
+      "path": "WHAT_IS_NOT_DONE.md",
+      "bytes": 678,
+      "sha256": "b7b4eab810566827f6902743b20a4a116193f2ffcbf5aee6f65d49963d471a90"
+    }
+  ],
+  "acceptance": {
+    "report_written": true,
+    "article_draft_written": true,
+    "open_items_written": true,
+    "hardware_ready": false
+  }
+}

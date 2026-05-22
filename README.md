@@ -110,7 +110,9 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [safe_neural_horizon_pwm.py](C:/mic_theory/control/safe_neural_horizon_pwm.py): event-triggered neural-horizon AI-PWM controller scaffold
 - [run_safe_neural_horizon_pwm_study.py](C:/mic_theory/tools/run_safe_neural_horizon_pwm_study.py): quick host-level MC smoke for the new research track
 - [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
+- [package_safe_neural_horizon_pwm_release.py](C:/mic_theory/tools/package_safe_neural_horizon_pwm_release.py): packages Safe Neural Horizon PWM host-simulation release evidence
 - [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md): current theory report, limitations, and next work
+- [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release): tracked Safe Neural Horizon PWM host-level release package
 - [PROJECT_MASTER_PLAN.md](C:/mic_theory/PROJECT_MASTER_PLAN.md): active root status and guardrails
 
 ## Quick Start
@@ -159,8 +161,8 @@ python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 -
 Run the host-level scenario/ablation/Pareto matrix for the new research track:
 
 ```bash
-python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 5 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json
-python tools/build_safe_neural_horizon_pwm_report.py --input-json .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.json --out-md .tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.md
+python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release
 ```
 
 Run a read-only Delta MS300 check after wiring an isolated USB-RS485 adapter and

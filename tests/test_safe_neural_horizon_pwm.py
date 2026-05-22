@@ -23,6 +23,7 @@ from safety.ai_pwm_gateway import (
 )
 from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_injection_matrix, run_matrix, run_study
 from tools.build_safe_neural_horizon_pwm_report import build_report
+from tools.package_safe_neural_horizon_pwm_release import package_release
 
 
 def _motor_params() -> AlphaBetaMotorParams:
@@ -213,7 +214,8 @@ def test_safe_neural_horizon_pwm_study_quick_smoke() -> None:
 def test_safe_neural_horizon_pwm_matrix_smoke() -> None:
     payload = run_matrix(mc=1, steps=20, seed=5, quick=True, scenarios=["start_no_load"], include_ablation=True)
     assert payload["hardware_claim"] is False
-    assert payload["fault_injection"]["all_cases_no_shoot_through"] is True
+    assert payload["fault_injection"]["all_gateway_cases_no_shoot_through"] is True
+    assert payload["fault_injection"]["raw_shoot_through_detector_triggered"] is True
     scenario = payload["matrix"]["start_no_load"]
     assert "foc_svm_key_proxy" in scenario
     assert "safe_neural_horizon_pwm_h2" in scenario
@@ -223,9 +225,12 @@ def test_safe_neural_horizon_pwm_matrix_smoke() -> None:
 
 def test_gateway_fault_injection_matrix_summary() -> None:
     payload = run_fault_injection_matrix()
-    assert payload["all_cases_no_shoot_through"] is True
+    assert payload["all_gateway_cases_no_shoot_through"] is True
+    assert payload["raw_shoot_through_detector_triggered"] is True
     assert payload["cases"]["invalid_vector"]["fault_latched"] is True
     assert payload["cases"]["low_confidence"]["accepted"] is False
+    assert payload["cases"]["raw_shoot_through_request_emulation"]["blocked_by_interface"] is True
+    assert payload["cases"]["no_deadtime_transition_emulation"]["blocked_by_gateway_deadtime_path"] is True
 
 
 def test_pareto_front_keeps_nondominated_controller() -> None:
@@ -257,3 +262,16 @@ def test_build_safe_neural_horizon_pwm_report_from_matrix() -> None:
     assert "hardware_claim: `False`" in report
     assert "load_step" in report
     assert "Fault Injection" in report
+
+
+def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
+    payload = run_matrix(mc=1, steps=8, seed=3, quick=True, scenarios=["load_step"], include_ablation=False)
+    input_json = tmp_path / "result.json"
+    input_json.write_text(__import__("json").dumps(payload), encoding="utf-8")
+    out_dir = tmp_path / "release"
+    manifest = package_release(input_json=input_json, out_dir=out_dir, tag="test_tag")
+    assert manifest["hardware_claim"] is False
+    assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_article_draft.md").exists()
+    assert (out_dir / "WHAT_IS_NOT_DONE.md").exists()
+    assert (out_dir / "HOST_RELEASE_MANIFEST.json").exists()

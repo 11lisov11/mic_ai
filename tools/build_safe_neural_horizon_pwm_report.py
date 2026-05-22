@@ -133,7 +133,8 @@ def build_report(payload: Dict[str, Any]) -> str:
     if fault:
         lines.append("## Fault Injection")
         lines.append("")
-        lines.append(f"- all_cases_no_shoot_through: `{bool(fault.get('all_cases_no_shoot_through', False))}`")
+        lines.append(f"- all_gateway_cases_no_shoot_through: `{bool(fault.get('all_gateway_cases_no_shoot_through', False))}`")
+        lines.append(f"- raw_shoot_through_detector_triggered: `{bool(fault.get('raw_shoot_through_detector_triggered', False))}`")
         rows = []
         for name, raw in dict(fault.get("cases", {})).items():
             case = dict(raw)
