@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-23T02:43:52.803278+00:00",
+  "generated_utc": "2026-05-23T10:03:38.602194+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -11,8 +11,8 @@
   "files": [
     {
       "path": "safe_neural_horizon_pwm_results.json",
-      "bytes": 793188,
-      "sha256": "073402dadbadc37ddbabde13856105d59df60ecea1de5fe9b7f4e701bb695243"
+      "bytes": 793288,
+      "sha256": "8299b66bbeba27e953fe9e092c84bc0e1a38fdfdad02cae09c3a6e726e7f7b0f"
     },
     {
       "path": "safe_neural_horizon_pwm_report.md",

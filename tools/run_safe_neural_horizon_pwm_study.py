@@ -22,7 +22,14 @@ from models.induction_motor_alpha_beta import (
     randomized_motor_params,
 )
 from models.two_level_inverter import TwoLevelInverterParams, alpha_beta_voltage, switch_events
-from safety.ai_pwm_gateway import AIPwmSafetyGateway, GateOutput, GatewayLimits, has_shoot_through, transition_waveform
+from safety.ai_pwm_gateway import (
+    AIPwmSafetyGateway,
+    GateOutput,
+    GatewayLimits,
+    has_direct_leg_transition,
+    has_shoot_through,
+    transition_waveform,
+)
 
 
 BASE_CONTROLLER_SPECS = [
@@ -585,7 +592,10 @@ def run_fault_injection_matrix() -> Dict[str, object]:
         "fault_flags": 0,
         "fault_latched": True,
         "shoot_through": bool(has_shoot_through(no_deadtime_wave)),
-        "blocked_by_gateway_deadtime_path": not bool(has_shoot_through(safe_deadtime_wave)),
+        "direct_leg_transition_without_deadtime": bool(has_direct_leg_transition(no_deadtime_wave)),
+        "safe_deadtime_path_valid": not bool(has_direct_leg_transition(safe_deadtime_wave)),
+        "blocked_by_gateway_deadtime_path": bool(has_direct_leg_transition(no_deadtime_wave))
+        and not bool(has_direct_leg_transition(safe_deadtime_wave)),
     }
     return {
         "status": "host_gateway_fault_injection_only",

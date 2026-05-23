@@ -165,10 +165,18 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     fault = dict(payload.get("fault_injection", {}))
     checks["fault_gateway_no_shoot_through"] = bool(fault.get("all_gateway_cases_no_shoot_through", False))
     checks["raw_shoot_through_detector_triggered"] = bool(fault.get("raw_shoot_through_detector_triggered", False))
+    no_deadtime = dict(dict(fault.get("cases", {})).get("no_deadtime_transition_emulation", {}))
+    checks["deadtime_transition_detector_triggered"] = bool(
+        no_deadtime.get("direct_leg_transition_without_deadtime", False)
+        and no_deadtime.get("safe_deadtime_path_valid", False)
+        and no_deadtime.get("blocked_by_gateway_deadtime_path", False)
+    )
     if not checks["fault_gateway_no_shoot_through"]:
         failures.append("gateway fault-injection cases include shoot-through")
     if not checks["raw_shoot_through_detector_triggered"]:
         failures.append("raw shoot-through detector did not trigger")
+    if not checks["deadtime_transition_detector_triggered"]:
+        failures.append("dead-time transition detector did not trigger")
 
     manifest_ok, required_release_files_present, manifest_paths_safe, manifest_failures = _check_manifest_hashes(release_dir)
     checks["manifest_hashes_ok"] = manifest_ok

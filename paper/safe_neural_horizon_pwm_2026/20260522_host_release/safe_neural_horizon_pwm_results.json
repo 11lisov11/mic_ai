@@ -27926,6 +27926,8 @@
         "fault_flags": 0,
         "fault_latched": true,
         "shoot_through": false,
+        "direct_leg_transition_without_deadtime": true,
+        "safe_deadtime_path_valid": true,
         "blocked_by_gateway_deadtime_path": true
       }
     }

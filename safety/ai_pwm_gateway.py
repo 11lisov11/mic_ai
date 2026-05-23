@@ -144,6 +144,34 @@ def has_shoot_through(waveform: Iterable[GateOutput]) -> bool:
     return any(item.shoot_through for item in waveform)
 
 
+def _leg_state(high: bool, low: bool) -> str:
+    if high and low:
+        return "X"
+    if high:
+        return "H"
+    if low:
+        return "L"
+    return "Z"
+
+
+def has_direct_leg_transition(waveform: Iterable[GateOutput]) -> bool:
+    """Detect HIGH<->LOW leg transitions that skip the BOTH_OFF dead-time state."""
+
+    previous: tuple[str, str, str] | None = None
+    for item in waveform:
+        current = (
+            _leg_state(item.AH, item.AL),
+            _leg_state(item.BH, item.BL),
+            _leg_state(item.CH, item.CL),
+        )
+        if previous is not None:
+            for old, new in zip(previous, current):
+                if (old, new) in {("H", "L"), ("L", "H")}:
+                    return True
+        previous = current
+    return False
+
+
 def _finite(value: float) -> bool:
     try:
         return math.isfinite(float(value))
@@ -182,6 +210,14 @@ class AIPwmSafetyGateway:
             flags |= FaultFlag.NONFINITE_FAULT
         if not _finite(req.predicted_risk):
             flags |= FaultFlag.NONFINITE_FAULT
+        if not _finite(self.limits.t_pwm_s) or not _finite(self.limits.dead_time_s):
+            flags |= FaultFlag.NONFINITE_FAULT
+        elif float(self.limits.dead_time_s) <= 0.0 or float(self.limits.dead_time_s) >= float(self.limits.t_pwm_s):
+            flags |= FaultFlag.DEADTIME_FAULT
+        if not _finite(self.limits.min_pulse_s):
+            flags |= FaultFlag.NONFINITE_FAULT
+        elif float(self.limits.min_pulse_s) <= 0.0 or float(self.limits.min_pulse_s) >= float(self.limits.t_pwm_s):
+            flags |= FaultFlag.MIN_PULSE_FAULT
 
         try:
             validate_vector_id(req.vector_id)
@@ -290,6 +326,7 @@ __all__ = [
     "GateOutput",
     "GatewayLimits",
     "gates_from_vector",
+    "has_direct_leg_transition",
     "has_shoot_through",
     "transition_waveform",
 ]

@@ -19,6 +19,7 @@ from safety.ai_pwm_gateway import (
     AIPwmSafetyGateway,
     FaultFlag,
     GatewayLimits,
+    has_direct_leg_transition,
     has_shoot_through,
     transition_waveform,
 )
@@ -78,6 +79,15 @@ def test_gateway_transition_waveforms_never_shoot_through() -> None:
         for nxt in range(8):
             wave = transition_waveform(prev, nxt, dead_time_ticks=3)
             assert not has_shoot_through(wave)
+            assert not has_direct_leg_transition(wave)
+
+
+def test_gateway_transition_detector_flags_missing_deadtime_path() -> None:
+    unsafe_path = transition_waveform(0b100, 0b011, dead_time_ticks=0)
+    safe_path = transition_waveform(0b100, 0b011, dead_time_ticks=2)
+    assert not has_shoot_through(unsafe_path)
+    assert has_direct_leg_transition(unsafe_path)
+    assert not has_direct_leg_transition(safe_path)
 
 
 def test_gateway_accepts_safe_vector_and_blocks_invalid_with_latch() -> None:
@@ -92,6 +102,15 @@ def test_gateway_accepts_safe_vector_and_blocks_invalid_with_latch() -> None:
     assert bad.pwm_enabled is False
     assert bad.fault_latched is True
     assert FaultFlag.INVALID_VECTOR_FAULT in bad.fault_flags
+
+
+def test_gateway_latches_deadtime_misconfiguration() -> None:
+    gateway = AIPwmSafetyGateway(GatewayLimits(dead_time_s=0.0))
+    decision = gateway.evaluate(_safe_request(2))
+    assert decision.accepted is False
+    assert decision.pwm_enabled is False
+    assert decision.fault_latched is True
+    assert FaultFlag.DEADTIME_FAULT in decision.fault_flags
 
 
 def test_gateway_soft_fault_falls_back_without_latching() -> None:
@@ -258,6 +277,8 @@ def test_gateway_fault_injection_matrix_summary() -> None:
     assert payload["cases"]["invalid_vector"]["fault_latched"] is True
     assert payload["cases"]["low_confidence"]["accepted"] is False
     assert payload["cases"]["raw_shoot_through_request_emulation"]["blocked_by_interface"] is True
+    assert payload["cases"]["no_deadtime_transition_emulation"]["direct_leg_transition_without_deadtime"] is True
+    assert payload["cases"]["no_deadtime_transition_emulation"]["safe_deadtime_path_valid"] is True
     assert payload["cases"]["no_deadtime_transition_emulation"]["blocked_by_gateway_deadtime_path"] is True
 
 
