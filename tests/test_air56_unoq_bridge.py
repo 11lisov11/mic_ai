@@ -221,6 +221,43 @@ def test_serial_transport_uses_pyserial_contract(monkeypatch) -> None:
     assert fake.closed
 
 
+def test_serial_transport_recv_times_out_on_incomplete_frame(monkeypatch) -> None:
+    created: list[object] = []
+
+    class EmptySerial:
+        def __init__(self, *, port: str, baudrate: int, timeout: float) -> None:
+            self.port = port
+            self.baudrate = baudrate
+            self.timeout = timeout
+            self.closed = False
+            created.append(self)
+
+        def read(self, size: int) -> bytes:
+            return b""
+
+        def write(self, payload: bytes) -> None:
+            raise AssertionError("timeout test must not write")
+
+        def flush(self) -> None:
+            raise AssertionError("timeout test must not flush")
+
+        def close(self) -> None:
+            self.closed = True
+
+    monkeypatch.setitem(sys.modules, "serial", SimpleNamespace(Serial=EmptySerial))
+    transport = SerialTransport("COM99", 115200, 0.001)
+    try:
+        try:
+            transport.recv(4)
+        except TimeoutError as exc:
+            assert "serial frame timeout" in str(exc)
+        else:  # pragma: no cover
+            raise AssertionError("incomplete serial frame did not time out")
+    finally:
+        transport.close()
+    assert created[0].closed
+
+
 def test_status_fault_mask_semantics() -> None:
     assert not _status_fault(0, 0)
     assert _status_fault(1, 0)

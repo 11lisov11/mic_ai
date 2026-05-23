@@ -5,6 +5,7 @@ import json
 import math
 import socket
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
@@ -109,13 +110,17 @@ class SerialTransport(BaseTransport):
             import serial  # type: ignore
         except Exception as exc:  # pragma: no cover
             raise RuntimeError("pyserial is required for --transport serial") from exc
+        self._timeout_s = float(timeout_s)
         self._ser = serial.Serial(port=port, baudrate=int(baud), timeout=float(timeout_s))
 
     def recv(self, size: int) -> bytes:
         buf = bytearray()
+        deadline = time.monotonic() + max(float(self._timeout_s), 1.0e-6)
         while len(buf) < size:
             chunk = self._ser.read(size - len(buf))
             if not chunk:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(f"serial frame timeout: got {len(buf)}/{size} bytes")
                 continue
             buf.extend(chunk)
         return bytes(buf)
