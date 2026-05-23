@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-22T21:28:50.880691+00:00",
+  "generated_utc": "2026-05-23T02:37:43.555223+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -30,27 +30,22 @@
       "sha256": "b7b4eab810566827f6902743b20a4a116193f2ffcbf5aee6f65d49963d471a90"
     },
     {
-      "path": "HOST_ACCEPTANCE_SUMMARY.json",
-      "bytes": 1001,
-      "sha256": "62fbdb10a3595a706d7c2876f7acf9f781c4837b75c808f009db61e2b0bbe96c"
-    },
-    {
-      "path": "figures\\safe_neural_horizon_pwm_summary.csv",
+      "path": "figures/safe_neural_horizon_pwm_summary.csv",
       "bytes": 34630,
       "sha256": "1c2002785c89bc285a4acc986e60d5554480f0977a13b5834dab3bae3a53280b"
     },
     {
-      "path": "figures\\fig_speed_error_vs_current.svg",
+      "path": "figures/fig_speed_error_vs_current.svg",
       "bytes": 24124,
       "sha256": "b58ad3aa16e43769b53e9982e4615ea379677c310506f14f6bd18ef7c8a7e9ef"
     },
     {
-      "path": "figures\\fig_feedback_vs_switching.svg",
+      "path": "figures/fig_feedback_vs_switching.svg",
       "bytes": 24109,
       "sha256": "9e3afb6ecacad110267f1f978fc494fb770edbf58e964fdba9f2f08311cc861b"
     },
     {
-      "path": "figures\\fig_h2_scenario_speed_error.svg",
+      "path": "figures/fig_h2_scenario_speed_error.svg",
       "bytes": 9563,
       "sha256": "d56172eb293ee8a9fa29b860a935ba362df685af589c0d116d595c1ae6c3f92a"
     }
@@ -59,6 +54,7 @@
     "report_written": true,
     "article_draft_written": true,
     "open_items_written": true,
+    "acceptance_summary_written": true,
     "host_release_ready": true,
     "hardware_ready": false
   }

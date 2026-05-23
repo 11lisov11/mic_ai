@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sys
 from typing import Any, Dict, List
 
@@ -26,6 +26,16 @@ REQUIRED_CONTROLLERS = {
     "safe_neural_horizon_pwm_h2",
     "safe_neural_horizon_pwm_h3_thermal",
     "safe_neural_horizon_pwm_h4_sparse",
+}
+REQUIRED_RELEASE_FILES = {
+    "safe_neural_horizon_pwm_results.json",
+    "safe_neural_horizon_pwm_report.md",
+    "safe_neural_horizon_pwm_article_draft.md",
+    "WHAT_IS_NOT_DONE.md",
+    "figures/safe_neural_horizon_pwm_summary.csv",
+    "figures/fig_speed_error_vs_current.svg",
+    "figures/fig_feedback_vs_switching.svg",
+    "figures/fig_h2_scenario_speed_error.svg",
 }
 
 
@@ -53,25 +63,50 @@ def _load_results(path: Path) -> tuple[Dict[str, Any], Path | None]:
     return json.loads(path.read_text(encoding="utf-8")), None
 
 
-def _check_manifest_hashes(release_dir: Path | None) -> tuple[bool, list[str]]:
+def _normalize_manifest_path(raw: str) -> tuple[str | None, str | None]:
+    if not raw:
+        return None, "empty manifest path"
+    normalized = raw.replace("\\", "/")
+    if normalized.startswith("/") or Path(raw).is_absolute():
+        return None, f"unsafe absolute manifest path: {raw}"
+    rel = PurePosixPath(normalized)
+    if any(part in {"", ".", ".."} or ":" in part for part in rel.parts):
+        return None, f"unsafe manifest path: {raw}"
+    return rel.as_posix(), None
+
+
+def _check_manifest_hashes(release_dir: Path | None) -> tuple[bool, bool, bool, list[str]]:
     if release_dir is None:
-        return True, []
+        return True, True, True, []
     manifest_path = release_dir / "HOST_RELEASE_MANIFEST.json"
     if not manifest_path.exists():
-        return False, ["missing HOST_RELEASE_MANIFEST.json"]
+        return False, False, False, ["missing HOST_RELEASE_MANIFEST.json"]
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     failures: list[str] = []
+    manifest_paths_safe = True
+    manifest_entries: set[str] = set()
     for item in manifest.get("files", []):
-        rel = Path(str(item.get("path", "")))
-        path = release_dir / rel
+        raw = str(item.get("path", ""))
+        rel_key, rel_error = _normalize_manifest_path(raw)
+        if rel_error:
+            manifest_paths_safe = False
+            failures.append(rel_error)
+            continue
+        assert rel_key is not None
+        manifest_entries.add(rel_key)
+        path = release_dir.joinpath(*PurePosixPath(rel_key).parts)
         if not path.exists():
-            failures.append(f"manifest file missing: {rel}")
+            failures.append(f"manifest file missing: {rel_key}")
             continue
         expected = str(item.get("sha256", ""))
         actual = _sha256(path)
         if actual != expected:
-            failures.append(f"sha256 mismatch: {rel}")
-    return not failures, failures
+            failures.append(f"sha256 mismatch: {rel_key}")
+    missing_required = sorted(REQUIRED_RELEASE_FILES - manifest_entries)
+    required_files_present = not missing_required
+    if missing_required:
+        failures.append(f"manifest missing required release files: {missing_required}")
+    return not failures, required_files_present, manifest_paths_safe, failures
 
 
 def analyze_release(path: Path) -> Dict[str, Any]:
@@ -135,8 +170,10 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     if not checks["raw_shoot_through_detector_triggered"]:
         failures.append("raw shoot-through detector did not trigger")
 
-    manifest_ok, manifest_failures = _check_manifest_hashes(release_dir)
+    manifest_ok, required_release_files_present, manifest_paths_safe, manifest_failures = _check_manifest_hashes(release_dir)
     checks["manifest_hashes_ok"] = manifest_ok
+    checks["required_release_files_present"] = required_release_files_present
+    checks["manifest_paths_safe"] = manifest_paths_safe
     if manifest_failures:
         failures.extend(manifest_failures)
 

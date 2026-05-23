@@ -14,6 +14,8 @@
     "fault_gateway_no_shoot_through": true,
     "raw_shoot_through_detector_triggered": true,
     "manifest_hashes_ok": true,
+    "required_release_files_present": true,
+    "manifest_paths_safe": true,
     "strong_baselines_ready": false
   },
   "failures": [],

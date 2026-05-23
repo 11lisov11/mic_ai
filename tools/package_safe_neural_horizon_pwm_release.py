@@ -135,11 +135,11 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
     _write(report_md, build_report(payload))
     _write(article_md, _article_draft(payload))
     _write(open_items_md, _open_items())
-    _write(acceptance_json, json.dumps(analyze_release(copied_json), ensure_ascii=False, indent=2) + "\n")
     figure_files = build_figures(copied_json, out_dir / "figures")
 
-    files = [copied_json, report_md, article_md, open_items_md, acceptance_json, *figure_files]
-    acceptance = json.loads(acceptance_json.read_text(encoding="utf-8"))
+    # Do not include HOST_ACCEPTANCE_SUMMARY.json in the manifest hash list: it is
+    # generated after the manifest so it can validate the manifest itself.
+    files = [copied_json, report_md, article_md, open_items_md, *figure_files]
     manifest = {
         "tag": tag,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -152,7 +152,7 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
         ],
         "files": [
             {
-                "path": str(path.relative_to(out_dir)),
+                "path": path.relative_to(out_dir).as_posix(),
                 "bytes": path.stat().st_size,
                 "sha256": _sha256(path),
             }
@@ -162,11 +162,16 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
             "report_written": report_md.exists(),
             "article_draft_written": article_md.exists(),
             "open_items_written": open_items_md.exists(),
-            "host_release_ready": bool(acceptance.get("host_release_ready", False)),
+            "acceptance_summary_written": True,
+            "host_release_ready": False,
             "hardware_ready": False,
         },
     }
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
+    _write(manifest_path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    acceptance = analyze_release(out_dir)
+    _write(acceptance_json, json.dumps(acceptance, ensure_ascii=False, indent=2) + "\n")
+    manifest["acceptance"]["host_release_ready"] = bool(acceptance.get("host_release_ready", False))
     _write(manifest_path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     manifest["manifest_sha256"] = _sha256(manifest_path)
     return manifest

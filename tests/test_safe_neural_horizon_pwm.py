@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 
 from config.env import create_default_env
@@ -292,3 +293,39 @@ def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:
     files = build_figures(input_json, tmp_path / "figures")
     assert len(files) == 4
     assert all(path.exists() for path in files)
+
+
+def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> None:
+    payload = run_matrix(mc=1, steps=8, seed=6, quick=True, scenarios=["load_step"], include_ablation=False)
+    input_json = tmp_path / "result.json"
+    input_json.write_text(json.dumps(payload), encoding="utf-8")
+    out_dir = tmp_path / "release"
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag")
+
+    manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"] = [
+        item for item in manifest["files"] if item["path"] != "safe_neural_horizon_pwm_report.md"
+    ]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    check = analyze_release(out_dir)
+    assert check["checks"]["required_release_files_present"] is False
+    assert "manifest missing required release files" in "\n".join(check["failures"])
+
+
+def test_release_checker_rejects_unsafe_manifest_paths(tmp_path) -> None:
+    payload = run_matrix(mc=1, steps=8, seed=7, quick=True, scenarios=["load_step"], include_ablation=False)
+    input_json = tmp_path / "result.json"
+    input_json.write_text(json.dumps(payload), encoding="utf-8")
+    out_dir = tmp_path / "release"
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag")
+
+    manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"].append({"path": "../evil.txt", "bytes": 0, "sha256": ""})
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    check = analyze_release(out_dir)
+    assert check["checks"]["manifest_paths_safe"] is False
+    assert "unsafe manifest path" in "\n".join(check["failures"])
