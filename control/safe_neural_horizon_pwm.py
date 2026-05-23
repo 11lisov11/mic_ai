@@ -386,6 +386,11 @@ class SafeNeuralHorizonPwmController:
         )
         confidence = max(float(self.cfg.confidence_floor), self.twin.confidence())
         predicted_risk = float(metrics.get("risk", self.twin.uncertainty))
+        prev_vector_id = self.gateway.current_vector_id
+        pre_apply_currents = AlphaBetaInductionMotorModel(
+            self.motor_params,
+            self.twin.state_hat,
+        ).currents()
         decision = self.gateway.evaluate(
             AIPwmRequest(
                 vector_id=vector_id,
@@ -400,6 +405,18 @@ class SafeNeuralHorizonPwmController:
         )
 
         applied_vector = decision.vector_id if decision.pwm_enabled else 0
+        if decision.pwm_enabled:
+            applied_losses = estimate_inverter_losses(
+                prev_vector_id=prev_vector_id,
+                next_vector_id=applied_vector,
+                params=self.inverter_params,
+                i_alpha_beta=(pre_apply_currents.i_s_alpha, pre_apply_currents.i_s_beta),
+            )
+            applied_loss_w = float(applied_losses.total_w)
+            applied_switch_events = float(applied_losses.switch_events)
+        else:
+            applied_loss_w = 0.0
+            applied_switch_events = 0.0
         applied_state, applied_torque, _ = self.twin.predict(
             applied_vector,
             self.inverter_params,
@@ -409,14 +426,19 @@ class SafeNeuralHorizonPwmController:
         self.twin.state_hat = applied_state
         self.last_torque = applied_torque
 
-        loss_w = float(metrics.get("loss_w", 0.0))
         tau = max(self.inverter_params.thermal_rth_k_per_w * self.inverter_params.thermal_cth_j_per_k, 1e-9)
-        target_temp = self.inverter_params.ambient_c + self.inverter_params.thermal_rth_k_per_w * loss_w
+        target_temp = self.inverter_params.ambient_c + self.inverter_params.thermal_rth_k_per_w * applied_loss_w
         self.tj_c += (target_temp - self.tj_c) * min(1.0, self.cfg.dt_s / tau)
 
+        planned_loss_w = float(metrics.get("loss_w", 0.0))
+        planned_switch_events = float(metrics.get("switch_events", 0.0))
         metrics = dict(metrics)
         metrics.update(
             {
+                "planned_loss_w": planned_loss_w,
+                "planned_switch_events": planned_switch_events,
+                "loss_w": applied_loss_w,
+                "switch_events": applied_switch_events,
                 "predicted_torque": float(predicted_torque),
                 "accepted": 1.0 if decision.accepted else 0.0,
                 "fault_flags": float(int(decision.fault_flags)),

@@ -5,7 +5,7 @@ import math
 
 from config.env import create_default_env
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
-from models.induction_motor_alpha_beta import AlphaBetaInductionMotorModel, AlphaBetaMotorParams
+from models.induction_motor_alpha_beta import AlphaBetaInductionMotorModel, AlphaBetaMotorParams, AlphaBetaMotorState
 from models.two_level_inverter import (
     TwoLevelInverterParams,
     alpha_beta_voltage,
@@ -161,6 +161,31 @@ def test_controller_h4_sequence_selection_is_bounded() -> None:
     assert len(sequence) == 4
     assert all(0 <= vector_id <= 7 for vector_id in sequence)
     assert math.isfinite(metrics["cost"])
+
+
+def test_controller_reports_applied_losses_after_gateway_disable() -> None:
+    motor = _motor_params()
+    inverter = _inverter_params()
+    gateway = AIPwmSafetyGateway(GatewayLimits(i_trip_a=0.25, vdc_max_v=500.0))
+    controller = SafeNeuralHorizonPwmController(
+        motor,
+        inverter,
+        gateway,
+        NeuralHorizonConfig(horizon=2, dt_s=inverter.t_pwm_s, max_branching=4),
+    )
+    measured_state = AlphaBetaMotorState(psi_s_alpha=0.2, psi_r_alpha=0.1, omega_m=10.0)
+    result = controller.step(
+        omega_ref=50.0,
+        load_torque_nm=0.1,
+        measured_state=measured_state,
+        measured_i_abs=1.0,
+        vdc=inverter.Vdc,
+    )
+    assert result.decision.pwm_enabled is False
+    assert FaultFlag.OC_FAULT in result.decision.fault_flags
+    assert result.metrics["loss_w"] == 0.0
+    assert result.metrics["switch_events"] == 0.0
+    assert result.metrics["planned_loss_w"] >= result.metrics["loss_w"]
 
 
 def test_gateway_fault_injection_matrix() -> None:
