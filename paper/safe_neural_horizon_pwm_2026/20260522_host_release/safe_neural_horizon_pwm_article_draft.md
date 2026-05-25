@@ -11,6 +11,7 @@ This draft describes a host-simulated induction-motor control variant that combi
 - Safety Gateway that prevents direct AI access to raw high/low gate commands.
 - Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.
 - Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.
+- Domain-randomized theta-conditioned twin identification evidence with multi-step rollout losses.
 - Scenario matrix, ablation smoke, Pareto extraction, fault-injection summary, and host trace/FFT evidence package.
 - Machine-checkable release, novelty, and theory-completion audits.
 
@@ -88,7 +89,7 @@ Fault-injection result:
 
 - Host simulation only.
 - FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final tuned publication-grade.
-- No trained domain-randomized neural twin yet.
+- Domain-randomized theta-conditioned twin evidence exists, but it is host-only and assumes theta/passport or identification context.
 - First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.
 - Host trace package with time-series CSV plus FFT/THD-like torque-current evidence exists, but it is still simulation-only and not hardware THD.
 - No fixed-point/WCET analysis.
@@ -99,5 +100,6 @@ Fault-injection result:
 - Tune the FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines into strong publication baselines.
 - Run publication-scale MC after baseline replacement.
 - Expand the host trace/FFT package after baseline tuning and validate it against HIL/bench traces.
+- Replace the theta-conditioned host twin with a production online identifier before MCU/HIL/bench claims.
 - Port the safety gateway and timing checks to the target MCU/HIL path.
 - Validate gate timing and current trips on real hardware before any hardware-ready claim.

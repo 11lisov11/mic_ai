@@ -17,6 +17,7 @@ Status:
 - `host_theory_scaffold_ready = true`
 - `trace_fft_thd_evidence_ready = true`
 - `publication_plots_fft_thd_ready = true`
+- `trained_domain_randomized_twin_ready = true`
 - `publication_theory_complete = false`
 - `hardware_ready = false`
 - `strong_baselines_ready = false`

@@ -32,6 +32,7 @@ Hardware-productization is now tracked separately:
 - A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
 - New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, and MC=100 smoke are implemented.
 - New branch machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
+- New branch machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; production online identification remains open.
 - New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
 
 Historical strict-verified `2-motor` release kept for provenance:
@@ -278,6 +279,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add machine-checkable Safe Neural Horizon PWM theory-completion audit that separates `host_theory_scaffold_ready` from `publication_theory_complete`.
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Add host trace/FFT/THD-like evidence package with time-series CSV, speed trace SVG, spectral SVG, and machine-checkable theory gate.
+- [x] Add domain-randomized theta-conditioned twin evidence with multi-step rollout losses and machine-checkable theory gate.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Tune and stress-test the FOC-SVM key-level baseline to publication-grade level with the same inverter/dead-time/min-pulse/current constraints.
 - [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.

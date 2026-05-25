@@ -483,6 +483,7 @@ host_novelty_claim_supported = true
 host_theory_scaffold_ready = true
 trace_fft_thd_evidence_ready = true
 publication_plots_fft_thd_ready = true
+trained_domain_randomized_twin_ready = true
 publication_theory_complete = false
 ```
 
@@ -494,12 +495,48 @@ The tracked release also contains:
 - [trace_evidence/trace_summary.csv](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/trace_summary.csv)
 - [trace_evidence/figures/fig_trace_speed.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/figures/fig_trace_speed.svg)
 - [trace_evidence/figures/fig_trace_fft_thd.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/figures/fig_trace_fft_thd.svg)
+- [twin_evidence/twin_training_summary.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/twin_evidence/twin_training_summary.json)
+- [twin_evidence/residual_twin_weights.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/twin_evidence/residual_twin_weights.json)
 
 Interpretation:
 
 - `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
 - `trace_fft_thd_evidence_ready = true` means the release now has host time-series CSV traces plus FFT/THD-like spectral metrics and SVG figures.
-- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength, the neural twin is trained/identified, and MC reaches publication scale.
+- `trained_domain_randomized_twin_ready = true` means the release now contains theta-conditioned host twin evidence with domain randomization and multi-step rollout losses.
+- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength and MC reaches publication scale.
+
+## Domain-Randomized Twin Evidence
+
+Command run:
+
+```bash
+python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence
+```
+
+Scope:
+
+- train episodes: `28`;
+- validation episodes: `10`;
+- steps per episode: `90`;
+- domain randomization: `Rs +/-50%`, `Rr +/-50%`, `Lm +/-20%`, `J +/-100%`, `B +/-100%`;
+- model: theta-conditioned physics twin plus an experimental fixed-random-feature residual layer;
+- acceptance: multi-step losses at horizons `1`, `5`, `10`, `50`.
+
+Key result:
+
+| Evidence | Status |
+|---|---|
+| theta-conditioned twin ready | true |
+| residual layer ready | false |
+| min theta-conditioned multi-step improvement | 100.00% |
+| min residual multi-step improvement | 2.89% |
+| one-step residual improvement | -15.26% |
+
+Interpretation:
+
+- The ready twin evidence is the theta/passport-conditioned physics twin, which is appropriate for the current “any motor with passport/identified parameters” research direction.
+- The residual layer is kept as a diagnostic trained artifact because it improves multi-step validation after gain selection, but its one-step validation is worse; it is not promoted as a production neural residual.
+- This closes host-level domain-randomized twin evidence, but it does not close production online parameter identification, sensorless operation, MCU, HIL, or bench validation.
 
 ## Host Trace / FFT / THD-Like Evidence
 
@@ -587,6 +624,7 @@ Still not publication-grade:
 - full thermal/spectral ablations;
 - final Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed;
 - expanded trace plots for gate timing, feedback events, confidence, losses, and temperature after trace logging is extended;
+- production online parameter identification; current twin evidence is theta/passport-conditioned host evidence;
 - MCU/HIL/bench timing evidence.
 
 ## MCU/HIL/Bench Status
@@ -634,5 +672,5 @@ What is not shown:
 - no proof of hardware readiness
 - no proof of HIL safety
 - no proof of superiority over strong FOC-SVM/DTC-SVM baselines
-- no trained domain-randomized neural twin yet
+- no production online parameter identifier yet; current trained/identified twin evidence is host-only and theta/passport-conditioned
 - no final paper-grade Monte Carlo/Pareto/ablation package yet

@@ -3,8 +3,8 @@
   "host_theory_scaffold_ready": true,
   "publication_theory_complete": false,
   "completion_pct_host_criteria": 100.0,
-  "criteria_total": 12,
-  "criteria_pass": 12,
+  "criteria_total": 13,
+  "criteria_pass": 13,
   "criteria_partial": 0,
   "criteria_open": 0,
   "checks": {
@@ -20,6 +20,7 @@
     "ablation_and_pareto_smoke": true,
     "trace_fft_thd_evidence_ready": true,
     "publication_plots_fft_thd_ready": true,
+    "domain_randomized_twin_evidence_ready": true,
     "report_and_release_artifacts": true,
     "honest_claim_boundaries": true,
     "foc_svm_key_baseline_ready": true,
@@ -30,7 +31,7 @@
     "sensorless_adaptive_foc_baseline_ready": true,
     "protected_ai_pwm_h1_baseline_ready": true,
     "strong_baselines_ready": false,
-    "trained_domain_randomized_twin_ready": false,
+    "trained_domain_randomized_twin_ready": true,
     "publication_mc500_ready": false
   },
   "criteria": [
@@ -120,6 +121,15 @@
       "missing": []
     },
     {
+      "key": "domain_randomized_twin_evidence",
+      "status": "pass",
+      "evidence": [
+        "twin_evidence/twin_training_summary.json",
+        "twin_evidence/residual_twin_weights.json"
+      ],
+      "missing": []
+    },
+    {
       "key": "report_and_release_artifacts",
       "status": "pass",
       "evidence": [
@@ -142,7 +152,7 @@
   ],
   "warnings": [
     "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
-    "neural twin is still a scaffold, not a trained domain-randomized model",
+    "domain-randomized twin evidence is host-only and theta-conditioned; production online identification remains open",
     "publication-scale MC is still open"
   ]
 }

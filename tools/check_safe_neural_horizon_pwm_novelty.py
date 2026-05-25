@@ -43,6 +43,16 @@ def _load_payload(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _has_twin_evidence(path: Path) -> bool:
+    if not path.is_dir():
+        return False
+    summary = path / "twin_evidence" / "twin_training_summary.json"
+    if not summary.exists():
+        return False
+    payload = json.loads(summary.read_text(encoding="utf-8"))
+    return bool(payload.get("trained_domain_randomized_twin_ready", False))
+
+
 def analyze_novelty(path: Path) -> Dict[str, Any]:
     payload = _load_payload(path)
     checks: Dict[str, Any] = {}
@@ -117,7 +127,10 @@ def analyze_novelty(path: Path) -> Dict[str, Any]:
         warnings.append("publication-scale MC is not met; current tracked release is host evidence only")
 
     warnings.append("FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are separate host baselines; they are not final publication-tuned")
-    warnings.append("neural twin is a scaffold, not a trained domain-randomized ensemble")
+    if _has_twin_evidence(path):
+        warnings.append("domain-randomized twin evidence is theta-conditioned host evidence, not a production sensorless ensemble")
+    else:
+        warnings.append("neural twin is a scaffold, not a trained domain-randomized ensemble")
 
     host_novelty_claim_supported = not failures
     return {

@@ -108,6 +108,50 @@ def _trace_evidence_status(release_dir: Path | None) -> tuple[bool, bool, list[s
     return evidence_ready, publication_ready, missing
 
 
+def _twin_evidence_status(release_dir: Path | None) -> tuple[bool, list[str]]:
+    if release_dir is None:
+        return False, ["release directory with twin_evidence/twin_training_summary.json"]
+    twin_dir = release_dir / "twin_evidence"
+    summary_path = twin_dir / "twin_training_summary.json"
+    weights_path = twin_dir / "residual_twin_weights.json"
+    if not summary_path.exists():
+        return False, ["twin_evidence/twin_training_summary.json"]
+    payload = _load_json(summary_path)
+    missing: list[str] = []
+    if payload.get("hardware_claim") is not False:
+        missing.append("hardware_claim=false")
+    if not payload.get("trained_domain_randomized_twin_ready", False):
+        missing.append("trained_domain_randomized_twin_ready=true")
+    if not payload.get("identified_domain_randomized_twin_ready", False):
+        missing.append("identified_domain_randomized_twin_ready=true")
+    if not weights_path.exists():
+        missing.append("twin_evidence/residual_twin_weights.json")
+    domain = dict(payload.get("domain_randomization", {}))
+    for key in ("Rs", "Rr", "Lm", "J", "B"):
+        if key not in domain:
+            missing.append(f"domain_randomization.{key}")
+    theta_multi = dict(payload.get("theta_conditioned_multi_step", {}))
+    for horizon in ("1", "5", "10", "50"):
+        row = dict(theta_multi.get(horizon, {}))
+        if not row:
+            missing.append(f"theta_conditioned_multi_step.{horizon}")
+            continue
+        try:
+            improvement = float(row.get("improvement_pct", -1.0))
+            rmse = float(row.get("theta_conditioned_twin_rmse", float("inf")))
+        except Exception:
+            improvement = -1.0
+            rmse = float("inf")
+        if improvement <= 0.0 or not (rmse >= 0.0 and rmse < float("inf")):
+            missing.append(f"valid theta multi-step metric {horizon}")
+    limits = [str(item).lower() for item in payload.get("interpretation_limits", [])]
+    if not any("host simulation" in item for item in limits):
+        missing.append("host simulation limitation")
+    if not any("not mcu" in item or "hil" in item or "bench" in item for item in limits):
+        missing.append("no MCU/HIL/bench limitation")
+    return not missing, missing
+
+
 def _status(pass_condition: bool, partial_condition: bool = False) -> str:
     if pass_condition:
         return "pass"
@@ -269,6 +313,16 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [] if trace_evidence_ready else trace_missing,
     )
 
+    twin_evidence_ready, twin_missing = _twin_evidence_status(release_dir)
+    checks["domain_randomized_twin_evidence_ready"] = twin_evidence_ready
+    _criterion(
+        criteria,
+        "domain_randomized_twin_evidence",
+        _status(twin_evidence_ready, release_dir is not None),
+        ["twin_evidence/twin_training_summary.json", "twin_evidence/residual_twin_weights.json"],
+        [] if twin_evidence_ready else twin_missing,
+    )
+
     if release_dir is not None:
         report_files = [
             release_dir / "safe_neural_horizon_pwm_report.md",
@@ -332,7 +386,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         ROOT / "control" / "protected_ai_pwm_h1_baseline.py",
         ["ProtectedAiPwmH1BaselineController", "protected_h1_config", "horizon=1"],
     ) and comparison_matrix
-    trained_twin_ready = False
+    trained_twin_ready = twin_evidence_ready
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
     publication_plots_ready = publication_trace_ready
     checks["foc_svm_key_baseline_ready"] = foc_svm_key_baseline_ready
@@ -349,7 +403,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     warnings.extend(
         [
             "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
-            "neural twin is still a scaffold, not a trained domain-randomized model",
+            "domain-randomized twin evidence is host-only and theta-conditioned; production online identification remains open",
             "publication-scale MC is still open",
         ]
     )

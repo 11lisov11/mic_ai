@@ -27,6 +27,6 @@
   "warnings": [
     "publication-scale MC is not met; current tracked release is host evidence only",
     "FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are separate host baselines; they are not final publication-tuned",
-    "neural twin is a scaffold, not a trained domain-randomized ensemble"
+    "domain-randomized twin evidence is theta-conditioned host evidence, not a production sensorless ensemble"
   ]
 }

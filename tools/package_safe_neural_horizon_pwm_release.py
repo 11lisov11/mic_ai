@@ -33,9 +33,14 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _article_draft(payload: Dict[str, Any], trace_payload: Dict[str, Any] | None = None) -> str:
+def _article_draft(
+    payload: Dict[str, Any],
+    trace_payload: Dict[str, Any] | None = None,
+    twin_payload: Dict[str, Any] | None = None,
+) -> str:
     scenarios = list(payload.get("scenarios", []))
     trace_ready = bool(trace_payload and trace_payload.get("trace_evidence_ready", False))
+    twin_ready = bool(twin_payload and twin_payload.get("trained_domain_randomized_twin_ready", False))
     lines: List[str] = []
     lines.append("# Safe Neural Horizon PWM with Event-Triggered Twin Feedback")
     lines.append("")
@@ -54,6 +59,7 @@ def _article_draft(payload: Dict[str, Any], trace_payload: Dict[str, Any] | None
     lines.append("- Safety Gateway that prevents direct AI access to raw high/low gate commands.")
     lines.append("- Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.")
     lines.append("- Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.")
+    lines.append("- Domain-randomized theta-conditioned twin identification evidence with multi-step rollout losses.")
     lines.append("- Scenario matrix, ablation smoke, Pareto extraction, fault-injection summary, and host trace/FFT evidence package.")
     lines.append("- Machine-checkable release, novelty, and theory-completion audits.")
     lines.append("")
@@ -120,7 +126,10 @@ def _article_draft(payload: Dict[str, Any], trace_payload: Dict[str, Any] | None
     lines.append("")
     lines.append("- Host simulation only.")
     lines.append("- FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final tuned publication-grade.")
-    lines.append("- No trained domain-randomized neural twin yet.")
+    if twin_ready:
+        lines.append("- Domain-randomized theta-conditioned twin evidence exists, but it is host-only and assumes theta/passport or identification context.")
+    else:
+        lines.append("- No trained/identified domain-randomized neural twin yet.")
     lines.append("- First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.")
     if trace_ready:
         lines.append("- Host trace package with time-series CSV plus FFT/THD-like torque-current evidence exists, but it is still simulation-only and not hardware THD.")
@@ -137,18 +146,31 @@ def _article_draft(payload: Dict[str, Any], trace_payload: Dict[str, Any] | None
         lines.append("- Expand the host trace/FFT package after baseline tuning and validate it against HIL/bench traces.")
     else:
         lines.append("- Add publication-grade plots and FFT/THD metrics.")
+    if twin_ready:
+        lines.append("- Replace the theta-conditioned host twin with a production online identifier before MCU/HIL/bench claims.")
+    else:
+        lines.append("- Train or identify the neural twin with domain randomization and multi-step losses.")
     lines.append("- Port the safety gateway and timing checks to the target MCU/HIL path.")
     lines.append("- Validate gate timing and current trips on real hardware before any hardware-ready claim.")
     lines.append("")
     return "\n".join(lines)
 
 
-def _open_items(trace_payload: Dict[str, Any] | None = None) -> str:
+def _open_items(
+    trace_payload: Dict[str, Any] | None = None,
+    twin_payload: Dict[str, Any] | None = None,
+) -> str:
     trace_ready = bool(trace_payload and trace_payload.get("trace_evidence_ready", False))
+    twin_ready = bool(twin_payload and twin_payload.get("trained_domain_randomized_twin_ready", False))
     trace_item = (
         "- Expand the host trace/FFT/THD-like package after baseline tuning; current evidence is simulation-only and not hardware power-analyzer THD."
         if trace_ready
         else "- Add publication-grade long-run metrics: THD, FFT torque, switching loss, conduction loss, thermal imbalance, EMI/common-mode proxy."
+    )
+    twin_item = (
+        "- Replace the theta-conditioned host twin evidence with a production online parameter identifier before MCU/HIL/bench claims."
+        if twin_ready
+        else "- Train or identify the neural twin with domain randomization and multi-step losses."
     )
     return "\n".join(
         [
@@ -157,8 +179,8 @@ def _open_items(trace_payload: Dict[str, Any] | None = None) -> str:
             "- Tune the host key-level FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat, and sensorless/adaptive FOC baselines to publication-grade strength.",
             trace_item,
             "- Run MC=500..1000 after strong baselines are ready.",
-            "- Train or identify the neural twin with domain randomization and multi-step losses.",
-            "- Keep `publication_theory_complete=false` until strong baselines, trained twin, and MC=500..1000 are present; host trace evidence alone is not enough.",
+            twin_item,
+            "- Keep `publication_theory_complete=false` until strong baselines and MC=500..1000 are present; host trace/twin evidence alone is not enough.",
             "- Add fixed-point or bounded floating-point MCU implementation plus WCET.",
             "- Add HIL, oscilloscope gate timing, current trip, watchdog, and bench validation.",
             "- Do not claim hardware-ready status until real MCU/HIL/bench evidence exists.",
@@ -184,12 +206,30 @@ def _copy_trace_evidence(trace_dir: Path | None, out_dir: Path) -> tuple[list[Pa
     return files, trace_payload
 
 
+def _copy_twin_evidence(twin_dir: Path | None, out_dir: Path) -> tuple[list[Path], Dict[str, Any] | None]:
+    if twin_dir is None:
+        return [], None
+    if not twin_dir.exists():
+        raise FileNotFoundError(twin_dir)
+    summary_json = twin_dir / "twin_training_summary.json"
+    if not summary_json.exists():
+        raise FileNotFoundError(summary_json)
+    target = out_dir / "twin_evidence"
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(twin_dir, target)
+    twin_payload = json.loads((target / "twin_training_summary.json").read_text(encoding="utf-8"))
+    files = [path for path in target.rglob("*") if path.is_file()]
+    return files, twin_payload
+
+
 def package_release(
     input_json: Path,
     out_dir: Path,
     tag: str,
     mc100_json: Path | None = None,
     trace_dir: Path | None = None,
+    twin_dir: Path | None = None,
 ) -> Dict[str, Any]:
     payload = json.loads(input_json.read_text(encoding="utf-8"))
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -213,16 +253,28 @@ def package_release(
     acceptance_json = out_dir / "HOST_ACCEPTANCE_SUMMARY.json"
 
     trace_files, trace_payload = _copy_trace_evidence(trace_dir, out_dir)
+    twin_files, twin_payload = _copy_twin_evidence(twin_dir, out_dir)
     _write(report_md, build_report(payload))
-    _write(article_md, _article_draft(payload, trace_payload))
-    _write(novelty_json, json.dumps(analyze_novelty(copied_json), ensure_ascii=False, indent=2) + "\n")
-    _write(open_items_md, _open_items(trace_payload))
+    _write(article_md, _article_draft(payload, trace_payload, twin_payload))
+    _write(novelty_json, json.dumps(analyze_novelty(out_dir), ensure_ascii=False, indent=2) + "\n")
+    _write(open_items_md, _open_items(trace_payload, twin_payload))
     figure_files = build_figures(copied_json, out_dir / "figures")
     _write(theory_json, json.dumps(analyze_theory(out_dir), ensure_ascii=False, indent=2) + "\n")
 
     # Do not include HOST_ACCEPTANCE_SUMMARY.json in the manifest hash list: it is
     # generated after the manifest so it can validate the manifest itself.
-    files = [copied_json, mc100_json, report_md, article_md, novelty_json, theory_json, open_items_md, *figure_files, *trace_files]
+    files = [
+        copied_json,
+        mc100_json,
+        report_md,
+        article_md,
+        novelty_json,
+        theory_json,
+        open_items_md,
+        *figure_files,
+        *trace_files,
+        *twin_files,
+    ]
     manifest = {
         "tag": tag,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -233,7 +285,8 @@ def package_release(
             "python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json",
             "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
             "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
-            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
+            "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
+            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
         ],
         "files": [
             {
@@ -251,6 +304,7 @@ def package_release(
             "mc100_smoke_written": mc100_json.exists(),
             "open_items_written": open_items_md.exists(),
             "trace_evidence_written": bool(trace_files),
+            "twin_evidence_written": bool(twin_files),
             "acceptance_summary_written": True,
             "host_release_ready": False,
             "hardware_ready": False,
@@ -273,6 +327,7 @@ def main() -> None:
     parser.add_argument("--tag", default="safe_neural_horizon_pwm_host_release")
     parser.add_argument("--mc100-json", default="")
     parser.add_argument("--trace-dir", default="")
+    parser.add_argument("--twin-dir", default="")
     args = parser.parse_args()
 
     manifest = package_release(
@@ -281,6 +336,7 @@ def main() -> None:
         tag=str(args.tag),
         mc100_json=Path(args.mc100_json).expanduser().resolve() if str(args.mc100_json).strip() else None,
         trace_dir=Path(args.trace_dir).expanduser().resolve() if str(args.trace_dir).strip() else None,
+        twin_dir=Path(args.twin_dir).expanduser().resolve() if str(args.twin_dir).strip() else None,
     )
     print(f"saved: {Path(args.out_dir).expanduser().resolve()}")
     print(f"files: {len(manifest['files'])}")

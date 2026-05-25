@@ -38,6 +38,7 @@ from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_inje
 from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
 from tools.build_safe_neural_horizon_pwm_trace_evidence import build_trace_evidence
+from tools.build_safe_neural_horizon_pwm_twin_evidence import build_twin_evidence
 from tools.check_safe_neural_horizon_pwm_release import analyze_release
 from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
 from tools.check_safe_neural_horizon_pwm_theory import analyze_theory
@@ -585,6 +586,8 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
         steps=32,
         controllers=["safe_neural_horizon_pwm_h2", "protected_ai_pwm_h1_baseline", "foc_svm_key_baseline"],
     )
+    twin_dir = tmp_path / "twin_evidence_src"
+    build_twin_evidence(out_dir=twin_dir, train_episodes=3, val_episodes=2, steps=55, hidden_features=12)
     out_dir = tmp_path / "release"
     manifest = package_release(
         input_json=input_json,
@@ -592,6 +595,7 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
         tag="test_tag",
         mc100_json=mc100_json,
         trace_dir=trace_dir,
+        twin_dir=twin_dir,
     )
     assert manifest["hardware_claim"] is False
     assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
@@ -606,6 +610,8 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     assert (out_dir / "trace_evidence" / "trace_summary.json").exists()
     assert (out_dir / "trace_evidence" / "trace_summary.csv").exists()
     assert (out_dir / "trace_evidence" / "figures" / "fig_trace_fft_thd.svg").exists()
+    assert (out_dir / "twin_evidence" / "twin_training_summary.json").exists()
+    assert (out_dir / "twin_evidence" / "residual_twin_weights.json").exists()
     assert (out_dir / "HOST_RELEASE_MANIFEST.json").exists()
     disk_manifest = json.loads((out_dir / "HOST_RELEASE_MANIFEST.json").read_text(encoding="utf-8"))
     assert manifest == disk_manifest
@@ -626,6 +632,25 @@ def test_build_safe_neural_horizon_pwm_trace_evidence(tmp_path) -> None:
         assert math.isfinite(float(row["current_thd_like"]))
         assert math.isfinite(float(row["torque_thd_like"]))
         assert float(row["safety_violations"]) == 0.0
+
+
+def test_build_safe_neural_horizon_pwm_twin_evidence(tmp_path) -> None:
+    payload = build_twin_evidence(
+        out_dir=tmp_path / "twin",
+        train_episodes=4,
+        val_episodes=2,
+        steps=55,
+        hidden_features=12,
+    )
+    assert payload["hardware_claim"] is False
+    assert payload["trained_domain_randomized_twin_ready"] is True
+    assert payload["identified_domain_randomized_twin_ready"] is True
+    assert (tmp_path / "twin" / "twin_training_summary.json").exists()
+    assert (tmp_path / "twin" / "residual_twin_weights.json").exists()
+    for horizon in ("1", "5", "10", "50"):
+        row = payload["theta_conditioned_multi_step"][horizon]
+        assert float(row["theta_conditioned_twin_rmse"]) >= 0.0
+        assert float(row["improvement_pct"]) > 0.0
 
 
 def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:
@@ -665,6 +690,8 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert "proxy_comparison_matrix" not in audit["checks"]
     assert audit["checks"]["trace_fft_thd_evidence_ready"] is True
     assert audit["checks"]["publication_plots_fft_thd_ready"] is True
+    assert audit["checks"]["domain_randomized_twin_evidence_ready"] is True
+    assert audit["checks"]["trained_domain_randomized_twin_ready"] is True
     assert audit["checks"]["strong_baselines_ready"] is False
 
 

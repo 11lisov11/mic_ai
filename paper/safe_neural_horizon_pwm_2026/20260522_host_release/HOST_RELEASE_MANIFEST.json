@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-25T08:39:15.489590+00:00",
+  "generated_utc": "2026-05-25T08:52:10.253066+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -8,7 +8,8 @@
     "python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json",
     "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
     "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
-    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence"
+    "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
+    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence"
   ],
   "files": [
     {
@@ -28,23 +29,23 @@
     },
     {
       "path": "safe_neural_horizon_pwm_article_draft.md",
-      "bytes": 5307,
-      "sha256": "a66273391f80d53666eafb53757af21f5af48b98dddd3dd10dfc0fca542b40f7"
+      "bytes": 5601,
+      "sha256": "f761a8419ad522b47478fbe52770661e1cddb7c63fe726accec91f92ebb03534"
     },
     {
       "path": "safe_neural_horizon_pwm_novelty_audit.json",
-      "bytes": 1450,
-      "sha256": "c8bc6eb39cd2e3f90e5ad1d0672870a999205bcff977751c1ea453c6ffde5e68"
+      "bytes": 1487,
+      "sha256": "28c152e425d3375eb4d2f0ea354fb3ec816fd6147ca58919b157c940b93bdd0e"
     },
     {
       "path": "safe_neural_horizon_pwm_theory_completion_audit.json",
-      "bytes": 4350,
-      "sha256": "9ee4d21e3a634fbf9e4402e3e0424cbd90bda0eac88841ed0a9b7efb9c33b97c"
+      "bytes": 4690,
+      "sha256": "9bd7b60c490456dcab1d8217c6d4d93d799e760b0504fafb0913e57296e68f4a"
     },
     {
       "path": "WHAT_IS_NOT_DONE.md",
-      "bytes": 863,
-      "sha256": "83e251821b5579d4563c27b118e503ba0ad9c0634db5504c03c04b0d43309d09"
+      "bytes": 894,
+      "sha256": "bb42dfe355c6519c0b5215d2bc4efa153f4ce5db05ec910fae5c6aa32f8ce658"
     },
     {
       "path": "figures/safe_neural_horizon_pwm_summary.csv",
@@ -125,6 +126,16 @@
       "path": "trace_evidence/traces/load_step_sensorless_adaptive_foc_baseline.csv",
       "bytes": 129043,
       "sha256": "356904d06bf15b3cab3e1045e92b56eaf6997f3fb54a53d7ced9a41691df981c"
+    },
+    {
+      "path": "twin_evidence/residual_twin_weights.json",
+      "bytes": 28307,
+      "sha256": "1908dd9cf1478e2e53398bc2115689c3a72f77d6f4c0d140910fdd38d0588e49"
+    },
+    {
+      "path": "twin_evidence/twin_training_summary.json",
+      "bytes": 3403,
+      "sha256": "32849f002c2a44043a89301f0530fb52f8101161113a3047a17f5de2018dd94d"
     }
   ],
   "acceptance": {
@@ -135,6 +146,7 @@
     "mc100_smoke_written": true,
     "open_items_written": true,
     "trace_evidence_written": true,
+    "twin_evidence_written": true,
     "acceptance_summary_written": true,
     "host_release_ready": true,
     "hardware_ready": false

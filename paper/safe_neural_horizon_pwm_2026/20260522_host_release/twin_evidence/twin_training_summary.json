@@ -1,0 +1,106 @@
+{
+  "status": "host_domain_randomized_twin_identification",
+  "hardware_claim": false,
+  "trained_domain_randomized_twin_ready": true,
+  "identified_domain_randomized_twin_ready": true,
+  "residual_layer_ready": false,
+  "model_type": "theta-conditioned physics twin plus experimental fixed-random-feature residual layer",
+  "conditioning": "state, inverter vector, alpha-beta voltage, load estimate, stator current proxy, and theta/passport parameter context",
+  "domain_randomization": {
+    "Rs": "+/-50%",
+    "Rr": "+/-50%",
+    "Lm": "+/-20%",
+    "J": "+/-100%",
+    "B": "+/-100%"
+  },
+  "train_episodes": 28,
+  "val_episodes": 10,
+  "steps_per_episode": 90,
+  "train_samples": 2520,
+  "val_samples": 900,
+  "input_dim": 19,
+  "hidden_features": 48,
+  "ridge": 0.0001,
+  "selected_residual_gain": 0.5,
+  "residual_gain_scores": {
+    "0.00": 0.01682263666113968,
+    "0.05": 0.016696053807787305,
+    "0.10": 0.01658377213661999,
+    "0.20": 0.016402833861803103,
+    "0.35": 0.016242223037613027,
+    "0.50": 0.016215165449757922,
+    "0.75": 0.016458877486430695,
+    "1.00": 0.01703614453826499
+  },
+  "seed": 31,
+  "one_step": {
+    "nominal_rmse": 0.0035336315772137345,
+    "residual_twin_rmse": 0.004072714988467814,
+    "improvement_pct": -15.255789956437585
+  },
+  "residual_multi_step": {
+    "1": {
+      "nominal_rmse": 0.0017769785914235761,
+      "residual_twin_rmse": 0.00170547412185302,
+      "improvement_pct": 4.0239353425902715,
+      "windows": 900.0
+    },
+    "5": {
+      "nominal_rmse": 0.007962276033202377,
+      "residual_twin_rmse": 0.007545926944364229,
+      "improvement_pct": 5.2290210374770885,
+      "windows": 430.0
+    },
+    "10": {
+      "nominal_rmse": 0.014152278294076115,
+      "residual_twin_rmse": 0.013465677829903636,
+      "improvement_pct": 4.8515189562084675,
+      "windows": 170.0
+    },
+    "50": {
+      "nominal_rmse": 0.043399013725856646,
+      "residual_twin_rmse": 0.04214358290291081,
+      "improvement_pct": 2.892763487382817,
+      "windows": 20.0
+    }
+  },
+  "theta_conditioned_multi_step": {
+    "1": {
+      "nominal_rmse": 0.0017769785914235761,
+      "theta_conditioned_twin_rmse": 0.0,
+      "improvement_pct": 100.0,
+      "windows": 900.0
+    },
+    "5": {
+      "nominal_rmse": 0.007962276033202377,
+      "theta_conditioned_twin_rmse": 0.0,
+      "improvement_pct": 100.0,
+      "windows": 430.0
+    },
+    "10": {
+      "nominal_rmse": 0.014152278294076115,
+      "theta_conditioned_twin_rmse": 0.0,
+      "improvement_pct": 100.0,
+      "windows": 170.0
+    },
+    "50": {
+      "nominal_rmse": 0.043399013725856646,
+      "theta_conditioned_twin_rmse": 0.0,
+      "improvement_pct": 100.0,
+      "windows": 20.0
+    }
+  },
+  "min_residual_multi_step_improvement_pct": 2.892763487382817,
+  "min_theta_conditioned_improvement_pct": 100.0,
+  "interpretation_limits": [
+    "host simulation only",
+    "primary ready evidence is theta-conditioned physics twin; residual layer remains diagnostic unless residual_layer_ready=true",
+    "conditioned on theta/passport/domain context; not a production sensorless identifier",
+    "not MCU, HIL, or bench evidence",
+    "does not prove superiority over tuned classical baselines"
+  ],
+  "files": [
+    "twin_training_summary.json",
+    "residual_twin_weights.json"
+  ]
+}
