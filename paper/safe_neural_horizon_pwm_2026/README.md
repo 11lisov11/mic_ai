@@ -19,6 +19,8 @@ Status:
 - `publication_plots_fft_thd_ready = true`
 - `trained_domain_randomized_twin_ready = true`
 - `publication_mc500_ready = true`
+- `host_baseline_scaffold_ready = true`
+- `publication_strong_baselines_ready = false`
 - `publication_theory_complete = false`
 - `hardware_ready = false`
 - `strong_baselines_ready = false`
@@ -31,5 +33,6 @@ Release gate:
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 ```

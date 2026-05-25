@@ -121,6 +121,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [run_safe_neural_horizon_pwm_study.py](C:/mic_theory/tools/run_safe_neural_horizon_pwm_study.py): quick host-level MC smoke for the new research track
 - [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
 - [build_safe_neural_horizon_pwm_figures.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_figures.py): builds aggregate SVG/CSV figures from Safe Neural Horizon PWM JSON results
+- [check_safe_neural_horizon_pwm_baselines.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_baselines.py): audits whether the comparison baselines are separate, covered, safe, and publication-tuned
 - [check_safe_neural_horizon_pwm_release.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_release.py): validates the host-release evidence and SHA-256 manifest
 - [check_safe_neural_horizon_pwm_novelty.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_novelty.py): audits the allowed host-level novelty claim and explicitly rejects overclaims
 - [check_safe_neural_horizon_pwm_theory.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_theory.py): audits whether the new theory branch is host-scaffold-ready and blocks publication-grade overclaims
@@ -181,6 +182,7 @@ python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 -
 python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence
 python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence
 python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
+python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict

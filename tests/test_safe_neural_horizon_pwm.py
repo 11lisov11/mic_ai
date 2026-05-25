@@ -39,6 +39,7 @@ from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
 from tools.build_safe_neural_horizon_pwm_trace_evidence import build_trace_evidence
 from tools.build_safe_neural_horizon_pwm_twin_evidence import build_twin_evidence
+from tools.check_safe_neural_horizon_pwm_baselines import analyze_baselines
 from tools.check_safe_neural_horizon_pwm_release import MC_SMOKE_REQUIRED_CONTROLLERS, analyze_release
 from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
 from tools.check_safe_neural_horizon_pwm_theory import analyze_theory
@@ -639,6 +640,7 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     assert manifest["hardware_claim"] is False
     assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
     assert (out_dir / "safe_neural_horizon_pwm_article_draft.md").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_novelty_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_theory_completion_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_mc100_smoke.json").exists()
@@ -713,6 +715,21 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_novelty_claim() -
     assert "MCU/HIL/bench readiness" in audit["not_allowed_claims"]
 
 
+def test_safe_neural_horizon_pwm_tracked_release_has_baseline_strength_audit() -> None:
+    release_dir = Path("paper/safe_neural_horizon_pwm_2026/20260522_host_release")
+    audit = analyze_baselines(release_dir)
+    assert audit["host_baseline_scaffold_ready"] is True
+    assert audit["publication_strong_baselines_ready"] is False
+    assert audit["baseline_count"] == 7
+    for row in audit["baselines"].values():
+        assert row["source_marker_present"] is True
+        assert row["matrix_coverage_ready"] is True
+        assert row["safety_ready"] is True
+        assert row["pareto_participation_count"] > 0
+        assert row["baseline_scaffold_ready"] is True
+        assert row["publication_tuned_ready"] is False
+
+
 def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold() -> None:
     release_dir = Path("paper/safe_neural_horizon_pwm_2026/20260522_host_release")
     audit = analyze_theory(release_dir)
@@ -731,6 +748,7 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert audit["checks"]["trace_fft_thd_evidence_ready"] is True
     assert audit["checks"]["publication_plots_fft_thd_ready"] is True
     assert audit["checks"]["domain_randomized_twin_evidence_ready"] is True
+    assert audit["checks"]["baseline_strength_audit_ready"] is True
     assert audit["checks"]["trained_domain_randomized_twin_ready"] is True
     assert audit["checks"]["publication_mc500_ready"] is True
     assert audit["checks"]["strong_baselines_ready"] is False

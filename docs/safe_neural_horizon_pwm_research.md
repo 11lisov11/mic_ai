@@ -472,6 +472,7 @@ Host-release gate:
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 ```
 
@@ -487,11 +488,14 @@ trace_fft_thd_evidence_ready = true
 publication_plots_fft_thd_ready = true
 trained_domain_randomized_twin_ready = true
 publication_mc500_ready = true
+host_baseline_scaffold_ready = true
+publication_strong_baselines_ready = false
 publication_theory_complete = false
 ```
 
 The tracked release also contains:
 
+- [safe_neural_horizon_pwm_baseline_strength_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_strength_audit.json)
 - [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
 - [safe_neural_horizon_pwm_mc100_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc100_smoke.json)
 - [safe_neural_horizon_pwm_mc500_publication_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc500_publication_smoke.json)
@@ -508,6 +512,8 @@ Interpretation:
 - `trace_fft_thd_evidence_ready = true` means the release now has host time-series CSV traces plus FFT/THD-like spectral metrics and SVG figures.
 - `trained_domain_randomized_twin_ready = true` means the release now contains theta-conditioned host twin evidence with domain randomization and multi-step rollout losses.
 - `publication_mc500_ready = true` means the release now has a tracked MC=500 host evidence run; it must be repeated after final strong-baseline tuning.
+- `host_baseline_scaffold_ready = true` means every named comparison baseline has source-level implementation markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, and Pareto participation in the current host package.
+- `publication_strong_baselines_ready = false` means those same baselines still lack dedicated tuning/stress evidence, so the paper still cannot claim superiority over tuned classical control.
 - `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength.
 
 ## MC500 Host Evidence

@@ -31,6 +31,7 @@ REQUIRED_RELEASE_FILES = {
     "safe_neural_horizon_pwm_results.json",
     "safe_neural_horizon_pwm_report.md",
     "safe_neural_horizon_pwm_article_draft.md",
+    "safe_neural_horizon_pwm_baseline_strength_audit.json",
     "safe_neural_horizon_pwm_novelty_audit.json",
     "safe_neural_horizon_pwm_theory_completion_audit.json",
     "safe_neural_horizon_pwm_mc100_smoke.json",
@@ -254,6 +255,19 @@ def analyze_release(path: Path) -> Dict[str, Any]:
         else:
             checks["novelty_audit_supported"] = False
             failures.append("missing safe_neural_horizon_pwm_novelty_audit.json")
+        baseline_path = release_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json"
+        if baseline_path.exists():
+            baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+            checks["baseline_strength_audit_ready"] = bool(baseline.get("host_baseline_scaffold_ready", False))
+            checks["publication_strong_baselines_ready"] = bool(
+                baseline.get("publication_strong_baselines_ready", False)
+            )
+            if not checks["baseline_strength_audit_ready"]:
+                failures.append("baseline strength audit does not support the host baseline scaffold")
+        else:
+            checks["baseline_strength_audit_ready"] = False
+            checks["publication_strong_baselines_ready"] = False
+            failures.append("missing safe_neural_horizon_pwm_baseline_strength_audit.json")
         theory_path = release_dir / "safe_neural_horizon_pwm_theory_completion_audit.json"
         if theory_path.exists():
             theory = json.loads(theory_path.read_text(encoding="utf-8"))
