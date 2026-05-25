@@ -18,6 +18,16 @@ from tools.check_safe_neural_horizon_pwm_novelty import (
 )
 from tools.run_safe_neural_horizon_pwm_study import DEFAULT_SCENARIOS
 
+TRACE_REQUIRED_CONTROLLERS = {
+    "protected_ai_pwm_h1_baseline",
+    "fcs_mpc_one_step_baseline",
+    "foc_svm_key_baseline",
+    "dtc_svm_baseline",
+    "deadbeat_current_baseline",
+    "sensorless_adaptive_foc_baseline",
+    "safe_neural_horizon_pwm_h2",
+}
+
 
 def _load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -51,6 +61,51 @@ def _matrix_has_pareto(payload: Dict[str, Any]) -> bool:
     matrix = dict(payload.get("matrix", {}))
     scenarios = list(payload.get("scenarios", []))
     return bool(scenarios) and all(bool(dict(matrix.get(scenario, {})).get("pareto_front")) for scenario in scenarios)
+
+
+def _trace_evidence_status(release_dir: Path | None) -> tuple[bool, bool, list[str]]:
+    if release_dir is None:
+        return False, False, ["release directory with trace_evidence/trace_summary.json"]
+    trace_dir = release_dir / "trace_evidence"
+    summary_path = trace_dir / "trace_summary.json"
+    if not summary_path.exists():
+        return False, False, ["trace_evidence/trace_summary.json"]
+    payload = _load_json(summary_path)
+    missing: list[str] = []
+    if payload.get("hardware_claim") is not False:
+        missing.append("hardware_claim=false")
+    if not payload.get("trace_evidence_ready", False):
+        missing.append("trace_evidence_ready=true")
+    controllers = set(str(item) for item in payload.get("controllers", []))
+    missing_controllers = sorted(TRACE_REQUIRED_CONTROLLERS - controllers)
+    if missing_controllers:
+        missing.append(f"trace controllers: {missing_controllers}")
+    required_files = {
+        "trace_summary.csv",
+        "figures/fig_trace_speed.svg",
+        "figures/fig_trace_fft_thd.svg",
+    }
+    for rel in sorted(required_files):
+        if not (trace_dir / rel).exists():
+            missing.append(f"trace file: {rel}")
+    summary_rows = [dict(row) for row in payload.get("summary", [])]
+    if len(summary_rows) < len(TRACE_REQUIRED_CONTROLLERS):
+        missing.append("summary rows for required controllers")
+    for row in summary_rows:
+        for key in ("current_thd_like", "torque_thd_like", "current_rms", "torque_ripple_rms"):
+            try:
+                value = float(row.get(key, 0.0))
+            except Exception:
+                value = float("nan")
+            if not (value >= 0.0 and value < float("inf")):
+                missing.append(f"finite trace metric {row.get('controller', '?')}:{key}")
+        if float(row.get("safety_violations", 1.0)) != 0.0:
+            missing.append(f"trace safety violation: {row.get('controller', '?')}")
+    evidence_ready = not missing
+    publication_ready = evidence_ready and int(payload.get("steps", 0)) >= 512
+    if evidence_ready and not publication_ready:
+        missing.append("trace steps >= 512 for publication plot gate")
+    return evidence_ready, publication_ready, missing
 
 
 def _status(pass_condition: bool, partial_condition: bool = False) -> str:
@@ -203,6 +258,17 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [] if pareto_ok else ["Pareto fronts for every scenario and ablation"],
     )
 
+    trace_evidence_ready, publication_trace_ready, trace_missing = _trace_evidence_status(release_dir)
+    checks["trace_fft_thd_evidence_ready"] = trace_evidence_ready
+    checks["publication_plots_fft_thd_ready"] = publication_trace_ready
+    _criterion(
+        criteria,
+        "trace_fft_thd_evidence",
+        _status(trace_evidence_ready, release_dir is not None),
+        ["trace_evidence/trace_summary.json", "trace_evidence/trace_summary.csv", "trace_evidence/figures/*.svg"],
+        [] if trace_evidence_ready else trace_missing,
+    )
+
     if release_dir is not None:
         report_files = [
             release_dir / "safe_neural_horizon_pwm_report.md",
@@ -268,7 +334,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     ) and comparison_matrix
     trained_twin_ready = False
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
-    publication_plots_ready = False
+    publication_plots_ready = publication_trace_ready
     checks["foc_svm_key_baseline_ready"] = foc_svm_key_baseline_ready
     checks["fcs_mpc_one_step_baseline_ready"] = fcs_mpc_one_step_baseline_ready
     checks["dtc_hysteresis_baseline_ready"] = dtc_hysteresis_baseline_ready
@@ -284,9 +350,11 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [
             "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
             "neural twin is still a scaffold, not a trained domain-randomized model",
-            "publication-scale MC and FFT/THD trace package are still open",
+            "publication-scale MC is still open",
         ]
     )
+    if not publication_trace_ready:
+        warnings.append("publication trace/FFT/THD plot gate is still open")
 
     host_required = [
         "motor_model_alpha_beta",

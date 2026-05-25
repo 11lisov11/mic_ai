@@ -141,7 +141,7 @@ Status on `2026-05-22`:
 - novelty claim scope is machine-checkable and currently passes with `host_novelty_claim_supported = true`; this supports only the distinct host-level architecture claim, not tuned-baseline superiority or hardware readiness
 - theory completion scope is machine-checkable and currently passes host scaffold criteria with `host_theory_scaffold_ready = true`, while keeping `publication_theory_complete = false`
 - fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, applied-vs-planned loss accounting, dead-time path detection, and incomplete serial-frame timeout/fallback behavior
-- publication-tuned baseline calibration, final ablation, publication-grade Pareto/trace evidence, HIL, and bench work are still open
+- publication-tuned baseline calibration, final ablation, publication-grade Pareto beyond the first host trace/FFT package, HIL, and bench work are still open
 
 ## Active Rework Plan After 2026-05-09 Audit
 
@@ -277,6 +277,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add machine-checkable Safe Neural Horizon PWM novelty gate that limits the claim to a distinct host-simulated architecture and rejects overclaims.
 - [x] Add machine-checkable Safe Neural Horizon PWM theory-completion audit that separates `host_theory_scaffold_ready` from `publication_theory_complete`.
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
+- [x] Add host trace/FFT/THD-like evidence package with time-series CSV, speed trace SVG, spectral SVG, and machine-checkable theory gate.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Tune and stress-test the FOC-SVM key-level baseline to publication-grade level with the same inverter/dead-time/min-pulse/current constraints.
 - [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.
@@ -288,7 +289,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Expand fault-injection matrix to include raw shoot-through request emulation, no-dead-time transition emulation, and hardware-like desat/UVLO cases.
 - [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants with publication-scale MC.
 - [ ] Generate publication-grade Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed.
-- [ ] Generate publication-grade time-series plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto after trace logging is added.
+- [ ] Expand trace logging to publication-grade time-series plots for gates, switching events, feedback events, confidence, losses, temperature, and tuned-baseline Pareto after the remaining baseline/twin work is complete.
 - [x] Prepare host-level article draft; clearly mark MCU/HIL/bench as not done.
 
 ### 2026-05-20 Delta MS300 Commands

@@ -38,8 +38,9 @@ Hardware-productization status as of `2026-05-20`:
 New theory branch status as of `2026-05-25`:
 
 - `Safe Neural Horizon PWM with Event-Triggered Twin Feedback` is implemented as a host-level research scaffold.
-- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, and a tracked 31-scenario host matrix.
+- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, a tracked 31-scenario host matrix, and a host trace/FFT/THD-like evidence package.
 - Machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
+- Machine-checkable trace status: `trace_fft_thd_evidence_ready = true`, `publication_plots_fft_thd_ready = true` for host simulation evidence only.
 - Current novelty claim is deliberately limited and machine-checkable: a distinct host-simulated architecture exists; there is still no claim of tuned-baseline superiority, MCU/HIL readiness, or bench proof.
 - First findings are recorded in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md), including fixed modeling/control, release-discipline, dead-time-path, and fallback/loss-accounting bugs.
 

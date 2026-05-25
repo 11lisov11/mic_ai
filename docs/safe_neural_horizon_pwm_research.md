@@ -481,6 +481,8 @@ hardware_ready = false
 strong_baselines_ready = false
 host_novelty_claim_supported = true
 host_theory_scaffold_ready = true
+trace_fft_thd_evidence_ready = true
+publication_plots_fft_thd_ready = true
 publication_theory_complete = false
 ```
 
@@ -488,11 +490,50 @@ The tracked release also contains:
 
 - [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
 - [safe_neural_horizon_pwm_mc100_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc100_smoke.json)
+- [trace_evidence/trace_summary.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/trace_summary.json)
+- [trace_evidence/trace_summary.csv](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/trace_summary.csv)
+- [trace_evidence/figures/fig_trace_speed.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/figures/fig_trace_speed.svg)
+- [trace_evidence/figures/fig_trace_fft_thd.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/figures/fig_trace_fft_thd.svg)
 
 Interpretation:
 
 - `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
-- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength, the neural twin is trained/identified, MC reaches publication scale, and long-run FFT/THD/trace evidence exists.
+- `trace_fft_thd_evidence_ready = true` means the release now has host time-series CSV traces plus FFT/THD-like spectral metrics and SVG figures.
+- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength, the neural twin is trained/identified, and MC reaches publication scale.
+
+## Host Trace / FFT / THD-Like Evidence
+
+Command run:
+
+```bash
+python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence
+```
+
+Scope:
+
+- `512` host-control steps at `10 kHz`;
+- scenario: `load_step`;
+- all rows use the same randomized plant parameters for fair side-by-side traces;
+- each controller writes a full time-series CSV;
+- THD-like metrics use the dominant FFT bin as the fundamental and are not hardware power-analyzer THD.
+
+| Controller | Mean speed error | Current RMS | Current THD-like | Torque RMS | Torque THD-like | Switch events | Feedback usage | Fallback | Safety violations |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| protected_ai_pwm_h1_baseline | 44.843 | 2.687 | 0.837 | 3.347 | 1.188 | 177 | 0.961 | 2 | 0 |
+| fcs_mpc_one_step_baseline | 44.233 | 2.730 | 0.949 | 3.126 | 1.219 | 233 | 1.000 | 0 | 0 |
+| foc_svm_key_baseline | 83.290 | 0.530 | 1.072 | 0.282 | 0.779 | 164 | 1.000 | 0 | 0 |
+| dtc_hysteresis_baseline | 85.342 | 1.132 | 0.458 | 0.142 | 0.429 | 318 | 1.000 | 4 | 0 |
+| dtc_svm_baseline | 84.841 | 0.355 | 0.872 | 0.154 | 1.104 | 60 | 1.000 | 0 | 0 |
+| deadbeat_current_baseline | 85.989 | 0.214 | 2.234 | 0.022 | 2.261 | 6 | 1.000 | 0 | 0 |
+| sensorless_adaptive_foc_baseline | 86.084 | 0.391 | 1.880 | 0.008 | 0.639 | 36 | 0.934 | 0 | 0 |
+| safe_neural_horizon_pwm_h2 | 46.714 | 2.631 | 1.027 | 3.294 | 1.141 | 188 | 0.982 | 4 | 0 |
+
+Trace interpretation:
+
+- `safe_neural_horizon_pwm_h2` is close to protected H1/FCS-MPC on this load-step speed trace, but it still has fallback events and does not dominate current/spectral metrics.
+- `fcs_mpc_one_step_baseline` is strongest for speed error in this trace, but has high switching and current stress.
+- `deadbeat_current_baseline` has low switching and current, but weak speed response and high THD-like ratios because the small residual waveform is dominated by narrow spectral components.
+- This evidence strengthens the scientific comparison because it exposes trade-offs instead of hiding them behind mean MC values.
 
 Observed pattern in the host matrix:
 
@@ -540,11 +581,12 @@ Host-level matrix now covers the full 30-scenario TZ set plus one explicit `sens
 
 Still not publication-grade:
 
-- long-duration traces with FFT/THD;
+- hardware/power-analyzer THD; the current FFT/THD-like package is host simulation only;
 - tuned strong classical baselines;
 - publication-scale MC `N=500..1000`;
 - full thermal/spectral ablations;
 - final Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed;
+- expanded trace plots for gate timing, feedback events, confidence, losses, and temperature after trace logging is extended;
 - MCU/HIL/bench timing evidence.
 
 ## MCU/HIL/Bench Status

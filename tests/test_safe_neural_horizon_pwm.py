@@ -37,6 +37,7 @@ from safety.ai_pwm_gateway import (
 from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_injection_matrix, run_matrix, run_study
 from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
+from tools.build_safe_neural_horizon_pwm_trace_evidence import build_trace_evidence
 from tools.check_safe_neural_horizon_pwm_release import analyze_release
 from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
 from tools.check_safe_neural_horizon_pwm_theory import analyze_theory
@@ -578,8 +579,20 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     input_json.write_text(__import__("json").dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
     mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    trace_dir = tmp_path / "trace_evidence_src"
+    build_trace_evidence(
+        out_dir=trace_dir,
+        steps=32,
+        controllers=["safe_neural_horizon_pwm_h2", "protected_ai_pwm_h1_baseline", "foc_svm_key_baseline"],
+    )
     out_dir = tmp_path / "release"
-    manifest = package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
+    manifest = package_release(
+        input_json=input_json,
+        out_dir=out_dir,
+        tag="test_tag",
+        mc100_json=mc100_json,
+        trace_dir=trace_dir,
+    )
     assert manifest["hardware_claim"] is False
     assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
     assert (out_dir / "safe_neural_horizon_pwm_article_draft.md").exists()
@@ -590,9 +603,29 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     assert (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").exists()
     assert (out_dir / "figures" / "safe_neural_horizon_pwm_summary.csv").exists()
     assert (out_dir / "figures" / "fig_speed_error_vs_current.svg").exists()
+    assert (out_dir / "trace_evidence" / "trace_summary.json").exists()
+    assert (out_dir / "trace_evidence" / "trace_summary.csv").exists()
+    assert (out_dir / "trace_evidence" / "figures" / "fig_trace_fft_thd.svg").exists()
     assert (out_dir / "HOST_RELEASE_MANIFEST.json").exists()
     disk_manifest = json.loads((out_dir / "HOST_RELEASE_MANIFEST.json").read_text(encoding="utf-8"))
     assert manifest == disk_manifest
+
+
+def test_build_safe_neural_horizon_pwm_trace_evidence(tmp_path) -> None:
+    payload = build_trace_evidence(
+        out_dir=tmp_path / "trace",
+        steps=40,
+        controllers=["safe_neural_horizon_pwm_h2", "protected_ai_pwm_h1_baseline", "fcs_mpc_one_step_baseline"],
+    )
+    assert payload["hardware_claim"] is False
+    assert payload["trace_evidence_ready"] is True
+    assert (tmp_path / "trace" / "trace_summary.csv").exists()
+    assert (tmp_path / "trace" / "figures" / "fig_trace_speed.svg").exists()
+    assert (tmp_path / "trace" / "figures" / "fig_trace_fft_thd.svg").exists()
+    for row in payload["summary"]:
+        assert math.isfinite(float(row["current_thd_like"]))
+        assert math.isfinite(float(row["torque_thd_like"]))
+        assert float(row["safety_violations"]) == 0.0
 
 
 def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:
@@ -630,6 +663,8 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert audit["checks"]["protected_ai_pwm_h1_baseline_ready"] is True
     assert audit["checks"]["named_baseline_comparison_matrix"] is True
     assert "proxy_comparison_matrix" not in audit["checks"]
+    assert audit["checks"]["trace_fft_thd_evidence_ready"] is True
+    assert audit["checks"]["publication_plots_fft_thd_ready"] is True
     assert audit["checks"]["strong_baselines_ready"] is False
 
 
