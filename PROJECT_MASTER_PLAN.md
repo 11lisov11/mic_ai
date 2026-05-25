@@ -30,7 +30,7 @@ Hardware-productization is now tracked separately:
 - Repository-ready for Delta MS300: safe default config, Modbus RTU CRC/framing helpers, read-only self-check, guarded frequency writes, guarded run/stop, CSV monitor, Linux/Windows wrappers, staged bring-up docs, and automated smoke tests.
 - Not yet physically complete for Delta MS300: real USB-RS485 Stage 0, no-load run, baseline logs, MIC/AI supervisory logs, and loaded A/B evidence must be captured on the actual drive/motor.
 - A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
-- New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, and MC=100 smoke are implemented.
+- New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, MC=100 smoke, and MC=500 host evidence are implemented.
 - New branch machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
 - New branch machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; production online identification remains open.
 - New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
@@ -130,7 +130,7 @@ Status on `2026-05-22`:
 
 - host-level scaffold is implemented
 - no-shoot-through waveform invariant tests pass for all 8x8 vector transitions
-- MC=100 smoke runs and records zero safety waveform violations for the new H=2 variant
+- MC=100 smoke and MC=500 host evidence run and record zero safety waveform violations for the new H=2 variant
 - MC=5 scenario matrix runs across start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout host scenarios
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
 - host-level comparison baselines exist; the prior protected AI-PWM H1 model is now a separate named one-step protected baseline, FOC-SVM is now a separate key-level PI/current/SVM baseline, FCS-MPC is now a separate one-step predictive current/torque/flux baseline, DTC hysteresis is now a separate torque/flux hysteresis baseline, DTC-SVM is now a separate torque/flux voltage-reference/SVM baseline, deadbeat current control is now a separate predictive current baseline, and sensorless/adaptive FOC is now a separate MRAS-like observer/Rs-adaptive FOC baseline
@@ -280,6 +280,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Add host trace/FFT/THD-like evidence package with time-series CSV, speed trace SVG, spectral SVG, and machine-checkable theory gate.
 - [x] Add domain-randomized theta-conditioned twin evidence with multi-step rollout losses and machine-checkable theory gate.
+- [x] Add tracked `N=500` host Monte Carlo evidence and machine-checkable `publication_mc500_ready` gate.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Tune and stress-test the FOC-SVM key-level baseline to publication-grade level with the same inverter/dead-time/min-pulse/current constraints.
 - [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.

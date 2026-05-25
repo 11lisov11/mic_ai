@@ -90,7 +90,7 @@ Fault-injection result:
 - Host simulation only.
 - FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final tuned publication-grade.
 - Domain-randomized theta-conditioned twin evidence exists, but it is host-only and assumes theta/passport or identification context.
-- First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.
+- Host MC=500 publication-scale smoke exists, but final MC must be repeated after strong-baseline tuning.
 - Host trace package with time-series CSV plus FFT/THD-like torque-current evidence exists, but it is still simulation-only and not hardware THD.
 - No fixed-point/WCET analysis.
 - No MCU, HIL, oscilloscope, inverter, or motor-bench validation.
@@ -98,7 +98,7 @@ Fault-injection result:
 ## Required Next Work
 
 - Tune the FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines into strong publication baselines.
-- Run publication-scale MC after baseline replacement.
+- Re-run publication-scale MC after baseline replacement/tuning.
 - Expand the host trace/FFT package after baseline tuning and validate it against HIL/bench traces.
 - Replace the theta-conditioned host twin with a production online identifier before MCU/HIL/bench claims.
 - Port the safety gateway and timing checks to the target MCU/HIL path.

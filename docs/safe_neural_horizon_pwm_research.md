@@ -484,6 +484,7 @@ host_theory_scaffold_ready = true
 trace_fft_thd_evidence_ready = true
 publication_plots_fft_thd_ready = true
 trained_domain_randomized_twin_ready = true
+publication_mc500_ready = true
 publication_theory_complete = false
 ```
 
@@ -491,6 +492,7 @@ The tracked release also contains:
 
 - [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
 - [safe_neural_horizon_pwm_mc100_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc100_smoke.json)
+- [safe_neural_horizon_pwm_mc500_publication_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc500_publication_smoke.json)
 - [trace_evidence/trace_summary.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/trace_summary.json)
 - [trace_evidence/trace_summary.csv](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/trace_summary.csv)
 - [trace_evidence/figures/fig_trace_speed.svg](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/trace_evidence/figures/fig_trace_speed.svg)
@@ -503,7 +505,41 @@ Interpretation:
 - `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
 - `trace_fft_thd_evidence_ready = true` means the release now has host time-series CSV traces plus FFT/THD-like spectral metrics and SVG figures.
 - `trained_domain_randomized_twin_ready = true` means the release now contains theta-conditioned host twin evidence with domain randomization and multi-step rollout losses.
-- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength and MC reaches publication scale.
+- `publication_mc500_ready = true` means the release now has a tracked MC=500 host evidence run; it must be repeated after final strong-baseline tuning.
+- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength.
+
+## MC500 Host Evidence
+
+Command run:
+
+```bash
+python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
+```
+
+Scope:
+
+- `N = 500`;
+- scenario: `load_step`;
+- short host simulation only;
+- same quick controller set as MC100;
+- this is a host publication-scale smoke before final baseline tuning, not a final journal superiority claim.
+
+| Controller | Mean speed error | Mean current | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| protected_ai_pwm_h1_baseline | 84.088 | 1.600 | 40.76 | 0.983 | 4.50 | 0.00 | 0 | 0 |
+| fcs_mpc_one_step_baseline | 83.154 | 2.547 | 23.07 | 1.000 | 0.02 | 0.00 | 0 | 0 |
+| foc_svm_key_baseline | 83.806 | 1.030 | 37.21 | 1.000 | 0.00 | 0.00 | 0 | 0 |
+| dtc_hysteresis_baseline | 84.680 | 0.309 | 142.94 | 1.000 | 0.40 | 0.00 | 0 | 0 |
+| dtc_svm_baseline | 84.626 | 0.590 | 18.04 | 1.000 | 0.00 | 0.00 | 0 | 0 |
+| deadbeat_current_baseline | 84.565 | 0.434 | 8.90 | 1.000 | 0.00 | 0.00 | 0 | 0 |
+| sensorless_adaptive_foc_baseline | 84.592 | 0.739 | 14.99 | 0.933 | 0.00 | 0.00 | 0 | 0 |
+| safe_neural_horizon_pwm_h2 | 84.044 | 1.750 | 45.61 | 0.983 | 4.81 | 0.00 | 0 | 0 |
+
+Interpretation:
+
+- MC500 confirms the safety invariant in this host setting: no safety waveform violations and no failure count for all listed controllers.
+- FCS-MPC remains strongest on mean speed error in this short load-step MC500, so SNH-PWM still cannot claim broad superiority.
+- SNH-H2 remains a valid distinct protected horizon architecture with competitive speed error, but it pays with higher fallback and switching than several baselines.
 
 ## Domain-Randomized Twin Evidence
 
@@ -663,7 +699,7 @@ What is shown:
 - no-direct-HIGH-to-LOW transition-path invariant is host-tested
 - horizon AI-PWM controller exists
 - neural twin and event feedback scaffold exists
-- MC=100 smoke runs without safety waveform violations for the new H=2 variant
+- MC=100 and MC=500 host runs complete without safety waveform violations for the new H=2 variant
 - tracked novelty audit supports only the host-level distinct-architecture claim
 - tracked theory-completion audit supports `host_theory_scaffold_ready = true`, not publication-grade completion
 

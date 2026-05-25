@@ -3,8 +3,8 @@
   "host_theory_scaffold_ready": true,
   "publication_theory_complete": false,
   "completion_pct_host_criteria": 100.0,
-  "criteria_total": 13,
-  "criteria_pass": 13,
+  "criteria_total": 14,
+  "criteria_pass": 14,
   "criteria_partial": 0,
   "criteria_open": 0,
   "checks": {
@@ -17,6 +17,7 @@
     "named_baseline_comparison_matrix": true,
     "robust_scenario_matrix": true,
     "first_mc100_smoke": true,
+    "publication_mc500_ready": true,
     "ablation_and_pareto_smoke": true,
     "trace_fft_thd_evidence_ready": true,
     "publication_plots_fft_thd_ready": true,
@@ -31,8 +32,7 @@
     "sensorless_adaptive_foc_baseline_ready": true,
     "protected_ai_pwm_h1_baseline_ready": true,
     "strong_baselines_ready": false,
-    "trained_domain_randomized_twin_ready": true,
-    "publication_mc500_ready": false
+    "trained_domain_randomized_twin_ready": true
   },
   "criteria": [
     {
@@ -102,6 +102,14 @@
       "missing": []
     },
     {
+      "key": "publication_mc500_evidence",
+      "status": "pass",
+      "evidence": [
+        "safe_neural_horizon_pwm_mc500_publication_smoke.json"
+      ],
+      "missing": []
+    },
+    {
       "key": "ablation_and_pareto_smoke",
       "status": "pass",
       "evidence": [
@@ -153,6 +161,6 @@
   "warnings": [
     "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
     "domain-randomized twin evidence is host-only and theta-conditioned; production online identification remains open",
-    "publication-scale MC is still open"
+    "publication-scale MC500 host evidence exists before final strong-baseline tuning"
   ]
 }

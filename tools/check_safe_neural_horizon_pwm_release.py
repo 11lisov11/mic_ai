@@ -34,6 +34,7 @@ REQUIRED_RELEASE_FILES = {
     "safe_neural_horizon_pwm_novelty_audit.json",
     "safe_neural_horizon_pwm_theory_completion_audit.json",
     "safe_neural_horizon_pwm_mc100_smoke.json",
+    "safe_neural_horizon_pwm_mc500_publication_smoke.json",
     "WHAT_IS_NOT_DONE.md",
     "figures/safe_neural_horizon_pwm_summary.csv",
     "figures/fig_speed_error_vs_current.svg",

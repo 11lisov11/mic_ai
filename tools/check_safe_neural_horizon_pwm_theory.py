@@ -33,14 +33,20 @@ def _load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _load_release(path: Path) -> tuple[Dict[str, Any], Path | None, Dict[str, Any] | None]:
+def _load_release(path: Path) -> tuple[Dict[str, Any], Path | None, Dict[str, Any] | None, Dict[str, Any] | None]:
     if path.is_dir():
         result_path = path / "safe_neural_horizon_pwm_results.json"
         if not result_path.exists():
             raise FileNotFoundError(result_path)
         mc100_path = path / "safe_neural_horizon_pwm_mc100_smoke.json"
-        return _load_json(result_path), path, _load_json(mc100_path) if mc100_path.exists() else None
-    return _load_json(path), None, None
+        mc500_path = path / "safe_neural_horizon_pwm_mc500_publication_smoke.json"
+        return (
+            _load_json(result_path),
+            path,
+            _load_json(mc100_path) if mc100_path.exists() else None,
+            _load_json(mc500_path) if mc500_path.exists() else None,
+        )
+    return _load_json(path), None, None, None
 
 
 def _source_contains(path: Path, names: list[str]) -> bool:
@@ -178,7 +184,7 @@ def _criterion(
 
 
 def analyze_theory(path: Path) -> Dict[str, Any]:
-    payload, release_dir, mc100_payload = _load_release(path)
+    payload, release_dir, mc100_payload, mc500_payload = _load_release(path)
     novelty = analyze_novelty(path)
     criteria: list[dict[str, Any]] = []
     checks: Dict[str, Any] = {}
@@ -292,6 +298,16 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [] if mc100_ok else ["tracked MC>=100 host smoke evidence"],
     )
 
+    mc500_ok = bool(mc500_payload and int(mc500_payload.get("mc_trials", 0)) >= 500)
+    checks["publication_mc500_ready"] = mc500_ok
+    _criterion(
+        criteria,
+        "publication_mc500_evidence",
+        _status(mc500_ok, mc100_ok),
+        ["safe_neural_horizon_pwm_mc500_publication_smoke.json" if mc500_payload else "safe_neural_horizon_pwm_mc100_smoke.json"],
+        [] if mc500_ok else ["tracked MC>=500 host evidence"],
+    )
+
     pareto_ok = _matrix_has_pareto(payload) and bool(ablation.get("pareto_front"))
     checks["ablation_and_pareto_smoke"] = pareto_ok
     _criterion(
@@ -387,7 +403,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         ["ProtectedAiPwmH1BaselineController", "protected_h1_config", "horizon=1"],
     ) and comparison_matrix
     trained_twin_ready = twin_evidence_ready
-    publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
+    publication_mc_ready = mc500_ok
     publication_plots_ready = publication_trace_ready
     checks["foc_svm_key_baseline_ready"] = foc_svm_key_baseline_ready
     checks["fcs_mpc_one_step_baseline_ready"] = fcs_mpc_one_step_baseline_ready
@@ -404,7 +420,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [
             "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
             "domain-randomized twin evidence is host-only and theta-conditioned; production online identification remains open",
-            "publication-scale MC is still open",
+            "publication-scale MC500 host evidence exists before final strong-baseline tuning" if publication_mc_ready else "publication-scale MC is still open",
         ]
     )
     if not publication_trace_ready:

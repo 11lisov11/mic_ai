@@ -37,10 +37,12 @@ def _article_draft(
     payload: Dict[str, Any],
     trace_payload: Dict[str, Any] | None = None,
     twin_payload: Dict[str, Any] | None = None,
+    mc500_payload: Dict[str, Any] | None = None,
 ) -> str:
     scenarios = list(payload.get("scenarios", []))
     trace_ready = bool(trace_payload and trace_payload.get("trace_evidence_ready", False))
     twin_ready = bool(twin_payload and twin_payload.get("trained_domain_randomized_twin_ready", False))
+    mc500_ready = bool(mc500_payload and int(mc500_payload.get("mc_trials", 0)) >= 500)
     lines: List[str] = []
     lines.append("# Safe Neural Horizon PWM with Event-Triggered Twin Feedback")
     lines.append("")
@@ -130,7 +132,10 @@ def _article_draft(
         lines.append("- Domain-randomized theta-conditioned twin evidence exists, but it is host-only and assumes theta/passport or identification context.")
     else:
         lines.append("- No trained/identified domain-randomized neural twin yet.")
-    lines.append("- First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.")
+    if mc500_ready:
+        lines.append("- Host MC=500 publication-scale smoke exists, but final MC must be repeated after strong-baseline tuning.")
+    else:
+        lines.append("- First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.")
     if trace_ready:
         lines.append("- Host trace package with time-series CSV plus FFT/THD-like torque-current evidence exists, but it is still simulation-only and not hardware THD.")
     else:
@@ -141,7 +146,10 @@ def _article_draft(
     lines.append("## Required Next Work")
     lines.append("")
     lines.append("- Tune the FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines into strong publication baselines.")
-    lines.append("- Run publication-scale MC after baseline replacement.")
+    if mc500_ready:
+        lines.append("- Re-run publication-scale MC after baseline replacement/tuning.")
+    else:
+        lines.append("- Run publication-scale MC after baseline replacement.")
     if trace_ready:
         lines.append("- Expand the host trace/FFT package after baseline tuning and validate it against HIL/bench traces.")
     else:
@@ -159,9 +167,11 @@ def _article_draft(
 def _open_items(
     trace_payload: Dict[str, Any] | None = None,
     twin_payload: Dict[str, Any] | None = None,
+    mc500_payload: Dict[str, Any] | None = None,
 ) -> str:
     trace_ready = bool(trace_payload and trace_payload.get("trace_evidence_ready", False))
     twin_ready = bool(twin_payload and twin_payload.get("trained_domain_randomized_twin_ready", False))
+    mc500_ready = bool(mc500_payload and int(mc500_payload.get("mc_trials", 0)) >= 500)
     trace_item = (
         "- Expand the host trace/FFT/THD-like package after baseline tuning; current evidence is simulation-only and not hardware power-analyzer THD."
         if trace_ready
@@ -172,15 +182,25 @@ def _open_items(
         if twin_ready
         else "- Train or identify the neural twin with domain randomization and multi-step losses."
     )
+    mc_item = (
+        "- Re-run MC=500..1000 after strong baselines are tuned; current MC500 is host evidence before final tuning."
+        if mc500_ready
+        else "- Run MC=500..1000 after strong baselines are ready."
+    )
+    complete_guard = (
+        "- Keep `publication_theory_complete=false` until strong baselines are present; host trace/twin/MC500 evidence alone is not enough."
+        if mc500_ready
+        else "- Keep `publication_theory_complete=false` until strong baselines and MC=500..1000 are present; host trace/twin evidence alone is not enough."
+    )
     return "\n".join(
         [
             "# Safe Neural Horizon PWM Open Items",
             "",
             "- Tune the host key-level FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat, and sensorless/adaptive FOC baselines to publication-grade strength.",
             trace_item,
-            "- Run MC=500..1000 after strong baselines are ready.",
+            mc_item,
             twin_item,
-            "- Keep `publication_theory_complete=false` until strong baselines and MC=500..1000 are present; host trace/twin evidence alone is not enough.",
+            complete_guard,
             "- Add fixed-point or bounded floating-point MCU implementation plus WCET.",
             "- Add HIL, oscilloscope gate timing, current trip, watchdog, and bench validation.",
             "- Do not claim hardware-ready status until real MCU/HIL/bench evidence exists.",
@@ -228,6 +248,7 @@ def package_release(
     out_dir: Path,
     tag: str,
     mc100_json: Path | None = None,
+    mc500_json: Path | None = None,
     trace_dir: Path | None = None,
     twin_dir: Path | None = None,
 ) -> Dict[str, Any]:
@@ -245,6 +266,16 @@ def package_release(
             f"--out-json {mc100_source}` or pass --mc100-json"
         )
     shutil.copyfile(mc100_source, mc100_json)
+    mc500_source = mc500_json if mc500_json is not None else ROOT / ".tmp_pytest" / "safe_neural_horizon_pwm_study_mc500.json"
+    mc500_json = out_dir / "safe_neural_horizon_pwm_mc500_publication_smoke.json"
+    if not mc500_source.exists():
+        raise FileNotFoundError(
+            f"tracked release requires MC500 host evidence; run "
+            f"`python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 "
+            f"--out-json {mc500_source}` or pass --mc500-json"
+        )
+    shutil.copyfile(mc500_source, mc500_json)
+    mc500_payload = json.loads(mc500_json.read_text(encoding="utf-8"))
     report_md = out_dir / "safe_neural_horizon_pwm_report.md"
     article_md = out_dir / "safe_neural_horizon_pwm_article_draft.md"
     novelty_json = out_dir / "safe_neural_horizon_pwm_novelty_audit.json"
@@ -255,9 +286,9 @@ def package_release(
     trace_files, trace_payload = _copy_trace_evidence(trace_dir, out_dir)
     twin_files, twin_payload = _copy_twin_evidence(twin_dir, out_dir)
     _write(report_md, build_report(payload))
-    _write(article_md, _article_draft(payload, trace_payload, twin_payload))
+    _write(article_md, _article_draft(payload, trace_payload, twin_payload, mc500_payload))
     _write(novelty_json, json.dumps(analyze_novelty(out_dir), ensure_ascii=False, indent=2) + "\n")
-    _write(open_items_md, _open_items(trace_payload, twin_payload))
+    _write(open_items_md, _open_items(trace_payload, twin_payload, mc500_payload))
     figure_files = build_figures(copied_json, out_dir / "figures")
     _write(theory_json, json.dumps(analyze_theory(out_dir), ensure_ascii=False, indent=2) + "\n")
 
@@ -266,6 +297,7 @@ def package_release(
     files = [
         copied_json,
         mc100_json,
+        mc500_json,
         report_md,
         article_md,
         novelty_json,
@@ -284,9 +316,10 @@ def package_release(
         "reproduce_commands": [
             "python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json",
             "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
+            "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
             "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
             "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
-            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
+            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
         ],
         "files": [
             {
@@ -302,6 +335,7 @@ def package_release(
             "novelty_audit_written": novelty_json.exists(),
             "theory_completion_audit_written": theory_json.exists(),
             "mc100_smoke_written": mc100_json.exists(),
+            "mc500_publication_smoke_written": mc500_json.exists(),
             "open_items_written": open_items_md.exists(),
             "trace_evidence_written": bool(trace_files),
             "twin_evidence_written": bool(twin_files),
@@ -326,6 +360,7 @@ def main() -> None:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--tag", default="safe_neural_horizon_pwm_host_release")
     parser.add_argument("--mc100-json", default="")
+    parser.add_argument("--mc500-json", default="")
     parser.add_argument("--trace-dir", default="")
     parser.add_argument("--twin-dir", default="")
     args = parser.parse_args()
@@ -335,6 +370,7 @@ def main() -> None:
         out_dir=Path(args.out_dir).expanduser().resolve(),
         tag=str(args.tag),
         mc100_json=Path(args.mc100_json).expanduser().resolve() if str(args.mc100_json).strip() else None,
+        mc500_json=Path(args.mc500_json).expanduser().resolve() if str(args.mc500_json).strip() else None,
         trace_dir=Path(args.trace_dir).expanduser().resolve() if str(args.trace_dir).strip() else None,
         twin_dir=Path(args.twin_dir).expanduser().resolve() if str(args.twin_dir).strip() else None,
     )

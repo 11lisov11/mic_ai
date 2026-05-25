@@ -38,7 +38,7 @@ Hardware-productization status as of `2026-05-20`:
 New theory branch status as of `2026-05-25`:
 
 - `Safe Neural Horizon PWM with Event-Triggered Twin Feedback` is implemented as a host-level research scaffold.
-- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, a tracked 31-scenario host matrix, and a host trace/FFT/THD-like evidence package.
+- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, MC=500 host evidence, a tracked 31-scenario host matrix, and a host trace/FFT/THD-like evidence package.
 - Machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
 - Machine-checkable trace status: `trace_fft_thd_evidence_ready = true`, `publication_plots_fft_thd_ready = true` for host simulation evidence only.
 - Machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; it is not a production sensorless identifier.
@@ -177,7 +177,10 @@ Run the host-level scenario/ablation/Pareto matrix for the new research track:
 ```bash
 python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
 python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json
-python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release
+python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
+python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence
+python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict

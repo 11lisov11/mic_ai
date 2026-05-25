@@ -580,6 +580,8 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     input_json.write_text(__import__("json").dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
     mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc500_json = tmp_path / "mc500.json"
+    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
     trace_dir = tmp_path / "trace_evidence_src"
     build_trace_evidence(
         out_dir=trace_dir,
@@ -594,6 +596,7 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
         out_dir=out_dir,
         tag="test_tag",
         mc100_json=mc100_json,
+        mc500_json=mc500_json,
         trace_dir=trace_dir,
         twin_dir=twin_dir,
     )
@@ -603,6 +606,7 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     assert (out_dir / "safe_neural_horizon_pwm_novelty_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_theory_completion_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_mc100_smoke.json").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_mc500_publication_smoke.json").exists()
     assert (out_dir / "WHAT_IS_NOT_DONE.md").exists()
     assert (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").exists()
     assert (out_dir / "figures" / "safe_neural_horizon_pwm_summary.csv").exists()
@@ -692,6 +696,7 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert audit["checks"]["publication_plots_fft_thd_ready"] is True
     assert audit["checks"]["domain_randomized_twin_evidence_ready"] is True
     assert audit["checks"]["trained_domain_randomized_twin_ready"] is True
+    assert audit["checks"]["publication_mc500_ready"] is True
     assert audit["checks"]["strong_baselines_ready"] is False
 
 
@@ -701,8 +706,10 @@ def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> No
     input_json.write_text(json.dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
     mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc500_json = tmp_path / "mc500.json"
+    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
 
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -722,8 +729,10 @@ def test_release_checker_requires_acceptance_summary(tmp_path) -> None:
     input_json.write_text(json.dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
     mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc500_json = tmp_path / "mc500.json"
+    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
 
     (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").unlink()
 
@@ -738,8 +747,10 @@ def test_release_checker_rejects_unsafe_manifest_paths(tmp_path) -> None:
     input_json.write_text(json.dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
     mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc500_json = tmp_path / "mc500.json"
+    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
 
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

@@ -1,15 +1,16 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-25T08:52:10.253066+00:00",
+  "generated_utc": "2026-05-25T09:00:35.096316+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
   "reproduce_commands": [
     "python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json",
     "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
+    "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
     "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
     "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
-    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence"
+    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json"
   ],
   "files": [
     {
@@ -23,14 +24,19 @@
       "sha256": "2d0017742d8bbd68bda7e4974f3eff060bd2efa5182812fdb041d4f72d4f0386"
     },
     {
+      "path": "safe_neural_horizon_pwm_mc500_publication_smoke.json",
+      "bytes": 18821,
+      "sha256": "35daf533f9011d3e13fcca86f3551521fadfed33d80bc5b403911ca7c769f37e"
+    },
+    {
       "path": "safe_neural_horizon_pwm_report.md",
       "bytes": 39390,
       "sha256": "626e5106e93a6ce5a628b40a3d2396ea9557d7ae1f47f20db0d2351b2fd3e074"
     },
     {
       "path": "safe_neural_horizon_pwm_article_draft.md",
-      "bytes": 5601,
-      "sha256": "f761a8419ad522b47478fbe52770661e1cddb7c63fe726accec91f92ebb03534"
+      "bytes": 5641,
+      "sha256": "cb529bb91b4145ca3b9d22f5c652b0c8a561a509a7b5ea63386938c30fe15e04"
     },
     {
       "path": "safe_neural_horizon_pwm_novelty_audit.json",
@@ -39,13 +45,13 @@
     },
     {
       "path": "safe_neural_horizon_pwm_theory_completion_audit.json",
-      "bytes": 4690,
-      "sha256": "9bd7b60c490456dcab1d8217c6d4d93d799e760b0504fafb0913e57296e68f4a"
+      "bytes": 4935,
+      "sha256": "9d0a1289d9e54dbff3e24795d99b1e18fc0c44a78fa14e956f1181ce735b639b"
     },
     {
       "path": "WHAT_IS_NOT_DONE.md",
-      "bytes": 894,
-      "sha256": "bb42dfe355c6519c0b5215d2bc4efa153f4ce5db05ec910fae5c6aa32f8ce658"
+      "bytes": 938,
+      "sha256": "3e07139b0205e9543fbb7ebd9cd4c8ec78afcf7da0a9d3d57be8d5f9a447bf6e"
     },
     {
       "path": "figures/safe_neural_horizon_pwm_summary.csv",
@@ -144,6 +150,7 @@
     "novelty_audit_written": true,
     "theory_completion_audit_written": true,
     "mc100_smoke_written": true,
+    "mc500_publication_smoke_written": true,
     "open_items_written": true,
     "trace_evidence_written": true,
     "twin_evidence_written": true,
