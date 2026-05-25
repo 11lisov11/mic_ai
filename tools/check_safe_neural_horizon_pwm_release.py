@@ -19,7 +19,7 @@ REQUIRED_CONTROLLERS = {
     "protected_ai_pwm_h1_proxy",
     "fcs_mpc_one_step_baseline",
     "foc_svm_key_baseline",
-    "dtc_hysteresis_proxy",
+    "dtc_hysteresis_baseline",
     "dtc_svm_proxy",
     "deadbeat_current_proxy",
     "sensorless_adaptive_foc_proxy",
@@ -217,9 +217,12 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     checks["fcs_mpc_one_step_baseline_ready"] = bool(scenarios) and all(
         "fcs_mpc_one_step_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
     )
+    checks["dtc_hysteresis_baseline_ready"] = bool(scenarios) and all(
+        "dtc_hysteresis_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
+    )
     checks["strong_baselines_ready"] = False
     warnings.append(
-        "strong baselines are not complete; FOC-SVM and one-step FCS-MPC are host baselines, but DTC/deadbeat/sensorless entries are still proxy controllers"
+        "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, and DTC hysteresis are host baselines, but DTC-SVM/deadbeat/sensorless entries are still proxy controllers"
     )
 
     host_release_ready = not failures

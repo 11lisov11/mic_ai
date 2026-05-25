@@ -19,7 +19,7 @@ Controller names ending with `_proxy` are lightweight comparison proxies, not fi
 | protected_ai_pwm_h1_proxy | 83.957 | 1.148 | 19.000 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 83.889 | 2.057 | 11.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 83.701 | 1.460 | 22.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 84.008 | 1.524 | 46.667 | 1.000 | 2.000 | 0 |
+| dtc_hysteresis_baseline | 84.037 | 0.297 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 83.985 | 1.595 | 22.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 84.037 | 0.285 | 75.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 84.015 | 1.072 | 30.000 | 0.917 | 0.000 | 0 |
@@ -31,7 +31,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
 - `safe_neural_horizon_pwm_h2`
@@ -44,7 +44,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 84.110 | 1.189 | 25.000 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 84.010 | 2.207 | 9.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 84.037 | 1.535 | 21.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 84.079 | 1.717 | 39.333 | 1.000 | 3.333 | 0 |
+| dtc_hysteresis_baseline | 84.141 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 84.070 | 1.537 | 19.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 84.150 | 0.294 | 74.333 | 1.000 | 3.333 | 0 |
 | sensorless_adaptive_foc_proxy | 84.685 | 1.115 | 30.333 | 0.917 | 0.000 | 0 |
@@ -56,6 +56,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -69,7 +70,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 92.078 | 1.262 | 26.333 | 0.967 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 92.012 | 1.897 | 13.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 92.004 | 1.369 | 18.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 92.004 | 1.757 | 38.000 | 1.000 | 1.000 | 0 |
+| dtc_hysteresis_baseline | 92.234 | 0.302 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 92.148 | 1.256 | 19.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 92.191 | 0.285 | 75.667 | 1.000 | 2.333 | 0 |
 | sensorless_adaptive_foc_proxy | 92.203 | 1.181 | 29.667 | 0.817 | 0.000 | 0 |
@@ -81,7 +82,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -95,7 +96,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 84.028 | 1.286 | 25.667 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 83.903 | 2.291 | 9.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 83.962 | 1.536 | 23.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 83.644 | 1.663 | 46.000 | 1.000 | 3.667 | 0 |
+| dtc_hysteresis_baseline | 84.435 | 0.298 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 83.111 | 1.765 | 17.000 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 84.088 | 0.287 | 75.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 83.955 | 1.020 | 29.333 | 0.917 | 0.000 | 0 |
@@ -107,7 +108,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -121,7 +122,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 94.437 | 1.284 | 20.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 94.153 | 2.538 | 7.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 94.247 | 1.335 | 22.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 94.312 | 1.701 | 43.333 | 1.000 | 1.333 | 0 |
+| dtc_hysteresis_baseline | 94.405 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 94.512 | 1.348 | 19.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 94.320 | 0.282 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 94.368 | 1.069 | 29.333 | 1.000 | 0.000 | 0 |
@@ -133,7 +134,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -145,7 +146,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 62.586 | 1.110 | 19.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 62.656 | 1.968 | 16.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 62.792 | 1.285 | 24.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 62.757 | 1.701 | 30.000 | 1.000 | 0.000 | 0 |
+| dtc_hysteresis_baseline | 62.773 | 0.302 | 72.667 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 62.783 | 1.419 | 19.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 62.777 | 0.273 | 78.000 | 1.000 | 1.000 | 0 |
 | sensorless_adaptive_foc_proxy | 62.793 | 1.114 | 26.000 | 1.000 | 0.000 | 0 |
@@ -156,6 +157,7 @@ Pareto front:
 Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
+- `dtc_hysteresis_baseline`
 - `deadbeat_current_proxy`
 - `safe_neural_horizon_pwm_h4_sparse`
 
@@ -165,7 +167,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 44.517 | 1.252 | 22.667 | 0.467 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 43.976 | 1.690 | 22.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 44.481 | 1.262 | 14.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 44.497 | 1.508 | 48.333 | 1.000 | 0.333 | 0 |
+| dtc_hysteresis_baseline | 44.554 | 0.300 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 44.575 | 1.357 | 17.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 44.647 | 0.286 | 75.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 44.586 | 1.084 | 23.000 | 0.417 | 0.000 | 0 |
@@ -177,6 +179,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -189,7 +192,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 60.180 | 1.243 | 25.667 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 59.963 | 1.883 | 19.667 | 1.000 | 0.333 | 0 |
 | foc_svm_key_baseline | 60.015 | 1.504 | 22.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 60.174 | 1.487 | 48.000 | 1.000 | 3.000 | 0 |
+| dtc_hysteresis_baseline | 60.203 | 0.380 | 68.667 | 1.000 | 4.667 | 0 |
 | dtc_svm_proxy | 60.166 | 1.451 | 21.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 59.929 | 0.314 | 75.000 | 1.000 | 2.667 | 0 |
 | sensorless_adaptive_foc_proxy | 59.727 | 1.167 | 31.000 | 0.417 | 0.000 | 0 |
@@ -201,7 +204,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -215,7 +218,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 23.604 | 1.312 | 24.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 22.550 | 1.987 | 24.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 23.537 | 1.307 | 19.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 23.478 | 1.811 | 39.667 | 1.000 | 1.000 | 0 |
+| dtc_hysteresis_baseline | 23.680 | 0.303 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 23.579 | 1.436 | 21.000 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 23.618 | 0.272 | 78.000 | 1.000 | 1.000 | 0 |
 | sensorless_adaptive_foc_proxy | 23.573 | 1.106 | 29.667 | 0.133 | 0.000 | 0 |
@@ -226,7 +229,7 @@ Pareto front:
 Pareto front:
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -240,7 +243,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 0.032 | 0.903 | 29.000 | 0.200 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 0.032 | 0.937 | 26.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 0.134 | 1.124 | 10.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 0.040 | 0.959 | 57.000 | 1.000 | 2.667 | 0 |
+| dtc_hysteresis_baseline | 0.038 | 0.348 | 63.667 | 1.000 | 2.000 | 0 |
 | dtc_svm_proxy | 0.043 | 0.789 | 50.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 0.060 | 0.272 | 78.000 | 1.000 | 1.000 | 0 |
 | sensorless_adaptive_foc_proxy | 0.404 | 0.705 | 36.000 | 0.133 | 0.000 | 0 |
@@ -252,6 +255,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
 - `safe_neural_horizon_pwm_h2`
@@ -264,7 +268,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 180.772 | 1.273 | 24.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 180.521 | 2.431 | 7.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 180.604 | 1.392 | 24.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 181.525 | 1.429 | 49.667 | 1.000 | 1.000 | 0 |
+| dtc_hysteresis_baseline | 182.288 | 0.305 | 66.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 180.666 | 1.442 | 18.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 180.702 | 0.271 | 75.000 | 1.000 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 180.668 | 1.016 | 25.667 | 1.000 | 0.000 | 0 |
@@ -276,6 +280,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -289,7 +294,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.583 | 1.269 | 29.000 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.189 | 2.258 | 10.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.469 | 1.222 | 22.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.477 | 1.783 | 39.333 | 1.000 | 0.667 | 0 |
+| dtc_hysteresis_baseline | 86.560 | 0.301 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 86.996 | 1.363 | 20.000 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 87.814 | 0.292 | 75.000 | 1.000 | 2.667 | 0 |
 | sensorless_adaptive_foc_proxy | 86.569 | 1.034 | 30.333 | 1.000 | 0.000 | 0 |
@@ -301,7 +306,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -314,7 +319,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.492 | 1.140 | 17.667 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.430 | 2.247 | 10.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.355 | 1.436 | 23.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.410 | 1.747 | 31.000 | 1.000 | 0.333 | 0 |
+| dtc_hysteresis_baseline | 86.486 | 0.771 | 43.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 91.788 | 1.194 | 18.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 86.461 | 0.249 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 86.456 | 1.016 | 27.667 | 1.000 | 0.000 | 0 |
@@ -326,7 +331,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -340,7 +345,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.609 | 1.145 | 24.000 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.144 | 2.301 | 8.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.427 | 1.435 | 24.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.480 | 1.636 | 42.000 | 1.000 | 1.667 | 0 |
+| dtc_hysteresis_baseline | 86.547 | 0.299 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 86.554 | 1.585 | 18.000 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 86.726 | 0.293 | 75.667 | 1.000 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 86.471 | 1.060 | 28.667 | 1.000 | 0.000 | 0 |
@@ -352,7 +357,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -365,7 +370,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.744 | 1.176 | 27.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 85.955 | 2.537 | 7.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.423 | 1.472 | 22.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.434 | 1.739 | 35.333 | 1.000 | 1.000 | 0 |
+| dtc_hysteresis_baseline | 86.518 | 0.302 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 86.482 | 1.287 | 19.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 86.570 | 0.285 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 86.459 | 1.084 | 28.333 | 1.000 | 0.000 | 0 |
@@ -377,7 +382,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -391,7 +396,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.297 | 1.133 | 18.667 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.905 | 2.291 | 9.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.038 | 1.187 | 23.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.070 | 1.723 | 40.000 | 1.000 | 1.000 | 0 |
+| dtc_hysteresis_baseline | 77.173 | 0.300 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 77.088 | 1.550 | 18.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.211 | 0.310 | 74.000 | 1.000 | 4.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.161 | 0.968 | 29.000 | 0.917 | 0.000 | 0 |
@@ -403,7 +408,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -416,7 +421,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.393 | 1.113 | 18.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 77.091 | 1.605 | 13.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.049 | 1.997 | 25.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.141 | 1.459 | 53.333 | 1.000 | 4.000 | 0 |
+| dtc_hysteresis_baseline | 77.236 | 0.295 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 78.718 | 1.223 | 18.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.114 | 0.278 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.355 | 1.017 | 28.667 | 0.917 | 0.000 | 0 |
@@ -428,7 +433,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
 - `safe_neural_horizon_pwm_h2`
@@ -441,7 +446,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.112 | 1.129 | 22.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.901 | 2.516 | 8.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.014 | 1.387 | 22.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.589 | 1.460 | 52.333 | 1.000 | 5.000 | 0 |
+| dtc_hysteresis_baseline | 78.179 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 77.059 | 1.793 | 18.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.231 | 0.281 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.175 | 1.142 | 28.333 | 0.917 | 0.000 | 0 |
@@ -453,6 +458,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -465,7 +471,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.060 | 1.235 | 27.000 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.999 | 2.149 | 9.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.025 | 1.654 | 21.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.059 | 1.546 | 49.667 | 1.000 | 1.667 | 0 |
+| dtc_hysteresis_baseline | 77.097 | 0.299 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 77.065 | 1.357 | 21.000 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.104 | 0.308 | 73.333 | 1.000 | 4.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.191 | 1.048 | 28.000 | 0.917 | 0.000 | 0 |
@@ -477,8 +483,8 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
-- `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
 - `safe_neural_horizon_pwm_h2`
 - `safe_neural_horizon_pwm_h3_thermal`
@@ -490,7 +496,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.543 | 1.180 | 22.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.333 | 2.438 | 8.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.391 | 1.360 | 23.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.424 | 1.629 | 43.333 | 1.000 | 1.667 | 0 |
+| dtc_hysteresis_baseline | 86.494 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 86.411 | 1.717 | 18.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 86.662 | 0.295 | 74.667 | 1.000 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 86.533 | 1.045 | 26.667 | 1.000 | 0.000 | 0 |
@@ -502,7 +508,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -516,7 +522,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.506 | 1.160 | 26.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.289 | 2.513 | 7.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.372 | 1.494 | 21.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.371 | 1.840 | 35.333 | 1.000 | 1.333 | 0 |
+| dtc_hysteresis_baseline | 86.502 | 0.298 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 86.452 | 1.367 | 20.000 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 87.184 | 0.293 | 75.000 | 1.000 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 86.532 | 1.039 | 30.000 | 1.000 | 0.000 | 0 |
@@ -528,7 +534,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -542,7 +548,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 86.490 | 1.225 | 25.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 85.647 | 2.228 | 9.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.332 | 1.387 | 22.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 86.402 | 1.627 | 43.333 | 1.000 | 1.667 | 0 |
+| dtc_hysteresis_baseline | 86.459 | 0.298 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 86.386 | 1.798 | 17.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 86.586 | 0.283 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 86.447 | 1.039 | 30.000 | 1.000 | 0.000 | 0 |
@@ -554,7 +560,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -567,7 +573,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 78.595 | 1.164 | 24.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 78.586 | 2.116 | 10.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 78.536 | 1.640 | 22.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 78.602 | 1.685 | 41.333 | 1.000 | 4.333 | 0 |
+| dtc_hysteresis_baseline | 78.691 | 0.299 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 78.615 | 1.327 | 21.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 80.039 | 0.283 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 78.649 | 1.073 | 29.333 | 1.000 | 0.000 | 0 |
@@ -579,6 +585,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -591,7 +598,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.155 | 1.266 | 24.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.659 | 2.517 | 8.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.027 | 1.210 | 20.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.069 | 1.550 | 48.000 | 1.000 | 5.333 | 0 |
+| dtc_hysteresis_baseline | 77.111 | 0.297 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 77.091 | 1.601 | 17.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.130 | 0.294 | 74.667 | 1.000 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.188 | 1.266 | 29.000 | 0.917 | 0.000 | 0 |
@@ -603,7 +610,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -617,7 +624,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.213 | 1.152 | 21.333 | 0.989 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 77.026 | 2.081 | 11.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.032 | 1.329 | 22.333 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.060 | 1.522 | 51.000 | 1.000 | 3.000 | 0 |
+| dtc_hysteresis_baseline | 77.087 | 0.296 | 72.000 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 77.183 | 1.302 | 18.333 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.088 | 0.294 | 75.000 | 1.000 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.462 | 1.066 | 30.333 | 0.939 | 0.000 | 0 |
@@ -629,7 +636,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -643,7 +650,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.001 | 1.654 | 21.333 | 0.267 | 3.333 | 0 |
 | fcs_mpc_one_step_baseline | 75.752 | 2.988 | 10.000 | 0.383 | 0.000 | 0 |
 | foc_svm_key_baseline | 76.773 | 2.164 | 14.667 | 0.383 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 76.993 | 2.331 | 32.000 | 0.383 | 4.333 | 0 |
+| dtc_hysteresis_baseline | 77.104 | 0.299 | 72.000 | 0.383 | 0.000 | 0 |
 | dtc_svm_proxy | 76.876 | 2.566 | 15.667 | 0.383 | 7.000 | 0 |
 | deadbeat_current_proxy | 77.143 | 0.356 | 75.000 | 0.383 | 5.667 | 0 |
 | sensorless_adaptive_foc_proxy | 76.999 | 1.658 | 24.000 | 0.200 | 2.667 | 0 |
@@ -655,9 +662,8 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
-- `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
 - `safe_neural_horizon_pwm_h2`
 - `safe_neural_horizon_pwm_h3_thermal`
@@ -669,7 +675,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.116 | 1.180 | 24.667 | 0.267 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 75.767 | 2.255 | 9.333 | 0.383 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.030 | 1.280 | 21.333 | 0.383 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.073 | 1.681 | 42.667 | 0.383 | 1.667 | 0 |
+| dtc_hysteresis_baseline | 77.234 | 0.301 | 72.000 | 0.383 | 0.000 | 0 |
 | dtc_svm_proxy | 77.529 | 1.548 | 18.000 | 0.383 | 0.333 | 0 |
 | deadbeat_current_proxy | 77.337 | 0.295 | 74.667 | 0.383 | 3.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.116 | 1.171 | 27.000 | 0.200 | 0.000 | 0 |
@@ -681,7 +687,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -695,7 +701,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.359 | 1.259 | 21.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.364 | 2.503 | 7.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.016 | 1.393 | 20.667 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.070 | 1.524 | 52.333 | 1.000 | 3.000 | 0 |
+| dtc_hysteresis_baseline | 77.112 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
 | dtc_svm_proxy | 77.499 | 1.795 | 17.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.128 | 0.282 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.101 | 1.089 | 31.667 | 0.917 | 0.000 | 0 |
@@ -707,7 +713,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -721,7 +727,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.094 | 1.149 | 17.667 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 77.130 | 1.625 | 13.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.066 | 1.963 | 26.000 | 1.000 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.081 | 1.389 | 47.333 | 1.000 | 2.333 | 0 |
+| dtc_hysteresis_baseline | 77.105 | 0.302 | 72.667 | 1.000 | 0.333 | 0 |
 | dtc_svm_proxy | 77.069 | 1.164 | 18.667 | 1.000 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.104 | 0.281 | 76.000 | 1.000 | 2.000 | 0 |
 | sensorless_adaptive_foc_proxy | 77.056 | 0.964 | 23.667 | 0.917 | 0.000 | 0 |
@@ -732,6 +738,7 @@ Pareto front:
 Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -744,7 +751,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.101 | 0.957 | 12.000 | 0.983 | 30.000 | 3 |
 | fcs_mpc_one_step_baseline | 76.806 | 1.592 | 8.000 | 1.000 | 30.000 | 3 |
 | foc_svm_key_baseline | 77.035 | 1.107 | 12.667 | 1.000 | 30.000 | 3 |
-| dtc_hysteresis_proxy | 77.113 | 1.033 | 24.667 | 1.000 | 30.333 | 3 |
+| dtc_hysteresis_baseline | 77.194 | 0.238 | 38.000 | 1.000 | 30.000 | 3 |
 | dtc_svm_proxy | 77.069 | 0.960 | 14.667 | 1.000 | 30.000 | 3 |
 | deadbeat_current_proxy | 77.332 | 0.231 | 38.000 | 1.000 | 31.000 | 3 |
 | sensorless_adaptive_foc_proxy | 77.098 | 0.714 | 15.333 | 0.917 | 30.000 | 3 |
@@ -756,6 +763,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`
@@ -768,7 +776,7 @@ Pareto front:
 | protected_ai_pwm_h1_proxy | 77.101 | 1.138 | 21.667 | 0.267 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.954 | 2.293 | 9.000 | 0.383 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.022 | 1.334 | 22.333 | 0.383 | 0.000 | 0 |
-| dtc_hysteresis_proxy | 77.059 | 1.515 | 49.667 | 0.383 | 1.000 | 0 |
+| dtc_hysteresis_baseline | 77.106 | 0.298 | 72.000 | 0.383 | 0.000 | 0 |
 | dtc_svm_proxy | 77.196 | 1.331 | 19.667 | 0.383 | 0.000 | 0 |
 | deadbeat_current_proxy | 77.338 | 0.297 | 74.667 | 0.383 | 3.333 | 0 |
 | sensorless_adaptive_foc_proxy | 77.106 | 0.973 | 29.333 | 0.200 | 0.000 | 0 |
@@ -780,7 +788,7 @@ Pareto front:
 - `protected_ai_pwm_h1_proxy`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
-- `dtc_hysteresis_proxy`
+- `dtc_hysteresis_baseline`
 - `dtc_svm_proxy`
 - `deadbeat_current_proxy`
 - `sensorless_adaptive_foc_proxy`

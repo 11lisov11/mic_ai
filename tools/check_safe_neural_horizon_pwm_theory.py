@@ -167,7 +167,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         "comparison_matrix",
         _status(comparison_matrix),
         ["safe_neural_horizon_pwm_results.json:matrix"],
-        [] if comparison_matrix else ["safe variants plus FOC-SVM/FCS-MPC baselines and remaining proxy controllers"],
+        [] if comparison_matrix else ["safe variants plus FOC-SVM/FCS-MPC/DTC baselines and remaining proxy controllers"],
     )
 
     missing_scenarios = [name for name in DEFAULT_SCENARIOS if name not in scenarios]
@@ -245,18 +245,23 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         ROOT / "control" / "fcs_mpc_baseline.py",
         ["FcsMpcOneStepBaselineController", "_select_vector", "_score_vector", "candidate_torque"],
     ) and comparison_matrix
+    dtc_hysteresis_baseline_ready = _source_contains(
+        ROOT / "control" / "dtc_baseline.py",
+        ["DtcHysteresisBaselineController", "_hysteresis", "torque_hysteresis_cmd", "flux_hysteresis_cmd"],
+    ) and comparison_matrix
     trained_twin_ready = False
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
     publication_plots_ready = False
     checks["foc_svm_key_baseline_ready"] = foc_svm_key_baseline_ready
     checks["fcs_mpc_one_step_baseline_ready"] = fcs_mpc_one_step_baseline_ready
+    checks["dtc_hysteresis_baseline_ready"] = dtc_hysteresis_baseline_ready
     checks["strong_baselines_ready"] = strong_baselines_ready
     checks["trained_domain_randomized_twin_ready"] = trained_twin_ready
     checks["publication_mc500_ready"] = publication_mc_ready
     checks["publication_plots_fft_thd_ready"] = publication_plots_ready
     warnings.extend(
         [
-            "FOC-SVM and one-step FCS-MPC have separate host baselines, but DTC/deadbeat/sensorless remain proxy implementations",
+            "FOC-SVM, one-step FCS-MPC, and DTC hysteresis have separate host baselines, but DTC-SVM/deadbeat/sensorless remain proxy implementations",
             "neural twin is still a scaffold, not a trained domain-randomized model",
             "publication-scale MC and FFT/THD trace package are still open",
         ]

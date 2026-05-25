@@ -21,6 +21,7 @@
     "honest_claim_boundaries": true,
     "foc_svm_key_baseline_ready": true,
     "fcs_mpc_one_step_baseline_ready": true,
+    "dtc_hysteresis_baseline_ready": true,
     "strong_baselines_ready": false,
     "trained_domain_randomized_twin_ready": false,
     "publication_mc500_ready": false,
@@ -124,7 +125,7 @@
     }
   ],
   "warnings": [
-    "FOC-SVM and one-step FCS-MPC have separate host baselines, but DTC/deadbeat/sensorless remain proxy implementations",
+    "FOC-SVM, one-step FCS-MPC, and DTC hysteresis have separate host baselines, but DTC-SVM/deadbeat/sensorless remain proxy implementations",
     "neural twin is still a scaffold, not a trained domain-randomized model",
     "publication-scale MC and FFT/THD trace package are still open"
   ]

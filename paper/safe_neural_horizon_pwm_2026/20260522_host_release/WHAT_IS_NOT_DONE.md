@@ -1,6 +1,6 @@
 # Safe Neural Horizon PWM Open Items
 
-- Tune the host key-level FOC-SVM and FCS-MPC baselines and replace remaining host proxy baselines with tuned DTC, DTC-SVM, deadbeat, and sensorless/adaptive FOC.
+- Tune the host key-level FOC-SVM, FCS-MPC, and DTC hysteresis baselines and replace remaining host proxy baselines with tuned DTC-SVM, deadbeat, and sensorless/adaptive FOC.
 - Add publication-grade long-run metrics: THD, FFT torque, switching loss, conduction loss, thermal imbalance, EMI/common-mode proxy.
 - Run MC=500..1000 after strong baselines are ready.
 - Train or identify the neural twin with domain randomization and multi-step losses.
