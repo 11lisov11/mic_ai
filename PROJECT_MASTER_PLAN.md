@@ -274,7 +274,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add machine-checkable Safe Neural Horizon PWM theory-completion audit that separates `host_theory_scaffold_ready` from `publication_theory_complete`.
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
-- [ ] Replace proxy FOC-SVM with a tuned key-level FOC-SVM baseline using the same inverter/dead-time/min-pulse/current constraints.
+- [ ] Tune and stress-test the FOC-SVM key-level baseline to publication-grade level with the same inverter/dead-time/min-pulse/current constraints.
 - [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.
 - [ ] Tune and stress-test the DTC hysteresis baseline to publication-grade level.
 - [ ] Replace proxy DTC-SVM with a tuned DTC-SVM baseline.

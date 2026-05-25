@@ -440,6 +440,8 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     assert (out_dir / "figures" / "safe_neural_horizon_pwm_summary.csv").exists()
     assert (out_dir / "figures" / "fig_speed_error_vs_current.svg").exists()
     assert (out_dir / "HOST_RELEASE_MANIFEST.json").exists()
+    disk_manifest = json.loads((out_dir / "HOST_RELEASE_MANIFEST.json").read_text(encoding="utf-8"))
+    assert manifest == disk_manifest
 
 
 def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:

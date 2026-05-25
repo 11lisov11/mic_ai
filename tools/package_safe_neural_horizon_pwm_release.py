@@ -223,7 +223,6 @@ def package_release(input_json: Path, out_dir: Path, tag: str, mc100_json: Path 
     _write(acceptance_json, json.dumps(acceptance, ensure_ascii=False, indent=2) + "\n")
     manifest["acceptance"]["host_release_ready"] = bool(acceptance.get("host_release_ready", False))
     _write(manifest_path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
-    manifest["manifest_sha256"] = _sha256(manifest_path)
     return manifest
 
 
