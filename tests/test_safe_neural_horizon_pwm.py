@@ -39,7 +39,7 @@ from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
 from tools.build_safe_neural_horizon_pwm_trace_evidence import build_trace_evidence
 from tools.build_safe_neural_horizon_pwm_twin_evidence import build_twin_evidence
-from tools.check_safe_neural_horizon_pwm_release import analyze_release
+from tools.check_safe_neural_horizon_pwm_release import MC_SMOKE_REQUIRED_CONTROLLERS, analyze_release
 from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
 from tools.check_safe_neural_horizon_pwm_theory import analyze_theory
 from tools.build_safe_neural_horizon_pwm_figures import build_figures
@@ -64,6 +64,24 @@ def _safe_request(vector_id: int = 3) -> AIPwmRequest:
         tj_c=40.0,
         predicted_risk=0.1,
     )
+
+
+def _mc_smoke_payload(trials: int, *, hardware_claim: bool = False) -> dict:
+    return {
+        "study": "Safe Neural Horizon PWM",
+        "status": "host_simulation_only",
+        "hardware_claim": hardware_claim,
+        "mc_trials": trials,
+        "steps_per_trial": 120,
+        "controllers": {
+            name: {
+                "safety_violations": {"worst": 0.0},
+                "fault_latch_count": {"worst": 0.0},
+                "failure_count": 0,
+            }
+            for name in sorted(MC_SMOKE_REQUIRED_CONTROLLERS)
+        },
+    }
 
 
 def test_alpha_beta_motor_step_is_finite() -> None:
@@ -126,6 +144,24 @@ def test_gateway_latches_deadtime_misconfiguration() -> None:
     assert decision.pwm_enabled is False
     assert decision.fault_latched is True
     assert FaultFlag.DEADTIME_FAULT in decision.fault_flags
+
+
+def test_gateway_latches_invalid_limit_configuration() -> None:
+    cases = [
+        GatewayLimits(i_soft_a=4.0, i_trip_a=4.0),
+        GatewayLimits(i_soft_a=5.0, i_trip_a=4.0),
+        GatewayLimits(i_soft_a=float("nan"), i_trip_a=4.0),
+        GatewayLimits(vdc_min_v=500.0, vdc_max_v=100.0),
+        GatewayLimits(confidence_min=1.5),
+        GatewayLimits(max_switch_events_per_window=-1),
+    ]
+    for limits in cases:
+        gateway = AIPwmSafetyGateway(limits)
+        decision = gateway.evaluate(_safe_request(2))
+        assert decision.accepted is False
+        assert decision.pwm_enabled is False
+        assert decision.fault_latched is True
+        assert FaultFlag.LIMIT_CONFIG_FAULT in decision.fault_flags or FaultFlag.NONFINITE_FAULT in decision.fault_flags
 
 
 def test_gateway_soft_fault_falls_back_without_latching() -> None:
@@ -440,7 +476,7 @@ def test_controller_h4_sequence_selection_is_bounded() -> None:
 def test_controller_reports_applied_losses_after_gateway_disable() -> None:
     motor = _motor_params()
     inverter = _inverter_params()
-    gateway = AIPwmSafetyGateway(GatewayLimits(i_trip_a=0.25, vdc_max_v=500.0))
+    gateway = AIPwmSafetyGateway(GatewayLimits(i_soft_a=0.2, i_trip_a=0.25, vdc_max_v=500.0))
     controller = SafeNeuralHorizonPwmController(
         motor,
         inverter,
@@ -497,7 +533,7 @@ def test_gateway_fault_injection_matrix() -> None:
         ),
     ]
     for request, expected, should_latch in cases:
-        gateway = AIPwmSafetyGateway(GatewayLimits(i_trip_a=4.0, vdc_min_v=40.0, vdc_max_v=500.0))
+        gateway = AIPwmSafetyGateway(GatewayLimits(i_soft_a=3.0, i_trip_a=4.0, vdc_min_v=40.0, vdc_max_v=500.0))
         decision = gateway.evaluate(request)
         assert expected in decision.fault_flags
         assert decision.fault_latched is should_latch
@@ -579,9 +615,9 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     input_json = tmp_path / "result.json"
     input_json.write_text(__import__("json").dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
-    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
-    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
+    mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
     trace_dir = tmp_path / "trace_evidence_src"
     build_trace_evidence(
         out_dir=trace_dir,
@@ -705,9 +741,9 @@ def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> No
     input_json = tmp_path / "result.json"
     input_json.write_text(json.dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
-    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
-    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
+    mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
     out_dir = tmp_path / "release"
     package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
 
@@ -728,9 +764,9 @@ def test_release_checker_requires_acceptance_summary(tmp_path) -> None:
     input_json = tmp_path / "result.json"
     input_json.write_text(json.dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
-    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
-    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
+    mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
     out_dir = tmp_path / "release"
     package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
 
@@ -741,14 +777,39 @@ def test_release_checker_requires_acceptance_summary(tmp_path) -> None:
     assert "missing HOST_ACCEPTANCE_SUMMARY.json" in "\n".join(check["failures"])
 
 
+def test_release_and_theory_reject_fake_mc500_evidence(tmp_path) -> None:
+    payload = run_matrix(mc=1, steps=8, seed=9, quick=True, scenarios=["load_step"], include_ablation=False)
+    input_json = tmp_path / "result.json"
+    input_json.write_text(json.dumps(payload), encoding="utf-8")
+    mc100_json = tmp_path / "mc100.json"
+    mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
+    bad_mc500 = _mc_smoke_payload(500, hardware_claim=True)
+    bad_mc500["controllers"].pop("safe_neural_horizon_pwm_h2")
+    mc500_json = tmp_path / "mc500.json"
+    mc500_json.write_text(json.dumps(bad_mc500), encoding="utf-8")
+    out_dir = tmp_path / "release"
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
+
+    release_check = analyze_release(out_dir)
+    assert release_check["checks"]["mc500_publication_content_ready"] is False
+    failures = "\n".join(release_check["failures"])
+    assert "MC500: hardware_claim must be false" in failures
+    assert "MC500: missing controllers" in failures
+
+    theory = analyze_theory(out_dir)
+    assert theory["checks"]["publication_mc500_ready"] is False
+    mc500_criterion = [item for item in theory["criteria"] if item["key"] == "publication_mc500_evidence"][0]
+    assert "MC500: hardware_claim must be false" in "\n".join(mc500_criterion["missing"])
+
+
 def test_release_checker_rejects_unsafe_manifest_paths(tmp_path) -> None:
     payload = run_matrix(mc=1, steps=8, seed=7, quick=True, scenarios=["load_step"], include_ablation=False)
     input_json = tmp_path / "result.json"
     input_json.write_text(json.dumps(payload), encoding="utf-8")
     mc100_json = tmp_path / "mc100.json"
-    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
-    mc500_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 500}), encoding="utf-8")
+    mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
     out_dir = tmp_path / "release"
     package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
 

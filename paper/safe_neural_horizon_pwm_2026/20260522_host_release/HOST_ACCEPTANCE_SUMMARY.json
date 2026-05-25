@@ -21,6 +21,8 @@
     "novelty_audit_supported": true,
     "theory_scaffold_ready": true,
     "publication_theory_complete": false,
+    "mc100_smoke_content_ready": true,
+    "mc500_publication_content_ready": true,
     "foc_svm_key_baseline_ready": true,
     "fcs_mpc_one_step_baseline_ready": true,
     "dtc_hysteresis_baseline_ready": true,

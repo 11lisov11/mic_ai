@@ -41,6 +41,16 @@ REQUIRED_RELEASE_FILES = {
     "figures/fig_feedback_vs_switching.svg",
     "figures/fig_h2_scenario_speed_error.svg",
 }
+MC_SMOKE_REQUIRED_CONTROLLERS = {
+    "protected_ai_pwm_h1_baseline",
+    "fcs_mpc_one_step_baseline",
+    "foc_svm_key_baseline",
+    "dtc_hysteresis_baseline",
+    "dtc_svm_baseline",
+    "deadbeat_current_baseline",
+    "sensorless_adaptive_foc_baseline",
+    "safe_neural_horizon_pwm_h2",
+}
 
 
 def _sha256(path: Path) -> str:
@@ -111,6 +121,46 @@ def _check_manifest_hashes(release_dir: Path | None) -> tuple[bool, bool, bool, 
     if missing_required:
         failures.append(f"manifest missing required release files: {missing_required}")
     return not failures, required_files_present, manifest_paths_safe, failures
+
+
+def validate_mc_smoke_evidence(payload: Dict[str, Any] | None, *, min_trials: int, label: str) -> tuple[bool, list[str]]:
+    """Validate that tracked MC evidence is a real host run, not only a trial counter."""
+    if payload is None:
+        return False, [f"{label}: missing payload"]
+    failures: list[str] = []
+    if payload.get("hardware_claim") is not False:
+        failures.append(f"{label}: hardware_claim must be false")
+    status = str(payload.get("status", ""))
+    if not status.startswith("host_") and status != "HOST_SIMULATION_ONLY":
+        failures.append(f"{label}: status must be host-only")
+    try:
+        trials = int(payload.get("mc_trials", 0))
+    except Exception:
+        trials = 0
+    if trials < min_trials:
+        failures.append(f"{label}: mc_trials must be >= {min_trials}")
+    try:
+        steps = int(payload.get("steps_per_trial", 0))
+    except Exception:
+        steps = 0
+    if steps <= 0:
+        failures.append(f"{label}: steps_per_trial must be positive")
+    controllers = dict(payload.get("controllers", {}))
+    missing = sorted(MC_SMOKE_REQUIRED_CONTROLLERS - set(controllers.keys()))
+    if missing:
+        failures.append(f"{label}: missing controllers {missing}")
+    for controller in sorted(MC_SMOKE_REQUIRED_CONTROLLERS & set(controllers.keys())):
+        row = dict(controllers.get(controller, {}))
+        safety = _metric(row, "safety_violations", "worst")
+        if safety != 0.0:
+            failures.append(f"{label}: safety violations for {controller}: {safety}")
+        try:
+            failure_count = int(row.get("failure_count", 0))
+        except Exception:
+            failure_count = 0
+        if failure_count != 0:
+            failures.append(f"{label}: failure_count for {controller}: {failure_count}")
+    return not failures, failures
 
 
 def analyze_release(path: Path) -> Dict[str, Any]:
@@ -215,6 +265,20 @@ def analyze_release(path: Path) -> Dict[str, Any]:
             checks["theory_scaffold_ready"] = False
             checks["publication_theory_complete"] = False
             failures.append("missing safe_neural_horizon_pwm_theory_completion_audit.json")
+
+        mc100_path = release_dir / "safe_neural_horizon_pwm_mc100_smoke.json"
+        mc100_payload = json.loads(mc100_path.read_text(encoding="utf-8")) if mc100_path.exists() else None
+        mc100_ok, mc100_failures = validate_mc_smoke_evidence(mc100_payload, min_trials=100, label="MC100")
+        checks["mc100_smoke_content_ready"] = mc100_ok
+        if mc100_failures:
+            failures.extend(mc100_failures)
+
+        mc500_path = release_dir / "safe_neural_horizon_pwm_mc500_publication_smoke.json"
+        mc500_payload = json.loads(mc500_path.read_text(encoding="utf-8")) if mc500_path.exists() else None
+        mc500_ok, mc500_failures = validate_mc_smoke_evidence(mc500_payload, min_trials=500, label="MC500")
+        checks["mc500_publication_content_ready"] = mc500_ok
+        if mc500_failures:
+            failures.extend(mc500_failures)
 
     proxy_controllers = sorted(name for name in REQUIRED_CONTROLLERS if name.endswith("_proxy"))
     checks["foc_svm_key_baseline_ready"] = bool(scenarios) and all(

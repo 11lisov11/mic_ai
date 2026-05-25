@@ -141,7 +141,7 @@ Status on `2026-05-22`:
 - host-release gate is machine-checkable and currently passes with `host_release_ready = true`, `hardware_ready = false`, `strong_baselines_ready = false`
 - novelty claim scope is machine-checkable and currently passes with `host_novelty_claim_supported = true`; this supports only the distinct host-level architecture claim, not tuned-baseline superiority or hardware readiness
 - theory completion scope is machine-checkable and currently passes host scaffold criteria with `host_theory_scaffold_ready = true`, while keeping `publication_theory_complete = false`
-- fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, applied-vs-planned loss accounting, dead-time path detection, and incomplete serial-frame timeout/fallback behavior
+- fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, MC100/MC500 content validation, applied-vs-planned loss accounting, dead-time path detection, Safety Gateway limit-configuration latching, and incomplete serial-frame timeout/fallback behavior
 - publication-tuned baseline calibration, final ablation, publication-grade Pareto beyond the first host trace/FFT package, HIL, and bench work are still open
 
 ## Active Rework Plan After 2026-05-09 Audit

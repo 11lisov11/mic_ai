@@ -304,8 +304,10 @@ Important bug found and fixed during this implementation:
 - First version had no flux-building objective; at zero initial flux all torque candidates looked similar and the optimizer selected zero vector. This is a real induction-motor control pitfall.
 - The current version adds a flux objective and zero-vector penalty during low-flux startup.
 - The Safety Gateway originally checked only shoot-through states, not direct HIGH-to-LOW timing-path violations. The current version adds `has_direct_leg_transition()` and `DEADTIME_FAULT` checks.
+- The Python Safety Gateway originally did not latch invalid current-limit configuration such as `i_soft >= i_trip`; the current version adds a critical `LIMIT_CONFIG_FAULT`.
 - Controller thermal/loss metrics originally used the planned sequence before Safety Gateway fallback. The current version reports applied losses/switching after the gateway decision.
 - The release checker originally trusted whatever files were listed in the manifest. The current version requires all essential release artifacts and rejects unsafe manifest paths.
+- The MC500 publication-evidence gate originally accepted a file based mostly on `mc_trials >= 500`; the current version validates host-only status, controller coverage, positive step count, zero safety violations, and zero failure counts.
 
 ## Neural Twin And Event Feedback
 

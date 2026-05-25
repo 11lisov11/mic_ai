@@ -26,6 +26,7 @@ class FaultFlag(IntFlag):
     SWITCHING_BUDGET_FAULT = 1 << 12
     OOD_FAULT = 1 << 13
     NONFINITE_FAULT = 1 << 14
+    LIMIT_CONFIG_FAULT = 1 << 15
 
 
 CRITICAL_FAULTS = (
@@ -39,6 +40,7 @@ CRITICAL_FAULTS = (
     | FaultFlag.INVALID_VECTOR_FAULT
     | FaultFlag.DEADTIME_FAULT
     | FaultFlag.NONFINITE_FAULT
+    | FaultFlag.LIMIT_CONFIG_FAULT
 )
 
 
@@ -218,6 +220,39 @@ class AIPwmSafetyGateway:
             flags |= FaultFlag.NONFINITE_FAULT
         elif float(self.limits.min_pulse_s) <= 0.0 or float(self.limits.min_pulse_s) >= float(self.limits.t_pwm_s):
             flags |= FaultFlag.MIN_PULSE_FAULT
+        limit_values = (
+            self.limits.i_soft_a,
+            self.limits.i_trip_a,
+            self.limits.vdc_min_v,
+            self.limits.vdc_max_v,
+            self.limits.tj_trip_c,
+            self.limits.confidence_min,
+            self.limits.risk_max,
+        )
+        if not all(_finite(value) for value in limit_values):
+            flags |= FaultFlag.NONFINITE_FAULT
+        else:
+            if float(self.limits.i_soft_a) <= 0.0 or float(self.limits.i_trip_a) <= 0.0:
+                flags |= FaultFlag.LIMIT_CONFIG_FAULT
+            if float(self.limits.i_soft_a) >= float(self.limits.i_trip_a):
+                flags |= FaultFlag.LIMIT_CONFIG_FAULT
+            if float(self.limits.vdc_min_v) >= float(self.limits.vdc_max_v):
+                flags |= FaultFlag.LIMIT_CONFIG_FAULT
+            if float(self.limits.tj_trip_c) <= -273.15:
+                flags |= FaultFlag.LIMIT_CONFIG_FAULT
+            if not (0.0 <= float(self.limits.confidence_min) <= 1.0):
+                flags |= FaultFlag.LIMIT_CONFIG_FAULT
+            if float(self.limits.risk_max) < 0.0:
+                flags |= FaultFlag.LIMIT_CONFIG_FAULT
+        try:
+            max_switch_events = int(self.limits.max_switch_events_per_window)
+            switch_window_steps = int(self.limits.switch_window_steps)
+        except Exception:
+            max_switch_events = -1
+            switch_window_steps = 0
+            flags |= FaultFlag.NONFINITE_FAULT
+        if max_switch_events < 0 or switch_window_steps <= 0:
+            flags |= FaultFlag.LIMIT_CONFIG_FAULT
 
         try:
             validate_vector_id(req.vector_id)
@@ -246,7 +281,7 @@ class AIPwmSafetyGateway:
         if FaultFlag.INVALID_VECTOR_FAULT not in flags:
             events = switch_events(self.current_vector_id, int(req.vector_id))
             projected = sum(self._switch_window) + events
-            if projected > int(self.limits.max_switch_events_per_window):
+            if projected > max_switch_events:
                 flags |= FaultFlag.SWITCHING_BUDGET_FAULT
 
         return flags

@@ -16,6 +16,7 @@ from tools.check_safe_neural_horizon_pwm_novelty import (
     SAFE_CONTROLLER_VARIANTS,
     analyze_novelty,
 )
+from tools.check_safe_neural_horizon_pwm_release import validate_mc_smoke_evidence
 from tools.run_safe_neural_horizon_pwm_study import DEFAULT_SCENARIOS
 
 TRACE_REQUIRED_CONTROLLERS = {
@@ -287,7 +288,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         missing_scenarios,
     )
 
-    mc100_ok = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 100)
+    mc100_ok, mc100_missing = validate_mc_smoke_evidence(mc100_payload, min_trials=100, label="MC100")
     mc_small = int(payload.get("mc_trials", 0)) >= 3
     checks["first_mc100_smoke"] = mc100_ok
     _criterion(
@@ -295,17 +296,17 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         "first_mc100_smoke",
         _status(mc100_ok, mc_small),
         ["safe_neural_horizon_pwm_mc100_smoke.json" if mc100_payload else "safe_neural_horizon_pwm_results.json"],
-        [] if mc100_ok else ["tracked MC>=100 host smoke evidence"],
+        [] if mc100_ok else mc100_missing,
     )
 
-    mc500_ok = bool(mc500_payload and int(mc500_payload.get("mc_trials", 0)) >= 500)
+    mc500_ok, mc500_missing = validate_mc_smoke_evidence(mc500_payload, min_trials=500, label="MC500")
     checks["publication_mc500_ready"] = mc500_ok
     _criterion(
         criteria,
         "publication_mc500_evidence",
         _status(mc500_ok, mc100_ok),
         ["safe_neural_horizon_pwm_mc500_publication_smoke.json" if mc500_payload else "safe_neural_horizon_pwm_mc100_smoke.json"],
-        [] if mc500_ok else ["tracked MC>=500 host evidence"],
+        [] if mc500_ok else mc500_missing,
     )
 
     pareto_ok = _matrix_has_pareto(payload) and bool(ablation.get("pareto_front"))
