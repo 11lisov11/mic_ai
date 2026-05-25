@@ -189,6 +189,11 @@ def analyze_release(path: Path) -> Dict[str, Any]:
         failures.extend(manifest_failures)
 
     if release_dir is not None:
+        acceptance_path = release_dir / "HOST_ACCEPTANCE_SUMMARY.json"
+        checks["acceptance_summary_present"] = acceptance_path.exists()
+        if not checks["acceptance_summary_present"]:
+            failures.append("missing HOST_ACCEPTANCE_SUMMARY.json")
+
         novelty_path = release_dir / "safe_neural_horizon_pwm_novelty_audit.json"
         if novelty_path.exists():
             novelty = json.loads(novelty_path.read_text(encoding="utf-8"))

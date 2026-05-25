@@ -497,6 +497,22 @@ def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> No
     assert "manifest missing required release files" in "\n".join(check["failures"])
 
 
+def test_release_checker_requires_acceptance_summary(tmp_path) -> None:
+    payload = run_matrix(mc=1, steps=8, seed=8, quick=True, scenarios=["load_step"], include_ablation=False)
+    input_json = tmp_path / "result.json"
+    input_json.write_text(json.dumps(payload), encoding="utf-8")
+    mc100_json = tmp_path / "mc100.json"
+    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
+    out_dir = tmp_path / "release"
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
+
+    (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").unlink()
+
+    check = analyze_release(out_dir)
+    assert check["checks"]["acceptance_summary_present"] is False
+    assert "missing HOST_ACCEPTANCE_SUMMARY.json" in "\n".join(check["failures"])
+
+
 def test_release_checker_rejects_unsafe_manifest_paths(tmp_path) -> None:
     payload = run_matrix(mc=1, steps=8, seed=7, quick=True, scenarios=["load_step"], include_ablation=False)
     input_json = tmp_path / "result.json"

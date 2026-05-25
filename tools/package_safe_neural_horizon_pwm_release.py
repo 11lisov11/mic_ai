@@ -219,6 +219,7 @@ def package_release(input_json: Path, out_dir: Path, tag: str, mc100_json: Path 
     }
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     _write(manifest_path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    _write(acceptance_json, json.dumps({"status": "pending_acceptance_summary"}, ensure_ascii=False, indent=2) + "\n")
     acceptance = analyze_release(out_dir)
     _write(acceptance_json, json.dumps(acceptance, ensure_ascii=False, indent=2) + "\n")
     manifest["acceptance"]["host_release_ready"] = bool(acceptance.get("host_release_ready", False))
