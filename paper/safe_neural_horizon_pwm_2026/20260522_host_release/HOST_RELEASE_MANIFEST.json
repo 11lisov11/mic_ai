@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-25T06:27:15.080090+00:00",
+  "generated_utc": "2026-05-25T06:43:10.968182+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -12,53 +12,53 @@
   "files": [
     {
       "path": "safe_neural_horizon_pwm_results.json",
-      "bytes": 793288,
-      "sha256": "8299b66bbeba27e953fe9e092c84bc0e1a38fdfdad02cae09c3a6e726e7f7b0f"
+      "bytes": 794222,
+      "sha256": "532b390c4be15e42133262dac8a54e8f265fdf3c2897848a6f070bb3ebe053c3"
     },
     {
       "path": "safe_neural_horizon_pwm_mc100_smoke.json",
-      "bytes": 9598,
-      "sha256": "575442b436f760d77bb3d468fceb7f2a4426cf8e3c7a0117b307840b23d902a8"
+      "bytes": 9553,
+      "sha256": "e43d875d4347c98a43a5f03c7eb2969b761d0499748b451d69e02679e3785abb"
     },
     {
       "path": "safe_neural_horizon_pwm_report.md",
-      "bytes": 38545,
-      "sha256": "3cfca8dc8f4c1f98df565275761bb086701b8e68e66f4446696bca269074b084"
+      "bytes": 39129,
+      "sha256": "aa4ee59335fd0bfb86eb2c8934d2b50bc0d06d6b2ff01c0be5ba9c0e04cb1878"
     },
     {
       "path": "safe_neural_horizon_pwm_article_draft.md",
-      "bytes": 4809,
-      "sha256": "b0751250e76448e9a7404a321950882d804479ccaf9dedc6e6e2a46c97b85d43"
+      "bytes": 5069,
+      "sha256": "db531189641833dced35b07959fc55aa0824ea20b97a57f730b44667952ecc93"
     },
     {
       "path": "safe_neural_horizon_pwm_novelty_audit.json",
-      "bytes": 1363,
-      "sha256": "3f44795e19800022356ec242c23115e852f66cf6f48117633ff45702e75eb478"
+      "bytes": 1396,
+      "sha256": "93e3d7a739985e96e54d3a8f3ad4fcd48a72f77258eaccb89586120b98d2f1d4"
     },
     {
       "path": "safe_neural_horizon_pwm_theory_completion_audit.json",
-      "bytes": 3602,
-      "sha256": "fb539184f850f43f0573547648bd9ce842ba4bcd6c42a523c05daae6531d4e84"
+      "bytes": 3702,
+      "sha256": "218a437f915fd9dbefa2fc4bd88bdb1369c2b4b0350758c3ee58bff92f1421d1"
     },
     {
       "path": "WHAT_IS_NOT_DONE.md",
-      "bytes": 814,
-      "sha256": "c174cc7e1cd58a0120cba2606a845d5b091432f0d4d10bb87ef748c62a4dfc0a"
+      "bytes": 850,
+      "sha256": "1f1d864d8ee5263dec85d68509d809814cdaf21a44de208050983b702742ee00"
     },
     {
       "path": "figures/safe_neural_horizon_pwm_summary.csv",
-      "bytes": 34630,
-      "sha256": "1c2002785c89bc285a4acc986e60d5554480f0977a13b5834dab3bae3a53280b"
+      "bytes": 34843,
+      "sha256": "4ec58c2ecf2db1131c82103df68aeefaed98634b67beb445be7fad5ec86d4914"
     },
     {
       "path": "figures/fig_speed_error_vs_current.svg",
-      "bytes": 24124,
-      "sha256": "b58ad3aa16e43769b53e9982e4615ea379677c310506f14f6bd18ef7c8a7e9ef"
+      "bytes": 24127,
+      "sha256": "8271733f0e24458907318d8c5c598a64e7006d88edc64c3544f6f753c4ae74ec"
     },
     {
       "path": "figures/fig_feedback_vs_switching.svg",
-      "bytes": 24109,
-      "sha256": "9e3afb6ecacad110267f1f978fc494fb770edbf58e964fdba9f2f08311cc861b"
+      "bytes": 24112,
+      "sha256": "3af6e243d29d27fddd6ba77c0ad31b52075b61c57b9b034fef050002e1fc3e13"
     },
     {
       "path": "figures/fig_h2_scenario_speed_error.svg",

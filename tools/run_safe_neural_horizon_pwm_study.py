@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from config.env import create_default_env
+from control.foc_svm_key_baseline import FocSvmKeyBaselineConfig, FocSvmKeyBaselineController
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
 from models.induction_motor_alpha_beta import (
     AlphaBetaInductionMotorModel,
@@ -35,7 +36,7 @@ from safety.ai_pwm_gateway import (
 BASE_CONTROLLER_SPECS = [
     ("protected_ai_pwm_h1_proxy", 1, 5),
     ("fcs_mpc_one_step_proxy", 1, 1),
-    ("foc_svm_key_proxy", 1, 1),
+    ("foc_svm_key_baseline", 1, 1),
     ("dtc_hysteresis_proxy", 1, 1),
     ("dtc_svm_proxy", 1, 1),
     ("deadbeat_current_proxy", 1, 1),
@@ -140,7 +141,7 @@ def _controller_specs(quick: bool = False) -> list[tuple[str, int, int]]:
         return [
             ("protected_ai_pwm_h1_proxy", 1, 5),
             ("fcs_mpc_one_step_proxy", 1, 1),
-            ("foc_svm_key_proxy", 1, 1),
+            ("foc_svm_key_baseline", 1, 1),
             ("safe_neural_horizon_pwm_h2", 2, 10),
         ]
     specs.extend(EXTENDED_CONTROLLER_SPECS)
@@ -155,6 +156,22 @@ def _controller(
     horizon: int,
     feedback_period: int,
 ) -> SafeNeuralHorizonPwmController:
+    if label == "foc_svm_key_baseline":
+        limits = GatewayLimits(
+            t_pwm_s=inverter.t_pwm_s,
+            dead_time_s=inverter.dead_time_s,
+            min_pulse_s=inverter.min_pulse_s,
+            i_soft_a=max(2.5 * base_motor.i_limit, 3.5),
+            i_trip_a=max(3.5 * base_motor.i_limit, 5.0),
+            vdc_min_v=0.4 * inverter.Vdc,
+            vdc_max_v=1.25 * inverter.Vdc,
+            tj_trip_c=125.0,
+            confidence_min=0.35,
+            risk_max=1.6,
+        )
+        cfg = FocSvmKeyBaselineConfig(dt_s=inverter.t_pwm_s)
+        return FocSvmKeyBaselineController(base_motor, inverter, AIPwmSafetyGateway(limits), cfg)  # type: ignore[return-value]
+
     max_branching = 4 if horizon >= 3 else 5
     speed_kp = 0.04
     speed_ki = 1.5

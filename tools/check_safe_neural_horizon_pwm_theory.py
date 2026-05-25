@@ -237,16 +237,21 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     )
 
     strong_baselines_ready = False
+    foc_svm_key_baseline_ready = _source_contains(
+        ROOT / "control" / "foc_svm_key_baseline.py",
+        ["FocSvmKeyBaselineController", "_select_svm_vector", "alpha_beta_to_dq", "dq_to_alpha_beta"],
+    ) and comparison_matrix
     trained_twin_ready = False
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
     publication_plots_ready = False
+    checks["foc_svm_key_baseline_ready"] = foc_svm_key_baseline_ready
     checks["strong_baselines_ready"] = strong_baselines_ready
     checks["trained_domain_randomized_twin_ready"] = trained_twin_ready
     checks["publication_mc500_ready"] = publication_mc_ready
     checks["publication_plots_fft_thd_ready"] = publication_plots_ready
     warnings.extend(
         [
-            "strong classical baselines are still proxy implementations",
+            "FOC-SVM has a separate host key-level baseline, but the remaining classical baselines are still proxy implementations",
             "neural twin is still a scaffold, not a trained domain-randomized model",
             "publication-scale MC and FFT/THD trace package are still open",
         ]

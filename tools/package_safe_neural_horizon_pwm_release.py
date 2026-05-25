@@ -112,12 +112,13 @@ def _article_draft(payload: Dict[str, Any]) -> str:
     lines.append("- H2 is the safer current research candidate than the sparse H4 variant in the short host matrix.")
     lines.append("- Sparse H4 can reduce feedback and switching, but current stress and fallback events increase in several scenarios.")
     lines.append("- One-step FCS proxy tends to keep current lower but uses dense feedback and more switching.")
-    lines.append("- Current proxy baselines are useful for smoke testing but are not publication-grade strong baselines.")
+    lines.append("- The FOC-SVM comparison is now a separate host key-level baseline; remaining classical comparison rows are still proxy baselines.")
+    lines.append("- The new FOC-SVM baseline is competitive in the first MC=100 smoke, so SNH-PWM cannot claim superiority over classical FOC-SVM yet.")
     lines.append("")
     lines.append("## Limitations")
     lines.append("")
     lines.append("- Host simulation only.")
-    lines.append("- Proxy baselines, not final tuned FOC-SVM/FCS-MPC/DTC-SVM implementations.")
+    lines.append("- FOC-SVM is host key-level, but not final tuned publication-grade; FCS-MPC/DTC/deadbeat/sensorless rows are still proxies.")
     lines.append("- No trained domain-randomized neural twin yet.")
     lines.append("- First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.")
     lines.append("- No long-run trace package with FFT/THD torque-current evidence yet.")
@@ -126,7 +127,7 @@ def _article_draft(payload: Dict[str, Any]) -> str:
     lines.append("")
     lines.append("## Required Next Work")
     lines.append("")
-    lines.append("- Replace proxy baselines with tuned strong baselines.")
+    lines.append("- Tune the FOC-SVM key-level baseline and replace remaining proxy baselines with tuned strong baselines.")
     lines.append("- Run publication-scale MC after baseline replacement.")
     lines.append("- Add publication-grade plots and FFT/THD metrics.")
     lines.append("- Port the safety gateway and timing checks to the target MCU/HIL path.")
@@ -140,7 +141,7 @@ def _open_items() -> str:
         [
             "# Safe Neural Horizon PWM Open Items",
             "",
-            "- Replace host proxy baselines with tuned key-level FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat, and sensorless/adaptive FOC.",
+            "- Tune the host key-level FOC-SVM baseline and replace remaining host proxy baselines with tuned FCS-MPC, DTC, DTC-SVM, deadbeat, and sensorless/adaptive FOC.",
             "- Add publication-grade long-run metrics: THD, FFT torque, switching loss, conduction loss, thermal imbalance, EMI/common-mode proxy.",
             "- Run MC=500..1000 after strong baselines are ready.",
             "- Train or identify the neural twin with domain randomization and multi-step losses.",

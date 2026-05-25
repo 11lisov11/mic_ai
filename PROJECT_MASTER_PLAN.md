@@ -132,7 +132,7 @@ Status on `2026-05-22`:
 - MC=100 smoke runs and records zero safety waveform violations for the new H=2 variant
 - MC=5 scenario matrix runs across start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout host scenarios
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
-- host-level proxy baselines exist for FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC; these are explicitly not final strong baselines
+- host-level comparison baselines exist; FOC-SVM is now a separate key-level PI/current/SVM baseline, while FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are still proxy baselines
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
@@ -259,7 +259,8 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add host-level fault-injection tests for invalid vector, min-pulse, confidence, overcurrent, undervoltage, overtemperature, and watchdog.
 - [x] Add fast MC smoke runner that writes to `.tmp_pytest/` instead of tracked output paths.
 - [x] Run first `N=100` host-level smoke for the new branch.
-- [x] Add host-level proxy baselines for FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC.
+- [x] Add host-level comparison baselines for FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC.
+- [x] Replace the old weight-tuned `foc_svm_key_proxy` with a separate host key-level FOC-SVM baseline using speed PI, dq current PI, dq/alpha-beta transforms, nearest legal vector selection, and the same Safety Gateway.
 - [x] Add scenario matrix smoke for start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout cases.
 - [x] Expand scenario matrix to the full TZ host set plus explicit `sensor_dropout` stress case.
 - [x] Add ablation smoke variants for horizon, feedback density, switching penalty, and current penalty.
@@ -279,7 +280,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Expand robust host scenario matrix to the full 30-scenario research TZ plus one explicit dropout stress case.
 - [x] Expand fault-injection matrix to include raw shoot-through request emulation, no-dead-time transition emulation, and hardware-like desat/UVLO cases.
 - [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants with publication-scale MC.
-- [ ] Generate publication-grade Pareto fronts after replacing proxy baselines.
+- [ ] Generate publication-grade Pareto fronts after tuning FOC-SVM and replacing the remaining proxy baselines.
 - [ ] Generate publication-grade time-series plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto after trace logging is added.
 - [x] Prepare host-level article draft; clearly mark MCU/HIL/bench as not done.
 
