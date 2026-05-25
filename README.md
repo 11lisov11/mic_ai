@@ -109,6 +109,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [two_level_inverter.py](C:/mic_theory/models/two_level_inverter.py): key-level two-level inverter vector model
 - [ai_pwm_gateway.py](C:/mic_theory/safety/ai_pwm_gateway.py): protected AI-PWM Safety Gateway and no-shoot-through waveform helpers
 - [dtc_baseline.py](C:/mic_theory/control/dtc_baseline.py): host DTC hysteresis comparison baseline over legal inverter vectors with Safety Gateway protection
+- [dtc_svm_baseline.py](C:/mic_theory/control/dtc_svm_baseline.py): host DTC-SVM comparison baseline with torque/flux voltage synthesis and Safety Gateway protection
 - [fcs_mpc_baseline.py](C:/mic_theory/control/fcs_mpc_baseline.py): host one-step FCS-MPC comparison baseline over legal inverter vectors with Safety Gateway protection
 - [foc_svm_key_baseline.py](C:/mic_theory/control/foc_svm_key_baseline.py): host key-level FOC-SVM comparison baseline with PI speed/current loops and Safety Gateway protection
 - [safe_neural_horizon_pwm.py](C:/mic_theory/control/safe_neural_horizon_pwm.py): event-triggered neural-horizon AI-PWM controller scaffold

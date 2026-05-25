@@ -13,6 +13,7 @@
     "safety_gateway_timing_invariants": true,
     "horizon_ai_pwm_variants": true,
     "neural_twin_event_feedback_scaffold": true,
+    "comparison_matrix": true,
     "proxy_comparison_matrix": true,
     "robust_scenario_matrix": true,
     "first_mc100_smoke": true,
@@ -22,6 +23,7 @@
     "foc_svm_key_baseline_ready": true,
     "fcs_mpc_one_step_baseline_ready": true,
     "dtc_hysteresis_baseline_ready": true,
+    "dtc_svm_baseline_ready": true,
     "strong_baselines_ready": false,
     "trained_domain_randomized_twin_ready": false,
     "publication_mc500_ready": false,
@@ -125,7 +127,7 @@
     }
   ],
   "warnings": [
-    "FOC-SVM, one-step FCS-MPC, and DTC hysteresis have separate host baselines, but DTC-SVM/deadbeat/sensorless remain proxy implementations",
+    "FOC-SVM, one-step FCS-MPC, DTC hysteresis, and DTC-SVM have separate host baselines, but deadbeat/sensorless remain proxy implementations",
     "neural twin is still a scaffold, not a trained domain-randomized model",
     "publication-scale MC and FFT/THD trace package are still open"
   ]

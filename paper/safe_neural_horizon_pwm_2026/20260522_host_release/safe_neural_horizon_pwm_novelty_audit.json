@@ -26,7 +26,7 @@
   "failures": [],
   "warnings": [
     "publication-scale MC is not met; current tracked release is host evidence only",
-    "FOC-SVM, FCS-MPC, and DTC hysteresis are separate host baselines; remaining classical baselines are still proxy controllers",
+    "FOC-SVM, FCS-MPC, DTC hysteresis, and DTC-SVM are separate host baselines; remaining classical baselines are still proxy controllers",
     "neural twin is a scaffold, not a trained domain-randomized ensemble"
   ]
 }

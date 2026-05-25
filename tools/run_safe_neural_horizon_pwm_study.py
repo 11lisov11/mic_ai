@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 
 from config.env import create_default_env
 from control.dtc_baseline import DtcHysteresisBaselineConfig, DtcHysteresisBaselineController
+from control.dtc_svm_baseline import DtcSvmBaselineConfig, DtcSvmBaselineController
 from control.fcs_mpc_baseline import FcsMpcOneStepBaselineConfig, FcsMpcOneStepBaselineController
 from control.foc_svm_key_baseline import FocSvmKeyBaselineConfig, FocSvmKeyBaselineController
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
@@ -40,7 +41,7 @@ BASE_CONTROLLER_SPECS = [
     ("fcs_mpc_one_step_baseline", 1, 1),
     ("foc_svm_key_baseline", 1, 1),
     ("dtc_hysteresis_baseline", 1, 1),
-    ("dtc_svm_proxy", 1, 1),
+    ("dtc_svm_baseline", 1, 1),
     ("deadbeat_current_proxy", 1, 1),
     ("sensorless_adaptive_foc_proxy", 1, 8),
     ("safe_neural_horizon_pwm_h2", 2, 10),
@@ -145,6 +146,7 @@ def _controller_specs(quick: bool = False) -> list[tuple[str, int, int]]:
             ("fcs_mpc_one_step_baseline", 1, 1),
             ("foc_svm_key_baseline", 1, 1),
             ("dtc_hysteresis_baseline", 1, 1),
+            ("dtc_svm_baseline", 1, 1),
             ("safe_neural_horizon_pwm_h2", 2, 10),
         ]
     specs.extend(EXTENDED_CONTROLLER_SPECS)
@@ -174,6 +176,22 @@ def _controller(
         )
         cfg = DtcHysteresisBaselineConfig(dt_s=inverter.t_pwm_s)
         return DtcHysteresisBaselineController(base_motor, inverter, AIPwmSafetyGateway(limits), cfg)  # type: ignore[return-value]
+
+    if label == "dtc_svm_baseline":
+        limits = GatewayLimits(
+            t_pwm_s=inverter.t_pwm_s,
+            dead_time_s=inverter.dead_time_s,
+            min_pulse_s=inverter.min_pulse_s,
+            i_soft_a=max(2.5 * base_motor.i_limit, 3.5),
+            i_trip_a=max(3.5 * base_motor.i_limit, 5.0),
+            vdc_min_v=0.4 * inverter.Vdc,
+            vdc_max_v=1.25 * inverter.Vdc,
+            tj_trip_c=125.0,
+            confidence_min=0.35,
+            risk_max=1.6,
+        )
+        cfg = DtcSvmBaselineConfig(dt_s=inverter.t_pwm_s)
+        return DtcSvmBaselineController(base_motor, inverter, AIPwmSafetyGateway(limits), cfg)  # type: ignore[return-value]
 
     if label == "fcs_mpc_one_step_baseline":
         limits = GatewayLimits(
@@ -239,12 +257,6 @@ def _controller(
         switching_weight = 0.008
         torque_ripple_weight = 0.16
         flux_weight = 0.75
-    elif "dtc_svm" in label:
-        speed_kp = 0.045
-        current_weight = 0.08
-        switching_weight = 0.03
-        torque_ripple_weight = 0.12
-        flux_weight = 0.8
     elif "deadbeat" in label:
         speed_kp = 0.05
         speed_ki = 0.8

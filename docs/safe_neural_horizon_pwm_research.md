@@ -351,6 +351,8 @@ Scope:
   - `protected_ai_pwm_h1_proxy`
   - `fcs_mpc_one_step_baseline`
   - `foc_svm_key_baseline`
+  - `dtc_hysteresis_baseline`
+  - `dtc_svm_baseline`
   - `safe_neural_horizon_pwm_h2`
 
 The run is a smoke/diagnostic study, not final control-performance evidence.
@@ -375,16 +377,18 @@ python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest
 | fcs_mpc_one_step_baseline | 82.544 | 2.547 | 3.355 | 22.36 | 1.000 | 0.01 | 0.00 | 0 | 0 |
 | foc_svm_key_baseline | 83.844 | 1.011 | 2.568 | 37.38 | 1.000 | 0.00 | 0.00 | 0 | 0 |
 | dtc_hysteresis_baseline | 84.791 | 0.309 | 0.683 | 142.76 | 1.000 | 0.45 | 0.00 | 0 | 0 |
-| safe_neural_horizon_pwm_h2 | 83.803 | 1.807 | 3.150 | 44.19 | 0.983 | 6.53 | 0.00 | 0 | 0 |
+| dtc_svm_baseline | 84.695 | 0.578 | 2.008 | 17.98 | 1.000 | 0.00 | 0.00 | 0 | 0 |
+| safe_neural_horizon_pwm_h2 | 84.235 | 1.757 | 3.122 | 45.22 | 0.983 | 5.37 | 0.00 | 0 | 0 |
 
 Preliminary reading:
 
 - The new `fcs_mpc_one_step_baseline` is strongest in this short MC=100 smoke for speed error and switching, but it uses higher current than FOC-SVM and SNH-H2.
 - The new `foc_svm_key_baseline` is strongest for mean current and fallback count in this smoke.
 - The new `dtc_hysteresis_baseline` is safe after current-penalty tuning, but it pays with very high switching and worse speed error in this smoke.
+- The new `dtc_svm_baseline` is safe in MC=100 and cuts switching strongly relative to DTC hysteresis, but it is still not publication tuned and has worse speed error than FCS-MPC/FOC-SVM in this short smoke.
 - `safe_neural_horizon_pwm_h2` still uses slightly less feedback than dense FOC-SVM/FCS rows, but it does not dominate the new FOC-SVM/FCS-MPC baselines in this smoke.
 - It must now be judged against a real one-step FCS-MPC baseline, not the older weight-tuned proxy.
-- It does not yet prove superiority over FOC-SVM, DTC-SVM, or a tuned production FCS-MPC; this is exactly why the baseline upgrade matters.
+- It does not yet prove superiority over tuned production-grade FOC-SVM, DTC-SVM, or FCS-MPC; this is exactly why the baseline tuning phase still matters.
 - Safety waveform violations were zero in this host-level test.
 
 ## Host-Level Scenario Matrix Release
@@ -434,14 +438,14 @@ Scope:
   - `foc_svm_key_baseline` (separate host key-level PI/current/SVM baseline; not final publication tuned)
   - `fcs_mpc_one_step_baseline` (separate host one-step current/torque/flux FCS-MPC baseline; not final publication tuned)
   - `dtc_hysteresis_baseline` (separate host torque/flux hysteresis DTC baseline; not final publication tuned)
-  - `dtc_svm_proxy`
+  - `dtc_svm_baseline` (separate host torque/flux voltage-reference DTC-SVM baseline; not final publication tuned)
   - `deadbeat_current_proxy`
   - `sensorless_adaptive_foc_proxy`
 
 Important limitation:
 
-- FOC-SVM, one-step FCS-MPC, and DTC hysteresis are now separate host baselines, but not yet tuned publication-grade baselines.
-- DTC-SVM, deadbeat, sensorless/adaptive FOC, and protected H1 comparison rows are still host-level proxies used to expose trade-offs and bugs.
+- FOC-SVM, one-step FCS-MPC, DTC hysteresis, and DTC-SVM are now separate host baselines, but not yet tuned publication-grade baselines.
+- Deadbeat, sensorless/adaptive FOC, and protected H1 comparison rows are still host-level proxies used to expose trade-offs and bugs.
 
 Tracked release package:
 
@@ -490,6 +494,7 @@ Observed pattern in the host matrix:
 - `fcs_mpc_one_step_baseline` is now a separate host FCS-MPC baseline: it predicts one step for each legal vector and minimizes current/torque/flux/switching/loss cost through the same Safety Gateway.
 - `foc_svm_key_baseline` is now a separate host key-level FOC-SVM baseline with speed PI, dq current PI, nearest legal vector/SVM selection, and the same Safety Gateway. It is stronger than the old proxy, but still not a final tuned publication baseline.
 - `dtc_hysteresis_baseline` is now a separate host DTC hysteresis baseline: torque and flux hysteresis comparators request increase/decrease/hold, then a legal vector is selected through the same Safety Gateway.
+- `dtc_svm_baseline` is now a separate host DTC-SVM baseline: torque and flux PI loops synthesize a stator-flux-frame voltage reference, then nearest legal-vector SVM selection is passed through the same Safety Gateway.
 - `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
 - Fault-injection summary reports `all_gateway_cases_no_shoot_through = true`; the raw shoot-through detector triggers on deliberately illegal raw gate emulation; the dead-time path detector distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths.
 
@@ -507,7 +512,7 @@ Required next baselines:
 - tune and stress-test `foc_svm_key_baseline` into a publication-grade key-level FOC-SVM baseline with the same inverter/dead-time/min-pulse/current limits
 - tune and stress-test `fcs_mpc_one_step_baseline` into a publication-grade FCS-MPC current/torque/flux baseline
 - tune and stress-test `dtc_hysteresis_baseline` into a publication-grade DTC hysteresis baseline
-- replace `dtc_svm_proxy` with tuned DTC-SVM
+- tune and stress-test `dtc_svm_baseline` into a publication-grade DTC-SVM baseline
 - replace `deadbeat_current_proxy` with tuned deadbeat predictive current control
 - replace `sensorless_adaptive_foc_proxy` with MRAS/EKF/adaptive FOC
 - current protected AI-PWM release model
