@@ -20,6 +20,7 @@
     "acceptance_summary_present": true,
     "novelty_audit_supported": true,
     "baseline_strength_audit_ready": true,
+    "baseline_stress_evidence_ready": true,
     "publication_strong_baselines_ready": false,
     "theory_scaffold_ready": true,
     "publication_theory_complete": false,

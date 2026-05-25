@@ -372,7 +372,8 @@ The tracked host release uses the full host matrix:
 
 ```bash
 python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
-python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release
+python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
 ```
 
 | Controller | Mean speed error | Mean current | Max current mean | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
@@ -489,6 +490,7 @@ publication_plots_fft_thd_ready = true
 trained_domain_randomized_twin_ready = true
 publication_mc500_ready = true
 host_baseline_scaffold_ready = true
+baseline_stress_evidence_ready = true
 publication_strong_baselines_ready = false
 publication_theory_complete = false
 ```
@@ -496,6 +498,7 @@ publication_theory_complete = false
 The tracked release also contains:
 
 - [safe_neural_horizon_pwm_baseline_strength_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_strength_audit.json)
+- [safe_neural_horizon_pwm_baseline_stress_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_stress_evidence.json)
 - [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
 - [safe_neural_horizon_pwm_mc100_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc100_smoke.json)
 - [safe_neural_horizon_pwm_mc500_publication_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc500_publication_smoke.json)
@@ -513,7 +516,8 @@ Interpretation:
 - `trained_domain_randomized_twin_ready = true` means the release now contains theta-conditioned host twin evidence with domain randomization and multi-step rollout losses.
 - `publication_mc500_ready = true` means the release now has a tracked MC=500 host evidence run; it must be repeated after final strong-baseline tuning.
 - `host_baseline_scaffold_ready = true` means every named comparison baseline has source-level implementation markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, and Pareto participation in the current host package.
-- `publication_strong_baselines_ready = false` means those same baselines still lack dedicated tuning/stress evidence, so the paper still cannot claim superiority over tuned classical control.
+- `baseline_stress_evidence_ready = true` means the release now has bounded MC=3 stress evidence over load-step, overload, DC sag, sensor delay, shock load, and OOD scenarios for all named classical baselines.
+- `publication_strong_baselines_ready = false` means those same baselines still lack dedicated parameter-sweep tuning evidence, so the paper still cannot claim superiority over tuned classical control.
 - `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength.
 
 ## MC500 Host Evidence

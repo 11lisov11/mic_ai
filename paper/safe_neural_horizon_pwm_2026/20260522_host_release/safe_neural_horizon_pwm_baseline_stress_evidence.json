@@ -1,0 +1,3758 @@
+{
+  "status": "safe_neural_horizon_pwm_baseline_stress_evidence",
+  "hardware_claim": false,
+  "mc_trials": 3,
+  "steps_per_trial": 80,
+  "seed": 23,
+  "scenarios": [
+    "load_step",
+    "overload",
+    "dc_sag",
+    "sensor_delay",
+    "shock_load",
+    "ood"
+  ],
+  "controllers": {
+    "protected_ai_pwm_h1_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 86.66397317912815,
+      "max_mean_current_abs": 1.9931684548465647,
+      "max_mean_switch_events": 33.666666666666664,
+      "stress_ready": true
+    },
+    "fcs_mpc_one_step_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 86.27067709293597,
+      "max_mean_current_abs": 2.8949230893774156,
+      "max_mean_switch_events": 23.0,
+      "stress_ready": true
+    },
+    "foc_svm_key_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 86.4486993251518,
+      "max_mean_current_abs": 2.001812689496154,
+      "max_mean_switch_events": 30.666666666666668,
+      "stress_ready": true
+    },
+    "dtc_hysteresis_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 87.07926287450721,
+      "max_mean_current_abs": 1.0838066468834242,
+      "max_mean_switch_events": 97.0,
+      "stress_ready": true
+    },
+    "dtc_svm_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 86.88222489030814,
+      "max_mean_current_abs": 1.1592880302237376,
+      "max_mean_switch_events": 18.333333333333332,
+      "stress_ready": true
+    },
+    "deadbeat_current_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 87.27773834707604,
+      "max_mean_current_abs": 0.8656173280108188,
+      "max_mean_switch_events": 13.0,
+      "stress_ready": true
+    },
+    "sensorless_adaptive_foc_baseline": {
+      "scenario_count": 6,
+      "safety_violations_worst": 0.0,
+      "unexpected_failure_count": 0,
+      "finite_metrics": true,
+      "max_mean_abs_speed_error": 86.52982149703554,
+      "max_mean_current_abs": 1.8513123208442874,
+      "max_mean_switch_events": 33.0,
+      "stress_ready": true
+    }
+  },
+  "matrix": {
+    "load_step": {
+      "protected_ai_pwm_h1_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 84.05245031042153,
+          "median": 84.20653685031428,
+          "p05": 83.74284796914765,
+          "p95": 84.2541920737705,
+          "worst": 84.25948709859897
+        },
+        "p95_abs_speed_error": {
+          "mean": 94.28908213312657,
+          "median": 94.3038768574454,
+          "p05": 94.12706912000445,
+          "p95": 94.4407388392255,
+          "worst": 94.45594572608995
+        },
+        "mean_current_abs": {
+          "mean": 1.3839914171929475,
+          "median": 1.2164002648487222,
+          "p05": 1.2031737596026615,
+          "p95": 1.6821228814241909,
+          "worst": 1.7338698388214653
+        },
+        "max_current_abs": {
+          "mean": 2.205679676284662,
+          "median": 1.8239587790824556,
+          "p05": 1.7272864774738967,
+          "p95": 2.951277503136972,
+          "worst": 3.0765351391430293
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.03683993501695414,
+          "median": 0.03753926368850554,
+          "p05": 0.027755969757993038,
+          "p95": 0.04543437020582925,
+          "worst": 0.046311604263309665
+        },
+        "switch_events": {
+          "mean": 30.666666666666668,
+          "median": 31.0,
+          "p05": 29.200000000000003,
+          "p95": 31.9,
+          "worst": 32.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.9875000000000002,
+          "median": 0.9875,
+          "p05": 0.9875,
+          "p95": 0.9875,
+          "worst": 0.9875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "fcs_mpc_one_step_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 83.92946288312193,
+          "median": 83.90661095223003,
+          "p05": 83.87043820027904,
+          "p95": 84.00448391758917,
+          "worst": 84.01535869151796
+        },
+        "p95_abs_speed_error": {
+          "mean": 94.20707060744701,
+          "median": 94.20889798747334,
+          "p05": 94.19660051969717,
+          "p95": 94.2162615291784,
+          "worst": 94.21707970047896
+        },
+        "mean_current_abs": {
+          "mean": 2.7658262709551145,
+          "median": 2.788246457820563,
+          "p05": 2.708698416586499,
+          "p95": 2.807259994517916,
+          "worst": 2.8093726097065113
+        },
+        "max_current_abs": {
+          "mean": 3.9052406016666255,
+          "median": 4.001925994439603,
+          "p05": 3.7199122584182183,
+          "p95": 4.02288916997395,
+          "worst": 4.0252184116999885
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.04259885391803245,
+          "median": 0.040103370678748376,
+          "p05": 0.03846391570187231,
+          "p95": 0.04848063040169144,
+          "worst": 0.049411437037574
+        },
+        "switch_events": {
+          "mean": 10.0,
+          "median": 10.0,
+          "p05": 9.1,
+          "p95": 10.899999999999999,
+          "worst": 11.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "foc_svm_key_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 83.94950146273844,
+          "median": 83.93044020733585,
+          "p05": 83.77760376561191,
+          "p95": 84.13474203864676,
+          "worst": 84.15744224212575
+        },
+        "p95_abs_speed_error": {
+          "mean": 94.14115020542522,
+          "median": 94.12087616539363,
+          "p05": 94.08143793518532,
+          "p95": 94.21505430368725,
+          "worst": 94.22551854127543
+        },
+        "mean_current_abs": {
+          "mean": 1.400950126670552,
+          "median": 1.4399747639203107,
+          "p05": 1.1213780476849873,
+          "p95": 1.6532049595812852,
+          "worst": 1.6768972035436156
+        },
+        "max_current_abs": {
+          "mean": 2.7552889258827875,
+          "median": 2.7349608868728166,
+          "p05": 2.598739844025561,
+          "p95": 2.9260676350469934,
+          "worst": 2.947301718177458
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.042025093849049934,
+          "median": 0.043120061829888826,
+          "p05": 0.037381379034300416,
+          "p95": 0.045902331077212234,
+          "worst": 0.04621147210469261
+        },
+        "switch_events": {
+          "mean": 26.333333333333332,
+          "median": 26.0,
+          "p05": 23.3,
+          "p95": 29.599999999999998,
+          "worst": 30.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_hysteresis_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 84.26973870138512,
+          "median": 84.2663996080678,
+          "p05": 84.25626713305017,
+          "p95": 84.28554763504222,
+          "worst": 84.28767519359494
+        },
+        "p95_abs_speed_error": {
+          "mean": 94.37425459623023,
+          "median": 94.36225406357364,
+          "p05": 94.32697226262401,
+          "p95": 94.42993730269603,
+          "worst": 94.43745766259852
+        },
+        "mean_current_abs": {
+          "mean": 0.2995148098746098,
+          "median": 0.29784499922027985,
+          "p05": 0.2967137377945531,
+          "p95": 0.3034847494126976,
+          "worst": 0.3041113883229662
+        },
+        "max_current_abs": {
+          "mean": 0.4845527380802462,
+          "median": 0.491109368915452,
+          "p05": 0.4724971396404957,
+          "p95": 0.49201869493535266,
+          "worst": 0.4921197311597861
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.004194640683883047,
+          "median": 0.003929157436653458,
+          "p05": 0.003349227318124273,
+          "p95": 0.005225892322702533,
+          "worst": 0.005369973976707986
+        },
+        "switch_events": {
+          "mean": 96.66666666666667,
+          "median": 97.0,
+          "p05": 96.10000000000001,
+          "p95": 97.0,
+          "worst": 97.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_svm_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 84.50025887292354,
+          "median": 84.25292263319251,
+          "p05": 84.25286122858753,
+          "p95": 84.92079188507128,
+          "worst": 84.99499957972448
+        },
+        "p95_abs_speed_error": {
+          "mean": 95.18081161696205,
+          "median": 94.314492558112,
+          "p05": 94.31427557138801,
+          "p95": 96.65377100373114,
+          "worst": 96.91369083102217
+        },
+        "mean_current_abs": {
+          "mean": 0.6725851367515517,
+          "median": 0.5135617338443806,
+          "p05": 0.4931476281529892,
+          "p95": 0.9633390273851343,
+          "worst": 1.013314282222996
+        },
+        "max_current_abs": {
+          "mean": 1.9911832544324923,
+          "median": 1.9587613060719653,
+          "p05": 1.8661937849780776,
+          "p95": 2.1388680877392754,
+          "worst": 2.158879952368977
+        },
+        "torque_ripple_proxy": {
+          "mean": 3.833139433690562e-05,
+          "median": 2.327495771118455e-06,
+          "p05": 2.1947027291619662e-06,
+          "p95": 9.967081494070028e-05,
+          "worst": 0.00011048673929287605
+        },
+        "switch_events": {
+          "mean": 11.0,
+          "median": 10.0,
+          "p05": 8.2,
+          "p95": 14.5,
+          "worst": 15.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "deadbeat_current_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 84.27432956261814,
+          "median": 84.26279327593952,
+          "p05": 84.25008991613099,
+          "p95": 84.30664460978032,
+          "worst": 84.31151698020707
+        },
+        "p95_abs_speed_error": {
+          "mean": 94.3960050969896,
+          "median": 94.35381415495971,
+          "p05": 94.30876177163377,
+          "p95": 94.51278208176636,
+          "worst": 94.53044518474488
+        },
+        "mean_current_abs": {
+          "mean": 0.38421347922904747,
+          "median": 0.36919906834001426,
+          "p05": 0.3225433236449536,
+          "p95": 0.4563937224354648,
+          "worst": 0.46608201733495924
+        },
+        "max_current_abs": {
+          "mean": 1.4673171261237041,
+          "median": 1.4868120985360358,
+          "p05": 1.4282410058973092,
+          "p95": 1.4927467656614675,
+          "worst": 1.493406173119849
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.002752313322456821,
+          "median": 0.00298957554459515,
+          "p05": 0.0018887449443465588,
+          "p95": 0.003449798145070253,
+          "worst": 0.003500933989567487
+        },
+        "switch_events": {
+          "mean": 5.666666666666667,
+          "median": 6.0,
+          "p05": 5.1,
+          "p95": 6.0,
+          "worst": 6.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "sensorless_adaptive_foc_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 84.26266629299705,
+          "median": 84.25598680348416,
+          "p05": 84.25560401417452,
+          "p95": 84.27440421447862,
+          "worst": 84.276450593478
+        },
+        "p95_abs_speed_error": {
+          "mean": 94.34873841477754,
+          "median": 94.32525830627955,
+          "p05": 94.32391387161032,
+          "p95": 94.38999903389335,
+          "worst": 94.39719244807266
+        },
+        "mean_current_abs": {
+          "mean": 0.9508570207791037,
+          "median": 1.0175951227895643,
+          "p05": 0.7887686361974545,
+          "p95": 1.0662287339534307,
+          "worst": 1.0716324685271934
+        },
+        "max_current_abs": {
+          "mean": 2.5501186835321827,
+          "median": 2.6096408238494684,
+          "p05": 2.4425014136083947,
+          "p95": 2.6160704552338707,
+          "worst": 2.6167848587210263
+        },
+        "torque_ripple_proxy": {
+          "mean": 7.241752955424482e-06,
+          "median": 5.992899910796209e-06,
+          "p05": 5.841230291743569e-06,
+          "p95": 9.516472750345186e-06,
+          "worst": 9.907980843628406e-06
+        },
+        "switch_events": {
+          "mean": 12.0,
+          "median": 12.0,
+          "p05": 10.2,
+          "p95": 13.799999999999999,
+          "worst": 14.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.9250000000000002,
+          "median": 0.925,
+          "p05": 0.925,
+          "p95": 0.925,
+          "worst": 0.925
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      }
+    },
+    "overload": {
+      "protected_ai_pwm_h1_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.4931728099379,
+          "median": 86.49294675115831,
+          "p05": 86.46281543870278,
+          "p95": 86.52368842231874,
+          "worst": 86.52710416355879
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.61197985693343,
+          "median": 86.59950749312262,
+          "p05": 86.5370402771692,
+          "p95": 86.69565009136522,
+          "worst": 86.70633260228107
+        },
+        "mean_current_abs": {
+          "mean": 1.3764821386121089,
+          "median": 1.520375718709856,
+          "p05": 1.127029588824456,
+          "p95": 1.525209182331339,
+          "worst": 1.525746233844837
+        },
+        "max_current_abs": {
+          "mean": 2.610245572021978,
+          "median": 3.0261365799748647,
+          "p05": 1.892104660579988,
+          "p95": 3.0372627778969474,
+          "worst": 3.0384990221105124
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.041418213060380855,
+          "median": 0.050809217806428476,
+          "p05": 0.025225059279594633,
+          "p95": 0.05103766351893373,
+          "worst": 0.051063046375878766
+        },
+        "switch_events": {
+          "mean": 33.666666666666664,
+          "median": 37.0,
+          "p05": 28.0,
+          "p95": 37.0,
+          "worst": 37.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "fcs_mpc_one_step_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.24459342808872,
+          "median": 86.2312888440184,
+          "p05": 86.18157600888989,
+          "p95": 86.31692405613678,
+          "worst": 86.3264390797055
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.41645743037141,
+          "median": 86.4152570126702,
+          "p05": 86.4104409437561,
+          "p95": 86.42331420937758,
+          "worst": 86.42420945345617
+        },
+        "mean_current_abs": {
+          "mean": 2.777645082791252,
+          "median": 2.7775933178560765,
+          "p05": 2.760602306180695,
+          "p95": 2.7947240948564316,
+          "worst": 2.796627514523138
+        },
+        "max_current_abs": {
+          "mean": 3.8856405843447344,
+          "median": 3.8966794913366183,
+          "p05": 3.797193438227679,
+          "p95": 3.966360495567471,
+          "worst": 3.974102829370899
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.04842916463144836,
+          "median": 0.04901454464453135,
+          "p05": 0.03923721012771994,
+          "p95": 0.0572113531260187,
+          "worst": 0.05812210962396174
+        },
+        "switch_events": {
+          "mean": 11.666666666666666,
+          "median": 11.0,
+          "p05": 10.1,
+          "p95": 13.7,
+          "worst": 14.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "foc_svm_key_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.4486993251518,
+          "median": 86.44724490047922,
+          "p05": 86.44381497481302,
+          "p95": 86.4546017727614,
+          "worst": 86.45541920301497
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.55228002522483,
+          "median": 86.55810329306223,
+          "p05": 86.52406824557029,
+          "p95": 86.57641551739322,
+          "worst": 86.57845020898554
+        },
+        "mean_current_abs": {
+          "mean": 1.3200964855300403,
+          "median": 1.2247612739093332,
+          "p05": 1.2164492029448084,
+          "p95": 1.4904784162497673,
+          "worst": 1.5200025431764823
+        },
+        "max_current_abs": {
+          "mean": 2.6103481389304357,
+          "median": 2.610961659325704,
+          "p05": 2.5081302709204913,
+          "p95": 2.7121365426636923,
+          "worst": 2.7233781963679133
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.04258906138652424,
+          "median": 0.041511697261980125,
+          "p05": 0.035743105892442936,
+          "p95": 0.05018917176778642,
+          "worst": 0.0511533356017649
+        },
+        "switch_events": {
+          "mean": 28.0,
+          "median": 28.0,
+          "p05": 26.200000000000003,
+          "p95": 29.799999999999997,
+          "worst": 30.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_hysteresis_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.69527638487888,
+          "median": 86.71846335394275,
+          "p05": 86.60626043979829,
+          "p95": 86.76806145161476,
+          "worst": 86.7735723513561
+        },
+        "p95_abs_speed_error": {
+          "mean": 87.09420149423865,
+          "median": 87.14801543997497,
+          "p05": 86.88743226206495,
+          "p95": 87.26330096439695,
+          "worst": 87.2761104671105
+        },
+        "mean_current_abs": {
+          "mean": 0.2985329759899167,
+          "median": 0.29948418009814215,
+          "p05": 0.2968565940573261,
+          "p95": 0.2995435150467495,
+          "worst": 0.29955010781881697
+        },
+        "max_current_abs": {
+          "mean": 0.4900977869767038,
+          "median": 0.48924589317014633,
+          "p05": 0.4891702172715166,
+          "p95": 0.49162168234648124,
+          "worst": 0.4918856589216296
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.0035625444166418802,
+          "median": 0.0035106433431408854,
+          "p05": 0.00326310421622568,
+          "p95": 0.0038983153685087767,
+          "worst": 0.003941390037994098
+        },
+        "switch_events": {
+          "mean": 97.0,
+          "median": 97.0,
+          "p05": 97.0,
+          "p95": 97.0,
+          "worst": 97.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_svm_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.88222489030814,
+          "median": 86.8136340649084,
+          "p05": 86.55310692130334,
+          "p95": 87.25935643709276,
+          "worst": 87.30888114511325
+        },
+        "p95_abs_speed_error": {
+          "mean": 87.52697508617517,
+          "median": 87.36822284675372,
+          "p05": 86.7637214536532,
+          "p95": 88.40135528629214,
+          "worst": 88.51614777957418
+        },
+        "mean_current_abs": {
+          "mean": 0.8288512693091715,
+          "median": 0.9549473334523959,
+          "p05": 0.5802176415064934,
+          "p95": 0.9892176522115926,
+          "worst": 0.9930254654070589
+        },
+        "max_current_abs": {
+          "mean": 2.05054067436001,
+          "median": 2.110499584244264,
+          "p05": 1.9116866489163389,
+          "p95": 2.1474234628847038,
+          "worst": 2.1515261160669747
+        },
+        "torque_ripple_proxy": {
+          "mean": 5.814322465306981e-05,
+          "median": 4.9805503906747006e-05,
+          "p05": 1.604855600676576e-05,
+          "p95": 0.00010607429782179984,
+          "worst": 0.00011232638603458349
+        },
+        "switch_events": {
+          "mean": 11.666666666666666,
+          "median": 12.0,
+          "p05": 10.2,
+          "p95": 12.9,
+          "worst": 13.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "deadbeat_current_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 87.27773834707604,
+          "median": 87.58004749263414,
+          "p05": 86.63152630831766,
+          "p95": 87.71233398394375,
+          "worst": 87.72703248297815
+        },
+        "p95_abs_speed_error": {
+          "mean": 88.41300080464428,
+          "median": 89.14920639088818,
+          "p05": 86.94754017900583,
+          "p95": 89.36311751991201,
+          "worst": 89.38688542313687
+        },
+        "mean_current_abs": {
+          "mean": 0.4278303617264594,
+          "median": 0.4481807267572739,
+          "p05": 0.3459005998827365,
+          "p95": 0.49551486804861206,
+          "worst": 0.500774217080983
+        },
+        "max_current_abs": {
+          "mean": 1.4619546994857997,
+          "median": 1.4633792544635396,
+          "p05": 1.4124265679412138,
+          "p95": 1.5104856425459678,
+          "worst": 1.5157196856662376
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.00669571322356892,
+          "median": 0.003941865669919701,
+          "p05": 0.003449545228617495,
+          "p95": 0.011869574506074797,
+          "worst": 0.012750431043425365
+        },
+        "switch_events": {
+          "mean": 7.0,
+          "median": 6.0,
+          "p05": 6.0,
+          "p95": 8.7,
+          "worst": 9.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "sensorless_adaptive_foc_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.52982149703554,
+          "median": 86.52875160886427,
+          "p05": 86.51675895245167,
+          "p95": 86.54363296333932,
+          "worst": 86.54528644716987
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.70963742092543,
+          "median": 86.7071562022072,
+          "p05": 86.67932384143445,
+          "p95": 86.74168785351918,
+          "worst": 86.74552470366496
+        },
+        "mean_current_abs": {
+          "mean": 1.0126387204715892,
+          "median": 0.8909347488126403,
+          "p05": 0.8842092875205129,
+          "p95": 1.22626093358393,
+          "worst": 1.2635193985585178
+        },
+        "max_current_abs": {
+          "mean": 2.6208155696824544,
+          "median": 2.5903813817696144,
+          "p05": 2.5263996910045217,
+          "p95": 2.7365353798993755,
+          "worst": 2.7527747130249045
+        },
+        "torque_ripple_proxy": {
+          "mean": 2.741447500155768e-05,
+          "median": 2.642963333692342e-05,
+          "p05": 2.4454804865216843e-05,
+          "p95": 3.1063534303142505e-05,
+          "worst": 3.157841218827796e-05
+        },
+        "switch_events": {
+          "mean": 12.0,
+          "median": 12.0,
+          "p05": 8.4,
+          "p95": 15.6,
+          "worst": 16.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      }
+    },
+    "dc_sag": {
+      "protected_ai_pwm_h1_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.66397317912815,
+          "median": 86.48063850034615,
+          "p05": 86.47242984045442,
+          "p95": 86.98385079294927,
+          "worst": 87.03976326990518
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.928368943954,
+          "median": 86.55009317778799,
+          "p05": 86.5366475983117,
+          "p95": 87.5848833259125,
+          "worst": 87.69986000903745
+        },
+        "mean_current_abs": {
+          "mean": 1.0843319602483659,
+          "median": 1.096867535387976,
+          "p05": 1.0422322613489172,
+          "p95": 1.1176567565500877,
+          "worst": 1.1199666700125444
+        },
+        "max_current_abs": {
+          "mean": 1.7001803179721904,
+          "median": 1.652392646650182,
+          "p05": 1.652203724300026,
+          "p95": 1.7816082815697607,
+          "worst": 1.795965574338603
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.019428992206690986,
+          "median": 0.022073666806556654,
+          "p05": 0.012630365341829614,
+          "p95": 0.02437634685164639,
+          "worst": 0.024632200189989694
+        },
+        "switch_events": {
+          "mean": 24.666666666666668,
+          "median": 25.0,
+          "p05": 22.3,
+          "p95": 26.8,
+          "worst": 27.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      },
+      "fcs_mpc_one_step_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.27067709293597,
+          "median": 86.31224992289256,
+          "p05": 86.17368941147537,
+          "p95": 86.33856379342697,
+          "worst": 86.34148755681969
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.41554297056679,
+          "median": 86.41366576851918,
+          "p05": 86.4116801792409,
+          "p95": 86.420719803326,
+          "worst": 86.4215035849712
+        },
+        "mean_current_abs": {
+          "mean": 2.6289080949662456,
+          "median": 2.593883350904783,
+          "p05": 2.5875760558598735,
+          "p95": 2.6947574549156417,
+          "worst": 2.705965688694626
+        },
+        "max_current_abs": {
+          "mean": 3.95256624072856,
+          "median": 3.975325572004344,
+          "p05": 3.834873787921082,
+          "p95": 4.0543271616429895,
+          "worst": 4.063105116047283
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.04133915177479449,
+          "median": 0.03955509928502645,
+          "p05": 0.03322406081120011,
+          "p95": 0.05070307948122651,
+          "worst": 0.05194174394747096
+        },
+        "switch_events": {
+          "mean": 9.666666666666666,
+          "median": 9.0,
+          "p05": 9.0,
+          "p95": 10.799999999999999,
+          "worst": 11.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      },
+      "foc_svm_key_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.36655725369754,
+          "median": 86.37650065751508,
+          "p05": 86.34757178619128,
+          "p95": 86.3785823385315,
+          "worst": 86.37881363642222
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.43366254784337,
+          "median": 86.43530602290835,
+          "p05": 86.424140424058,
+          "p95": 86.44203423908327,
+          "worst": 86.44278181865826
+        },
+        "mean_current_abs": {
+          "mean": 1.420158638541474,
+          "median": 1.397146889557198,
+          "p05": 1.2816106760460966,
+          "p95": 1.5748148253258445,
+          "worst": 1.5945557070779164
+        },
+        "max_current_abs": {
+          "mean": 2.70843540042889,
+          "median": 2.732059456798996,
+          "p05": 2.597326784763879,
+          "p95": 2.8030071766348277,
+          "worst": 2.8108902566165868
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.036845368366983405,
+          "median": 0.0342407690465737,
+          "p05": 0.032624150248781354,
+          "p95": 0.04288980600947226,
+          "worst": 0.043850810116460984
+        },
+        "switch_events": {
+          "mean": 30.666666666666668,
+          "median": 29.0,
+          "p05": 29.0,
+          "p95": 33.5,
+          "worst": 34.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      },
+      "dtc_hysteresis_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 87.07926287450721,
+          "median": 87.05239401947952,
+          "p05": 86.52110621800293,
+          "p95": 87.65622772953084,
+          "worst": 87.72332036398099
+        },
+        "p95_abs_speed_error": {
+          "mean": 87.35955710245425,
+          "median": 87.33972651945979,
+          "p05": 86.57597443883662,
+          "p95": 88.15702117416801,
+          "worst": 88.2478316913578
+        },
+        "mean_current_abs": {
+          "mean": 1.0838066468834242,
+          "median": 1.0825166082724136,
+          "p05": 1.0754919348498233,
+          "p95": 1.0930243859447326,
+          "worst": 1.0941919167972125
+        },
+        "max_current_abs": {
+          "mean": 2.0142539179004086,
+          "median": 2.0523155079594604,
+          "p05": 1.942364597741436,
+          "p95": 2.0595001250180447,
+          "worst": 2.0602984158023316
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.012637213915142812,
+          "median": 0.012647055359609678,
+          "p05": 0.012377955143862815,
+          "p95": 0.012889583675296003,
+          "worst": 0.012916531265927816
+        },
+        "switch_events": {
+          "mean": 47.666666666666664,
+          "median": 47.0,
+          "p05": 47.00000000000001,
+          "p95": 48.8,
+          "worst": 49.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      },
+      "dtc_svm_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.4476645500156,
+          "median": 86.45053024419497,
+          "p05": 86.43983557649386,
+          "p95": 86.4534875376118,
+          "worst": 86.45381612576924
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.4794024943834,
+          "median": 86.48691856980588,
+          "p05": 86.45992218828405,
+          "p95": 86.49362154768696,
+          "worst": 86.49436632300709
+        },
+        "mean_current_abs": {
+          "mean": 1.0272944733309148,
+          "median": 0.9203396407752645,
+          "p05": 0.83933197707392,
+          "p95": 1.2901253523768648,
+          "worst": 1.3312126536659314
+        },
+        "max_current_abs": {
+          "mean": 2.004671309947328,
+          "median": 1.9860390604125593,
+          "p05": 1.9111924537926306,
+          "p95": 2.111192740776363,
+          "worst": 2.1250987052612302
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.022056235422502155,
+          "median": 0.02251881515007784,
+          "p05": 0.017604297344437924,
+          "p95": 0.026184367691263418,
+          "worst": 0.026591651306950702
+        },
+        "switch_events": {
+          "mean": 17.0,
+          "median": 18.0,
+          "p05": 13.500000000000002,
+          "p95": 19.8,
+          "worst": 20.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      },
+      "deadbeat_current_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.45421540758805,
+          "median": 86.45536150426085,
+          "p05": 86.4470571386022,
+          "p95": 86.46057140890292,
+          "worst": 86.46115028719649
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.49795983785792,
+          "median": 86.49922603926909,
+          "p05": 86.48582747628312,
+          "p95": 86.50920585844489,
+          "worst": 86.51031472724219
+        },
+        "mean_current_abs": {
+          "mean": 0.5835305429612752,
+          "median": 0.5829239724752855,
+          "p05": 0.5446720861778045,
+          "p95": 0.6228135990849384,
+          "worst": 0.6272457798193444
+        },
+        "max_current_abs": {
+          "mean": 1.6460115306503784,
+          "median": 1.6566854507924273,
+          "p05": 1.6193164196080492,
+          "p95": 1.6652348975932738,
+          "worst": 1.6661848361267013
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.006376236932406003,
+          "median": 0.006256213272127778,
+          "p05": 0.005601561897338697,
+          "p95": 0.007234928529668063,
+          "worst": 0.0073436746693947615
+        },
+        "switch_events": {
+          "mean": 5.333333333333333,
+          "median": 5.0,
+          "p05": 5.0,
+          "p95": 5.9,
+          "worst": 6.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      },
+      "sensorless_adaptive_foc_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.484098865435,
+          "median": 86.48479826031864,
+          "p05": 86.46895211419269,
+          "p95": 86.49875604025881,
+          "worst": 86.5003069046966
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.56325197614956,
+          "median": 86.56456926908648,
+          "p05": 86.53485949314553,
+          "p95": 86.59072235409772,
+          "worst": 86.5936282524323
+        },
+        "mean_current_abs": {
+          "mean": 0.991598350612222,
+          "median": 0.8204899882739486,
+          "p05": 0.7157534704020125,
+          "p95": 1.387219084459223,
+          "worst": 1.4501889840353646
+        },
+        "max_current_abs": {
+          "mean": 2.5764589761688117,
+          "median": 2.5253780590999986,
+          "p05": 2.333564601227386,
+          "p95": 2.855109993058406,
+          "worst": 2.8917468746093404
+        },
+        "torque_ripple_proxy": {
+          "mean": 1.4191591032571409e-05,
+          "median": 1.590021303075747e-05,
+          "p05": 1.003812743036883e-05,
+          "p95": 1.7149019236043745e-05,
+          "worst": 1.7287775481075553e-05
+        },
+        "switch_events": {
+          "mean": 14.0,
+          "median": 12.0,
+          "p05": 10.2,
+          "p95": 19.200000000000003,
+          "worst": 20.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 27.0,
+          "median": 27.0,
+          "p05": 27.0,
+          "p95": 27.0,
+          "worst": 27.0
+        },
+        "failure_count": 0
+      }
+    },
+    "sensor_delay": {
+      "protected_ai_pwm_h1_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.17995672139328,
+          "median": 77.21006256188028,
+          "p05": 77.09740932314392,
+          "p95": 77.24143003130172,
+          "worst": 77.24491530568189
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.41803970349649,
+          "median": 86.41107297523044,
+          "p05": 86.40278625930168,
+          "p95": 86.43816985747753,
+          "worst": 86.44118062217166
+        },
+        "mean_current_abs": {
+          "mean": 1.9931684548465647,
+          "median": 1.7012210595066246,
+          "p05": 1.4553528233797075,
+          "p95": 2.7353472630513793,
+          "worst": 2.8502501745563524
+        },
+        "max_current_abs": {
+          "mean": 3.4900092356963817,
+          "median": 2.6351097070861367,
+          "p05": 2.59767857787482,
+          "p95": 4.980769563545115,
+          "worst": 5.241398436485001
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.060841979029581356,
+          "median": 0.059111065797798575,
+          "p05": 0.0540680862679378,
+          "p95": 0.06882751105347285,
+          "worst": 0.0699071160818811
+        },
+        "switch_events": {
+          "mean": 30.0,
+          "median": 33.0,
+          "p05": 19.5,
+          "p95": 38.4,
+          "worst": 39.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.275,
+          "median": 0.275,
+          "p05": 0.275,
+          "p95": 0.275,
+          "worst": 0.275
+        },
+        "fallback_count": {
+          "mean": 9.333333333333334,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 25.199999999999996,
+          "worst": 28.0
+        },
+        "rejected_action_count": {
+          "mean": 9.333333333333334,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 25.199999999999996,
+          "worst": 28.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "fcs_mpc_one_step_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 76.64891577143872,
+          "median": 76.85607130740101,
+          "p05": 76.26063075088076,
+          "p95": 76.89219191682307,
+          "worst": 76.89620531786996
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.49285276101945,
+          "median": 86.41133903760523,
+          "p05": 86.3899654027142,
+          "p95": 86.65279972571469,
+          "worst": 86.67962869106017
+        },
+        "mean_current_abs": {
+          "mean": 2.8949230893774156,
+          "median": 2.963146378986624,
+          "p05": 2.708077431914878,
+          "p95": 3.034012444113507,
+          "worst": 3.0418864513498276
+        },
+        "max_current_abs": {
+          "mean": 4.1459787280700615,
+          "median": 4.299481256922297,
+          "p05": 3.8343502122459574,
+          "p95": 4.350155473697601,
+          "worst": 4.355785942228191
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.08243078791866586,
+          "median": 0.07998161218984667,
+          "p05": 0.04285819901316132,
+          "p95": 0.1237177998343438,
+          "worst": 0.12857737623928794
+        },
+        "switch_events": {
+          "mean": 23.0,
+          "median": 16.0,
+          "p05": 13.3,
+          "p95": 37.6,
+          "worst": 40.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.3875,
+          "median": 0.3875,
+          "p05": 0.3875,
+          "p95": 0.38749999999999996,
+          "worst": 0.3875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "foc_svm_key_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 76.97920716543825,
+          "median": 76.99508770156203,
+          "p05": 76.87475138278674,
+          "p95": 77.07254657280312,
+          "worst": 77.08115311405213
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.40950737565116,
+          "median": 86.40882107495095,
+          "p05": 86.40170316761603,
+          "p95": 86.41779199417643,
+          "worst": 86.41878876297926
+        },
+        "mean_current_abs": {
+          "mean": 2.001812689496154,
+          "median": 2.066627468907199,
+          "p05": 1.8599150848866055,
+          "p95": 2.0983399485179706,
+          "worst": 2.101863557363612
+        },
+        "max_current_abs": {
+          "mean": 3.2867925957312223,
+          "median": 3.1879256275819343,
+          "p05": 3.14118100433594,
+          "p95": 3.501611064831006,
+          "worst": 3.5364650023031254
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.09078436019584508,
+          "median": 0.09744816495421596,
+          "p05": 0.06016826457318295,
+          "p95": 0.11673579248764764,
+          "worst": 0.11887886221358449
+        },
+        "switch_events": {
+          "mean": 19.666666666666668,
+          "median": 20.0,
+          "p05": 11.9,
+          "p95": 27.199999999999996,
+          "worst": 28.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.3875,
+          "median": 0.3875,
+          "p05": 0.3875,
+          "p95": 0.38749999999999996,
+          "worst": 0.3875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_hysteresis_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.29790332479898,
+          "median": 77.28666031374294,
+          "p05": 77.27761024754437,
+          "p95": 77.3260665097928,
+          "worst": 77.33044497602056
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.5507116262422,
+          "median": 86.53014036964454,
+          "p05": 86.51243039060805,
+          "p95": 86.6033927414947,
+          "worst": 86.61153189392249
+        },
+        "mean_current_abs": {
+          "mean": 0.3217516699524993,
+          "median": 0.3053602762438572,
+          "p05": 0.29860083627002565,
+          "p95": 0.3563764792310224,
+          "worst": 0.3620449462295963
+        },
+        "max_current_abs": {
+          "mean": 0.6541394530827488,
+          "median": 0.5928539307119667,
+          "p05": 0.5014260752737103,
+          "p95": 0.8497526965513346,
+          "worst": 0.8782970038668199
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.004285082353250053,
+          "median": 0.0036932421601246664,
+          "p05": 0.0033559332498681593,
+          "p95": 0.0056285195918197185,
+          "worst": 0.0058435504175636125
+        },
+        "switch_events": {
+          "mean": 95.0,
+          "median": 95.0,
+          "p05": 93.2,
+          "p95": 96.80000000000001,
+          "worst": 97.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.3875,
+          "median": 0.3875,
+          "p05": 0.3875,
+          "p95": 0.38749999999999996,
+          "worst": 0.3875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_svm_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.41573912477463,
+          "median": 77.45926272997784,
+          "p05": 77.29635008774088,
+          "p95": 77.50466163816614,
+          "worst": 77.50970596129817
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.77130017431192,
+          "median": 86.85325842903505,
+          "p05": 86.54754092140715,
+          "p95": 86.93768864891047,
+          "worst": 86.94706978445218
+        },
+        "mean_current_abs": {
+          "mean": 0.7167980247651209,
+          "median": 0.6622225757629993,
+          "p05": 0.6320511520996703,
+          "p95": 0.8397477117320565,
+          "worst": 0.8594727268397296
+        },
+        "max_current_abs": {
+          "mean": 2.8805549100100034,
+          "median": 2.8544019326043606,
+          "p05": 2.760340215325699,
+          "p95": 3.019076688878258,
+          "worst": 3.037373884019802
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.0005844248435901572,
+          "median": 0.0007103620107113182,
+          "p05": 0.00024182727432506634,
+          "p95": 0.0008388663958704354,
+          "worst": 0.0008531446608881151
+        },
+        "switch_events": {
+          "mean": 2.0,
+          "median": 2.0,
+          "p05": 2.0,
+          "p95": 2.0,
+          "worst": 2.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.3875,
+          "median": 0.3875,
+          "p05": 0.3875,
+          "p95": 0.38749999999999996,
+          "worst": 0.3875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "deadbeat_current_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.28106074958062,
+          "median": 77.27333206229856,
+          "p05": 77.27166413118455,
+          "p95": 77.29586744907412,
+          "worst": 77.29837138093808
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.48969420107643,
+          "median": 86.47902502991181,
+          "p05": 86.47694884470596,
+          "p95": 86.50990797726216,
+          "worst": 86.51333941585665
+        },
+        "mean_current_abs": {
+          "mean": 0.8656173280108188,
+          "median": 0.8848599075909505,
+          "p05": 0.813975155456813,
+          "p95": 0.9037896948587326,
+          "worst": 0.9058930045551529
+        },
+        "max_current_abs": {
+          "mean": 2.4103142835168074,
+          "median": 2.4363917431946476,
+          "p05": 2.3626644808574087,
+          "p95": 2.4397098644017188,
+          "worst": 2.4400785445358375
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.0239034497211128,
+          "median": 0.02592032419898193,
+          "p05": 0.018718421143838124,
+          "p95": 0.0276766661638791,
+          "worst": 0.027871815271089895
+        },
+        "switch_events": {
+          "mean": 13.0,
+          "median": 12.0,
+          "p05": 12.0,
+          "p95": 14.7,
+          "worst": 15.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.3875,
+          "median": 0.3875,
+          "p05": 0.3875,
+          "p95": 0.38749999999999996,
+          "worst": 0.3875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "sensorless_adaptive_foc_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.34279289033051,
+          "median": 77.35617937990159,
+          "p05": 77.30257330162486,
+          "p95": 77.37364193633643,
+          "worst": 77.37558222038473
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.63451549104197,
+          "median": 86.65964305487498,
+          "p05": 86.5591065203242,
+          "p95": 86.69233516707664,
+          "worst": 86.69596762398793
+        },
+        "mean_current_abs": {
+          "mean": 1.0052772437153943,
+          "median": 1.0228779966332509,
+          "p05": 0.9159627259974523,
+          "p95": 1.0822712343908367,
+          "worst": 1.0888704830305684
+        },
+        "max_current_abs": {
+          "mean": 3.415847466783737,
+          "median": 3.4440503792497905,
+          "p05": 3.3030090656739213,
+          "p95": 3.5089438291673147,
+          "worst": 3.516154212491484
+        },
+        "torque_ripple_proxy": {
+          "mean": 2.28512936282939e-05,
+          "median": 2.241063123124641e-05,
+          "p05": 2.0100052064129674e-05,
+          "p95": 2.5910998870391376e-05,
+          "worst": 2.629992860807415e-05
+        },
+        "switch_events": {
+          "mean": 3.3333333333333335,
+          "median": 4.0,
+          "p05": 2.2,
+          "p95": 4.0,
+          "worst": 4.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.20000000000000004,
+          "median": 0.2,
+          "p05": 0.2,
+          "p95": 0.2,
+          "worst": 0.2
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      }
+    },
+    "shock_load": {
+      "protected_ai_pwm_h1_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 85.8968648859704,
+          "median": 86.38595303284988,
+          "p05": 85.03988712097305,
+          "p95": 86.41148094815215,
+          "worst": 86.41431738318573
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.55071731597688,
+          "median": 86.43677664190788,
+          "p05": 86.41140291016502,
+          "p95": 86.76979019363702,
+          "worst": 86.80679169938469
+        },
+        "mean_current_abs": {
+          "mean": 1.6330490128042279,
+          "median": 1.565509272315873,
+          "p05": 1.3524578046591489,
+          "p95": 1.960918039291156,
+          "worst": 2.004852346732854
+        },
+        "max_current_abs": {
+          "mean": 2.8187026822331034,
+          "median": 2.992570283187503,
+          "p05": 2.129719278666529,
+          "p95": 3.385978765131598,
+          "worst": 3.429690818680942
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.04844671895370085,
+          "median": 0.0490402564821616,
+          "p05": 0.044686845854551946,
+          "p95": 0.051791115782927236,
+          "worst": 0.05209676681634563
+        },
+        "switch_events": {
+          "mean": 33.333333333333336,
+          "median": 37.0,
+          "p05": 26.2,
+          "p95": 37.9,
+          "worst": 38.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "fcs_mpc_one_step_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.24112841328927,
+          "median": 86.2762099413469,
+          "p05": 86.099550519316,
+          "p95": 86.3581492376222,
+          "worst": 86.36725360387501
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.41153455130262,
+          "median": 86.41198435424089,
+          "p05": 86.40387843251195,
+          "p95": 86.4188758080365,
+          "worst": 86.4196415251249
+        },
+        "mean_current_abs": {
+          "mean": 2.512614506869632,
+          "median": 2.7102983521512427,
+          "p05": 2.1666284335925154,
+          "p95": 2.7202218884496223,
+          "worst": 2.7213245035938867
+        },
+        "max_current_abs": {
+          "mean": 3.511521868672515,
+          "median": 3.699309054827269,
+          "p05": 3.1720769831939357,
+          "p95": 3.719515723842765,
+          "worst": 3.7217609092889314
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.037163736352355654,
+          "median": 0.04044572441770767,
+          "p05": 0.030363704968698363,
+          "p95": 0.04166637609026654,
+          "worst": 0.0418020040538842
+        },
+        "switch_events": {
+          "mean": 13.0,
+          "median": 11.0,
+          "p05": 11.0,
+          "p95": 16.4,
+          "worst": 17.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "foc_svm_key_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.21817774591052,
+          "median": 86.29023048528066,
+          "p05": 86.0405097408607,
+          "p95": 86.34540883340124,
+          "worst": 86.3515397609702
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.44940773847325,
+          "median": 86.43714482927669,
+          "p05": 86.40873815711649,
+          "p95": 86.49866135626759,
+          "worst": 86.50549652593324
+        },
+        "mean_current_abs": {
+          "mean": 1.2945474162408637,
+          "median": 1.3633187162827762,
+          "p05": 1.014168033260049,
+          "p95": 1.52678688919234,
+          "worst": 1.5449500195156247
+        },
+        "max_current_abs": {
+          "mean": 2.553459039623057,
+          "median": 2.6673865583734275,
+          "p05": 2.297362824605631,
+          "p95": 2.7298059915152235,
+          "worst": 2.7367414840865343
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.04201772692945336,
+          "median": 0.03870239373902529,
+          "p05": 0.03459654612336123,
+          "p95": 0.05175964096884515,
+          "worst": 0.05321044621660292
+        },
+        "switch_events": {
+          "mean": 26.333333333333332,
+          "median": 26.0,
+          "p05": 22.400000000000002,
+          "p95": 30.5,
+          "worst": 31.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_hysteresis_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.60611296118851,
+          "median": 86.46080407353111,
+          "p05": 86.4458547686483,
+          "p95": 86.86808737508892,
+          "worst": 86.913341075262
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.79963114503765,
+          "median": 86.52198139415704,
+          "p05": 86.49338787914206,
+          "p95": 87.30022923654967,
+          "worst": 87.38670121903773
+        },
+        "mean_current_abs": {
+          "mean": 0.30206903565892945,
+          "median": 0.3023285242952144,
+          "p05": 0.2974765790940419,
+          "p95": 0.30647985017841745,
+          "worst": 0.3069411086098845
+        },
+        "max_current_abs": {
+          "mean": 0.4857155324593417,
+          "median": 0.487782037404663,
+          "p05": 0.479639232914432,
+          "p95": 0.4903452785425265,
+          "worst": 0.4906300831134003
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.004029988197897,
+          "median": 0.0038025949308306104,
+          "p05": 0.0029106060171127505,
+          "p95": 0.005308545665627722,
+          "worst": 0.005475873525049624
+        },
+        "switch_events": {
+          "mean": 96.33333333333333,
+          "median": 97.0,
+          "p05": 95.2,
+          "p95": 97.0,
+          "worst": 97.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_svm_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.47995488632112,
+          "median": 86.4773331986518,
+          "p05": 86.45802957550723,
+          "p95": 86.50371537850356,
+          "worst": 86.50664673182041
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.55852455455147,
+          "median": 86.55352028442849,
+          "p05": 86.51663548669998,
+          "p95": 86.60391661148901,
+          "worst": 86.60951620338463
+        },
+        "mean_current_abs": {
+          "mean": 0.8243943723867774,
+          "median": 0.7603376903818035,
+          "p05": 0.7440047829891105,
+          "p95": 0.949623639187926,
+          "worst": 0.9706554112774952
+        },
+        "max_current_abs": {
+          "mean": 2.071813390326509,
+          "median": 2.103358673951366,
+          "p05": 2.011389627812278,
+          "p95": 2.1101554543033396,
+          "worst": 2.110910652120226
+        },
+        "torque_ripple_proxy": {
+          "mean": 8.336027732552153e-06,
+          "median": 6.911778258949089e-06,
+          "p05": 5.950027305758072e-06,
+          "p95": 1.171900279086838e-05,
+          "worst": 1.2253138849970526e-05
+        },
+        "switch_events": {
+          "mean": 9.333333333333334,
+          "median": 10.0,
+          "p05": 8.2,
+          "p95": 10.0,
+          "worst": 10.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "deadbeat_current_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.51588610113492,
+          "median": 86.53146097658846,
+          "p05": 86.47178687304294,
+          "p95": 86.54908291640945,
+          "worst": 86.55104090972289
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.62298971387638,
+          "median": 86.6533880079295,
+          "p05": 86.53500955469141,
+          "p95": 86.68969106722413,
+          "worst": 86.6937247404791
+        },
+        "mean_current_abs": {
+          "mean": 0.4120381156171604,
+          "median": 0.44872276380638876,
+          "p05": 0.32381191938377546,
+          "p95": 0.4745850581180855,
+          "worst": 0.47745864637494073
+        },
+        "max_current_abs": {
+          "mean": 1.4496105771408996,
+          "median": 1.4714799756993049,
+          "p05": 1.4036710232400333,
+          "p95": 1.4802415520508823,
+          "worst": 1.4812150605343908
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.004921575704866034,
+          "median": 0.004101954939737316,
+          "p05": 0.0021147120613108908,
+          "p95": 0.008302173884011279,
+          "worst": 0.008768864877819497
+        },
+        "switch_events": {
+          "mean": 6.333333333333333,
+          "median": 6.0,
+          "p05": 5.1,
+          "p95": 7.8,
+          "worst": 8.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "sensorless_adaptive_foc_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 86.5186589275922,
+          "median": 86.49662600337209,
+          "p05": 86.45652143946306,
+          "p95": 86.59621946267544,
+          "worst": 86.60728540259802
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.63230211590526,
+          "median": 86.59031373982872,
+          "p05": 86.51371460985337,
+          "p95": 86.78028148521078,
+          "worst": 86.80138901247544
+        },
+        "mean_current_abs": {
+          "mean": 0.7975933759975713,
+          "median": 0.772751323916397,
+          "p05": 0.7448224796383534,
+          "p95": 0.8677537088136112,
+          "worst": 0.8783095293577462
+        },
+        "max_current_abs": {
+          "mean": 2.4135935659207837,
+          "median": 2.396542527862636,
+          "p05": 2.3554797326974346,
+          "p95": 2.483643125784836,
+          "worst": 2.4933209699984142
+        },
+        "torque_ripple_proxy": {
+          "mean": 1.8707946721538697e-05,
+          "median": 1.7781778489793295e-05,
+          "p05": 9.739413247980831e-06,
+          "p95": 2.8324797957318343e-05,
+          "worst": 2.949624456482113e-05
+        },
+        "switch_events": {
+          "mean": 12.0,
+          "median": 12.0,
+          "p05": 12.0,
+          "p95": 12.0,
+          "worst": 12.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      }
+    },
+    "ood": {
+      "protected_ai_pwm_h1_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.24406466379297,
+          "median": 77.2432380155241,
+          "p05": 77.24052825571688,
+          "p95": 77.24817972565728,
+          "worst": 77.24872880456097
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.44787775451272,
+          "median": 86.44818345594533,
+          "p05": 86.4430337562597,
+          "p95": 86.45250776176292,
+          "worst": 86.4529882401871
+        },
+        "mean_current_abs": {
+          "mean": 1.1457340716157853,
+          "median": 1.158348532404398,
+          "p05": 1.106208133093988,
+          "p95": 1.176429887585554,
+          "worst": 1.1784389270501268
+        },
+        "max_current_abs": {
+          "mean": 1.73450717111388,
+          "median": 1.6862697927465589,
+          "p05": 1.6720539709015312,
+          "p95": 1.8307265361833533,
+          "worst": 1.8467772854541085
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.01679716568317668,
+          "median": 0.015711950633494037,
+          "p05": 0.012804209568292566,
+          "p95": 0.021549772332838647,
+          "worst": 0.02219841918832138
+        },
+        "switch_events": {
+          "mean": 26.333333333333332,
+          "median": 27.0,
+          "p05": 23.4,
+          "p95": 28.8,
+          "worst": 29.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.9875000000000002,
+          "median": 0.9875,
+          "p05": 0.9875,
+          "p95": 0.9875,
+          "worst": 0.9875
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "fcs_mpc_one_step_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.2774026600041,
+          "median": 77.28004885982037,
+          "p05": 77.27038989650943,
+          "p95": 77.28256308362738,
+          "worst": 77.28284244182815
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.51045774068365,
+          "median": 86.51204351975014,
+          "p05": 86.49832616207077,
+          "p95": 86.52147927394999,
+          "worst": 86.52252769108331
+        },
+        "mean_current_abs": {
+          "mean": 1.6720621110785434,
+          "median": 1.620146220281652,
+          "p05": 1.5725739147163988,
+          "p95": 1.807891430998512,
+          "worst": 1.828752009967052
+        },
+        "max_current_abs": {
+          "mean": 2.113965769772388,
+          "median": 2.0336564807503636,
+          "p05": 1.9623247669474402,
+          "p95": 2.321823274912753,
+          "worst": 2.353841807597463
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.007703066268843466,
+          "median": 0.006576581532288015,
+          "p05": 0.005598201440875701,
+          "p95": 0.010596470412400047,
+          "worst": 0.011043124732412495
+        },
+        "switch_events": {
+          "mean": 16.333333333333332,
+          "median": 17.0,
+          "p05": 15.2,
+          "p95": 17.0,
+          "worst": 17.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "foc_svm_key_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 78.24815915469848,
+          "median": 77.24354962043724,
+          "p05": 77.22102146887099,
+          "p95": 79.97852351450885,
+          "worst": 80.28240950273903
+        },
+        "p95_abs_speed_error": {
+          "mean": 87.91255267623619,
+          "median": 86.42899733941131,
+          "p05": 86.40617381368016,
+          "p95": 90.45742027456961,
+          "worst": 90.90502282292054
+        },
+        "mean_current_abs": {
+          "mean": 1.8588193914057334,
+          "median": 2.0096670632758404,
+          "p05": 1.5825827763343843,
+          "p95": 2.0294626361680077,
+          "worst": 2.031662144267137
+        },
+        "max_current_abs": {
+          "mean": 2.992368662877366,
+          "median": 2.978730938623977,
+          "p05": 2.9289608135029903,
+          "p95": 3.0653229192291134,
+          "worst": 3.0749442504074618
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.022779559763235858,
+          "median": 0.022337822748319726,
+          "p05": 0.020837694729000343,
+          "p95": 0.025030640707912662,
+          "worst": 0.02532984270342299
+        },
+        "switch_events": {
+          "mean": 30.666666666666668,
+          "median": 25.0,
+          "p05": 25.0,
+          "p95": 40.3,
+          "worst": 42.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_hysteresis_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.3562965832697,
+          "median": 77.3044207191518,
+          "p05": 77.26482986782644,
+          "p95": 77.48407640359551,
+          "worst": 77.50403814631147
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.66013946487601,
+          "median": 86.56271218943404,
+          "p05": 86.48839250998408,
+          "p95": 86.90008551257732,
+          "worst": 86.937571437371
+        },
+        "mean_current_abs": {
+          "mean": 0.30054761918379047,
+          "median": 0.3006409710835306,
+          "p05": 0.299904536377775,
+          "p95": 0.3011253556599879,
+          "worst": 0.3011791761684831
+        },
+        "max_current_abs": {
+          "mean": 0.7261300194845549,
+          "median": 0.7294841445008363,
+          "p05": 0.7177951950496024,
+          "p95": 0.7321169564081106,
+          "worst": 0.7324094910644744
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.0013041236001495894,
+          "median": 0.001441299952025192,
+          "p05": 0.0010666836211472468,
+          "p95": 0.0014455401328390101,
+          "worst": 0.0014460112640405454
+        },
+        "switch_events": {
+          "mean": 96.33333333333333,
+          "median": 96.0,
+          "p05": 96.0,
+          "p95": 96.9,
+          "worst": 97.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "rejected_action_count": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "dtc_svm_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.64616861732496,
+          "median": 77.74842359411436,
+          "p05": 77.29359567762725,
+          "p95": 77.9271630732701,
+          "worst": 77.94702301539851
+        },
+        "p95_abs_speed_error": {
+          "mean": 87.20225374306169,
+          "median": 87.39417908467779,
+          "p05": 86.54216951172887,
+          "p95": 87.72799023526325,
+          "worst": 87.76508036310608
+        },
+        "mean_current_abs": {
+          "mean": 1.1592880302237376,
+          "median": 1.1684284532967981,
+          "p05": 1.0413626810062802,
+          "p95": 1.2708150832900527,
+          "worst": 1.2821913755115255
+        },
+        "max_current_abs": {
+          "mean": 2.15970803651187,
+          "median": 2.1769124864214953,
+          "p05": 2.1217305041616257,
+          "p95": 2.185642453925377,
+          "worst": 2.1866124503146973
+        },
+        "torque_ripple_proxy": {
+          "mean": 3.85702908213377e-05,
+          "median": 4.756777601885834e-05,
+          "p05": 6.987780281560689e-06,
+          "p95": 6.385456172285027e-05,
+          "worst": 6.566420457884937e-05
+        },
+        "switch_events": {
+          "mean": 18.333333333333332,
+          "median": 20.0,
+          "p05": 14.6,
+          "p95": 20.9,
+          "worst": 21.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "deadbeat_current_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.24663055139018,
+          "median": 77.24432988170818,
+          "p05": 77.2430405142517,
+          "p95": 77.25183105730605,
+          "worst": 77.25266452126138
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.45363764325373,
+          "median": 86.44934057929989,
+          "p05": 86.44699613241364,
+          "p95": 86.46328709886151,
+          "worst": 86.46483671214614
+        },
+        "mean_current_abs": {
+          "mean": 0.35633899587284157,
+          "median": 0.35897403250990984,
+          "p05": 0.34112717497523315,
+          "p95": 0.3697062911245022,
+          "worst": 0.3708987643039014
+        },
+        "max_current_abs": {
+          "mean": 1.450823485014747,
+          "median": 1.4186171620943488,
+          "p05": 1.4035846247196642,
+          "p95": 1.5206067713541087,
+          "worst": 1.5319389501607485
+        },
+        "torque_ripple_proxy": {
+          "mean": 0.0018941785071675422,
+          "median": 0.0014986692156985443,
+          "p05": 0.001352383504826225,
+          "p95": 0.0027128300135371578,
+          "worst": 0.0028477367688525593
+        },
+        "switch_events": {
+          "mean": 6.333333333333333,
+          "median": 6.0,
+          "p05": 6.0,
+          "p95": 6.8999999999999995,
+          "worst": 7.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 1.0,
+          "median": 1.0,
+          "p05": 1.0,
+          "p95": 1.0,
+          "worst": 1.0
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      },
+      "sensorless_adaptive_foc_baseline": {
+        "mean_abs_speed_error": {
+          "mean": 77.27124119077662,
+          "median": 77.24961296015948,
+          "p05": 77.24212855633566,
+          "p95": 77.31549358664958,
+          "worst": 77.3228136562596
+        },
+        "p95_abs_speed_error": {
+          "mean": 86.50037768977772,
+          "median": 86.45979737276647,
+          "p05": 86.44575174202794,
+          "p95": 86.58340985943539,
+          "worst": 86.59714458017638
+        },
+        "mean_current_abs": {
+          "mean": 1.8513123208442874,
+          "median": 1.8508092587907552,
+          "p05": 1.6998519969567416,
+          "p95": 2.003124788169306,
+          "worst": 2.0200487358780337
+        },
+        "max_current_abs": {
+          "mean": 2.8730607500741154,
+          "median": 2.823782220944351,
+          "p05": 2.7476002433845528,
+          "p95": 3.033016227154514,
+          "worst": 3.056264450066754
+        },
+        "torque_ripple_proxy": {
+          "mean": 8.332247599593964e-06,
+          "median": 5.726532247503884e-06,
+          "p05": 4.003834185131687e-06,
+          "p95": 1.4484661760519294e-05,
+          "worst": 1.545778726196545e-05
+        },
+        "switch_events": {
+          "mean": 33.0,
+          "median": 37.0,
+          "p05": 25.3,
+          "p95": 37.9,
+          "worst": 38.0
+        },
+        "feedback_usage_ratio": {
+          "mean": 0.9250000000000002,
+          "median": 0.925,
+          "p05": 0.925,
+          "p95": 0.925,
+          "worst": 0.925
+        },
+        "fallback_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "rejected_action_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "fault_latch_count": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "safety_violations": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "undervoltage_steps": {
+          "mean": 0.0,
+          "median": 0.0,
+          "p05": 0.0,
+          "p95": 0.0,
+          "worst": 0.0
+        },
+        "failure_count": 0
+      }
+    }
+  },
+  "baseline_stress_ready": true,
+  "publication_tuning_claim": false,
+  "interpretation": "Bounded host stress evidence for separate comparison baselines. This is not a final publication tuning sweep and does not prove superiority."
+}

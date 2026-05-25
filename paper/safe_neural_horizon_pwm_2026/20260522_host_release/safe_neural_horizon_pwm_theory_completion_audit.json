@@ -23,6 +23,7 @@
     "publication_plots_fft_thd_ready": true,
     "domain_randomized_twin_evidence_ready": true,
     "baseline_strength_audit_ready": true,
+    "baseline_stress_evidence_ready": true,
     "report_and_release_artifacts": true,
     "honest_claim_boundaries": true,
     "foc_svm_key_baseline_ready": true,

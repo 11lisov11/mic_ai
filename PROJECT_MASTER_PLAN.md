@@ -32,7 +32,7 @@ Hardware-productization is now tracked separately:
 - A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
 - New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, MC=100 smoke, and MC=500 host evidence are implemented.
 - New branch machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
-- New branch machine-checkable baseline status: `host_baseline_scaffold_ready = true`, `publication_strong_baselines_ready = false`.
+- New branch machine-checkable baseline status: `host_baseline_scaffold_ready = true`, `baseline_stress_evidence_ready = true`, `publication_strong_baselines_ready = false`.
 - New branch machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; production online identification remains open.
 - New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
 
@@ -135,7 +135,7 @@ Status on `2026-05-22`:
 - MC=5 scenario matrix runs across start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout host scenarios
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
 - host-level comparison baselines exist; the prior protected AI-PWM H1 model is now a separate named one-step protected baseline, FOC-SVM is now a separate key-level PI/current/SVM baseline, FCS-MPC is now a separate one-step predictive current/torque/flux baseline, DTC hysteresis is now a separate torque/flux hysteresis baseline, DTC-SVM is now a separate torque/flux voltage-reference/SVM baseline, deadbeat current control is now a separate predictive current baseline, and sensorless/adaptive FOC is now a separate MRAS-like observer/Rs-adaptive FOC baseline
-- comparison-baseline strength is now machine-checkable with `safe_neural_horizon_pwm_baseline_strength_audit.json`: every named baseline has source markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, and Pareto participation, while `publication_strong_baselines_ready` remains false until dedicated tuning/stress evidence exists
+- comparison-baseline strength is now machine-checkable with `safe_neural_horizon_pwm_baseline_strength_audit.json`: every named baseline has source markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, Pareto participation, and bounded MC=3 stress evidence; `publication_strong_baselines_ready` remains false until dedicated parameter-sweep tuning evidence exists
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
@@ -284,6 +284,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add domain-randomized theta-conditioned twin evidence with multi-step rollout losses and machine-checkable theory gate.
 - [x] Add tracked `N=500` host Monte Carlo evidence and machine-checkable `publication_mc500_ready` gate.
 - [x] Add a machine-checkable baseline-strength audit that separates `host_baseline_scaffold_ready` from `publication_strong_baselines_ready`.
+- [x] Add bounded baseline stress evidence for load-step, overload, DC sag, sensor delay, shock load, and OOD scenarios.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Tune and stress-test the FOC-SVM key-level baseline to publication-grade level with the same inverter/dead-time/min-pulse/current constraints.
 - [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.

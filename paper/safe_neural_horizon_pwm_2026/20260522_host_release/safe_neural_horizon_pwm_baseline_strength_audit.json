@@ -5,6 +5,13 @@
   "publication_strong_baselines_ready": false,
   "baseline_count": 7,
   "scenario_count": 31,
+  "stress_evidence_ready": true,
+  "stress_evidence": {
+    "mc_trials": 3,
+    "steps_per_trial": 80,
+    "scenario_count": 6,
+    "publication_tuning_claim": false
+  },
   "baselines": {
     "deadbeat_current_baseline": {
       "source_marker_present": true,
@@ -48,6 +55,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 180.69110736695293,
       "max_mean_current_abs": 0.8166038381035404,
@@ -95,6 +103,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 182.2884726776135,
       "max_mean_current_abs": 0.7707905410828891,
@@ -143,6 +152,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 180.68618889489503,
       "max_mean_current_abs": 1.3818588701692003,
@@ -190,6 +200,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 180.52149602170928,
       "max_mean_current_abs": 2.9884617338983084,
@@ -236,6 +247,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 180.60365650378807,
       "max_mean_current_abs": 2.164247068137007,
@@ -276,6 +288,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 180.7724352390649,
       "max_mean_current_abs": 1.65408073281617,
@@ -320,6 +333,7 @@
         "sensor_dropout"
       ],
       "trace_present": true,
+      "stress_evidence_ready": true,
       "finite_metrics": true,
       "max_mean_abs_speed_error": 180.68304545449027,
       "max_mean_current_abs": 1.9894317835412867,
@@ -330,13 +344,13 @@
   },
   "failures": [],
   "warnings": [
-    "deadbeat_current_baseline: no publication-grade tuning/stress evidence yet",
-    "dtc_hysteresis_baseline: no publication-grade tuning/stress evidence yet",
-    "dtc_svm_baseline: no publication-grade tuning/stress evidence yet",
-    "fcs_mpc_one_step_baseline: no publication-grade tuning/stress evidence yet",
-    "foc_svm_key_baseline: no publication-grade tuning/stress evidence yet",
-    "protected_ai_pwm_h1_baseline: no publication-grade tuning/stress evidence yet",
-    "sensorless_adaptive_foc_baseline: no publication-grade tuning/stress evidence yet"
+    "deadbeat_current_baseline: no publication-grade parameter-sweep tuning evidence yet",
+    "dtc_hysteresis_baseline: no publication-grade parameter-sweep tuning evidence yet",
+    "dtc_svm_baseline: no publication-grade parameter-sweep tuning evidence yet",
+    "fcs_mpc_one_step_baseline: no publication-grade parameter-sweep tuning evidence yet",
+    "foc_svm_key_baseline: no publication-grade parameter-sweep tuning evidence yet",
+    "protected_ai_pwm_h1_baseline: no publication-grade parameter-sweep tuning evidence yet",
+    "sensorless_adaptive_foc_baseline: no publication-grade parameter-sweep tuning evidence yet"
   ],
   "interpretation": "The comparison baselines are separate safe host implementations with scenario coverage and Pareto participation, but they are not yet publication-tuned strong baselines."
 }

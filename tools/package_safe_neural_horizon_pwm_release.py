@@ -250,6 +250,7 @@ def package_release(
     tag: str,
     mc100_json: Path | None = None,
     mc500_json: Path | None = None,
+    baseline_stress_json: Path | None = None,
     trace_dir: Path | None = None,
     twin_dir: Path | None = None,
 ) -> Dict[str, Any]:
@@ -277,6 +278,19 @@ def package_release(
         )
     shutil.copyfile(mc500_source, mc500_json)
     mc500_payload = json.loads(mc500_json.read_text(encoding="utf-8"))
+    stress_source = (
+        baseline_stress_json
+        if baseline_stress_json is not None
+        else ROOT / ".tmp_pytest" / "safe_neural_horizon_pwm_baseline_stress.json"
+    )
+    baseline_stress_json = out_dir / "safe_neural_horizon_pwm_baseline_stress_evidence.json"
+    if not stress_source.exists():
+        raise FileNotFoundError(
+            f"tracked release requires baseline stress evidence; run "
+            f"`python tools/build_safe_neural_horizon_pwm_baseline_stress.py "
+            f"--out-json {stress_source}` or pass --baseline-stress-json"
+        )
+    shutil.copyfile(stress_source, baseline_stress_json)
     report_md = out_dir / "safe_neural_horizon_pwm_report.md"
     article_md = out_dir / "safe_neural_horizon_pwm_article_draft.md"
     baseline_json = out_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json"
@@ -301,6 +315,7 @@ def package_release(
         copied_json,
         mc100_json,
         mc500_json,
+        baseline_stress_json,
         report_md,
         article_md,
         baseline_json,
@@ -321,9 +336,10 @@ def package_release(
             "python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json",
             "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
             "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
+            "python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json",
             "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
             "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
-            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
+            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json",
         ],
         "files": [
             {
@@ -341,6 +357,7 @@ def package_release(
             "theory_completion_audit_written": theory_json.exists(),
             "mc100_smoke_written": mc100_json.exists(),
             "mc500_publication_smoke_written": mc500_json.exists(),
+            "baseline_stress_evidence_written": baseline_stress_json.exists(),
             "open_items_written": open_items_md.exists(),
             "trace_evidence_written": bool(trace_files),
             "twin_evidence_written": bool(twin_files),
@@ -366,6 +383,7 @@ def main() -> None:
     parser.add_argument("--tag", default="safe_neural_horizon_pwm_host_release")
     parser.add_argument("--mc100-json", default="")
     parser.add_argument("--mc500-json", default="")
+    parser.add_argument("--baseline-stress-json", default="")
     parser.add_argument("--trace-dir", default="")
     parser.add_argument("--twin-dir", default="")
     args = parser.parse_args()
@@ -376,6 +394,9 @@ def main() -> None:
         tag=str(args.tag),
         mc100_json=Path(args.mc100_json).expanduser().resolve() if str(args.mc100_json).strip() else None,
         mc500_json=Path(args.mc500_json).expanduser().resolve() if str(args.mc500_json).strip() else None,
+        baseline_stress_json=Path(args.baseline_stress_json).expanduser().resolve()
+        if str(args.baseline_stress_json).strip()
+        else None,
         trace_dir=Path(args.trace_dir).expanduser().resolve() if str(args.trace_dir).strip() else None,
         twin_dir=Path(args.twin_dir).expanduser().resolve() if str(args.twin_dir).strip() else None,
     )

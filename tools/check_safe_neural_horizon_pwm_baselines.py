@@ -60,13 +60,38 @@ def _trace_controllers(release_dir: Path | None) -> set[str]:
     return {str(item) for item in payload.get("controllers", [])}
 
 
+def _stress_evidence(release_dir: Path | None) -> tuple[dict[str, Any], bool, list[str]]:
+    if release_dir is None:
+        return {}, False, ["release directory with safe_neural_horizon_pwm_baseline_stress_evidence.json"]
+    path = release_dir / "safe_neural_horizon_pwm_baseline_stress_evidence.json"
+    if not path.exists():
+        return {}, False, ["safe_neural_horizon_pwm_baseline_stress_evidence.json"]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    failures: list[str] = []
+    if payload.get("hardware_claim") is not False:
+        failures.append("baseline stress hardware_claim=false")
+    if int(payload.get("mc_trials", 0)) < 3:
+        failures.append("baseline stress mc_trials>=3")
+    if int(payload.get("steps_per_trial", 0)) < 60:
+        failures.append("baseline stress steps_per_trial>=60")
+    if len(list(payload.get("scenarios", []))) < 5:
+        failures.append("baseline stress scenario_count>=5")
+    if not bool(payload.get("baseline_stress_ready", False)):
+        failures.append("baseline_stress_ready=true")
+    return payload, not failures, failures
+
+
 def analyze_baselines(path: Path) -> Dict[str, Any]:
     payload, release_dir = _load_payload(path)
     matrix = dict(payload.get("matrix", {}))
     scenarios = [str(name) for name in payload.get("scenarios", [])]
     trace_covered = _trace_controllers(release_dir)
+    stress_payload, stress_global_ready, stress_global_failures = _stress_evidence(release_dir)
+    stress_controllers = dict(stress_payload.get("controllers", {}))
     failures: list[str] = []
     warnings: list[str] = []
+    if stress_global_failures:
+        failures.extend(stress_global_failures)
     rows: Dict[str, Any] = {}
 
     for controller in sorted(COMPARISON_CONTROLLERS):
@@ -102,6 +127,14 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
 
         source_marker_present = _source_has_marker(controller)
         trace_present = controller in trace_covered
+        stress_row = dict(stress_controllers.get(controller, {}))
+        stress_evidence_ready = bool(
+            stress_global_ready
+            and stress_row
+            and stress_row.get("stress_ready", False)
+            and float(stress_row.get("safety_violations_worst", 1.0)) == 0.0
+            and int(stress_row.get("unexpected_failure_count", 1)) == 0
+        )
         matrix_coverage_ready = bool(scenarios) and not missing_scenarios
         safety_ready = safety_worst == 0.0 and unexpected_failure_count == 0
         pareto_ready = bool(pareto_scenarios)
@@ -113,7 +146,7 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
         if not baseline_scaffold_ready:
             failures.append(f"{controller}: baseline scaffold is incomplete")
         if not publication_tuned_ready:
-            warnings.append(f"{controller}: no publication-grade tuning/stress evidence yet")
+            warnings.append(f"{controller}: no publication-grade parameter-sweep tuning evidence yet")
 
         rows[controller] = {
             "source_marker_present": source_marker_present,
@@ -125,6 +158,7 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
             "pareto_participation_count": len(pareto_scenarios),
             "pareto_scenarios": pareto_scenarios,
             "trace_present": trace_present,
+            "stress_evidence_ready": stress_evidence_ready,
             "finite_metrics": finite_metrics,
             "max_mean_abs_speed_error": max_speed_mean,
             "max_mean_current_abs": max_current_mean,
@@ -150,6 +184,16 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
         "publication_strong_baselines_ready": publication_strong_baselines_ready,
         "baseline_count": len(rows),
         "scenario_count": len(scenarios),
+        "stress_evidence_ready": stress_global_ready
+        and all(bool(row["stress_evidence_ready"]) for row in rows.values()),
+        "stress_evidence": {
+            "mc_trials": int(stress_payload.get("mc_trials", 0)) if stress_payload else 0,
+            "steps_per_trial": int(stress_payload.get("steps_per_trial", 0)) if stress_payload else 0,
+            "scenario_count": len(list(stress_payload.get("scenarios", []))) if stress_payload else 0,
+            "publication_tuning_claim": bool(stress_payload.get("publication_tuning_claim", False))
+            if stress_payload
+            else False,
+        },
         "baselines": rows,
         "failures": failures,
         "warnings": warnings,

@@ -20,6 +20,7 @@ Status:
 - `trained_domain_randomized_twin_ready = true`
 - `publication_mc500_ready = true`
 - `host_baseline_scaffold_ready = true`
+- `baseline_stress_evidence_ready = true`
 - `publication_strong_baselines_ready = false`
 - `publication_theory_complete = false`
 - `hardware_ready = false`
@@ -27,6 +28,8 @@ Status:
 
 Do not use this package as MCU, HIL, or bench evidence. The package is a reproducible
 software/theory release for the new AI-PWM research branch.
+The comparison baselines now have bounded host stress evidence, but not final
+parameter-sweep tuning evidence.
 
 Release gate:
 

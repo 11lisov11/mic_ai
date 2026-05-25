@@ -36,12 +36,13 @@ from safety.ai_pwm_gateway import (
 )
 from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_injection_matrix, run_matrix, run_study
 from tools.build_safe_neural_horizon_pwm_report import build_report
+from tools.build_safe_neural_horizon_pwm_baseline_stress import build_baseline_stress
 from tools.package_safe_neural_horizon_pwm_release import package_release
 from tools.build_safe_neural_horizon_pwm_trace_evidence import build_trace_evidence
 from tools.build_safe_neural_horizon_pwm_twin_evidence import build_twin_evidence
 from tools.check_safe_neural_horizon_pwm_baselines import analyze_baselines
 from tools.check_safe_neural_horizon_pwm_release import MC_SMOKE_REQUIRED_CONTROLLERS, analyze_release
-from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
+from tools.check_safe_neural_horizon_pwm_novelty import COMPARISON_CONTROLLERS, analyze_novelty
 from tools.check_safe_neural_horizon_pwm_theory import analyze_theory
 from tools.build_safe_neural_horizon_pwm_figures import build_figures
 
@@ -82,6 +83,28 @@ def _mc_smoke_payload(trials: int, *, hardware_claim: bool = False) -> dict:
             }
             for name in sorted(MC_SMOKE_REQUIRED_CONTROLLERS)
         },
+    }
+
+
+def _baseline_stress_payload() -> dict:
+    return {
+        "status": "safe_neural_horizon_pwm_baseline_stress_evidence",
+        "hardware_claim": False,
+        "mc_trials": 3,
+        "steps_per_trial": 60,
+        "scenarios": ["load_step", "overload", "dc_sag", "sensor_delay", "shock_load"],
+        "controllers": {
+            name: {
+                "scenario_count": 5,
+                "safety_violations_worst": 0.0,
+                "unexpected_failure_count": 0,
+                "finite_metrics": True,
+                "stress_ready": True,
+            }
+            for name in sorted(COMPARISON_CONTROLLERS)
+        },
+        "baseline_stress_ready": True,
+        "publication_tuning_claim": False,
     }
 
 
@@ -619,6 +642,8 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
     mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
+    baseline_stress_json = tmp_path / "baseline_stress.json"
+    baseline_stress_json.write_text(json.dumps(_baseline_stress_payload()), encoding="utf-8")
     trace_dir = tmp_path / "trace_evidence_src"
     build_trace_evidence(
         out_dir=trace_dir,
@@ -634,12 +659,14 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
         tag="test_tag",
         mc100_json=mc100_json,
         mc500_json=mc500_json,
+        baseline_stress_json=baseline_stress_json,
         trace_dir=trace_dir,
         twin_dir=twin_dir,
     )
     assert manifest["hardware_claim"] is False
     assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
     assert (out_dir / "safe_neural_horizon_pwm_article_draft.md").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_baseline_stress_evidence.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_novelty_audit.json").exists()
     assert (out_dir / "safe_neural_horizon_pwm_theory_completion_audit.json").exists()
@@ -695,6 +722,18 @@ def test_build_safe_neural_horizon_pwm_twin_evidence(tmp_path) -> None:
         assert float(row["improvement_pct"]) > 0.0
 
 
+def test_build_safe_neural_horizon_pwm_baseline_stress() -> None:
+    payload = build_baseline_stress(mc=1, steps=12, seed=13, scenarios=["load_step"])
+    assert payload["hardware_claim"] is False
+    assert payload["baseline_stress_ready"] is True
+    assert payload["publication_tuning_claim"] is False
+    assert set(payload["controllers"]) == set(COMPARISON_CONTROLLERS)
+    for row in payload["controllers"].values():
+        assert row["safety_violations_worst"] == 0.0
+        assert row["unexpected_failure_count"] == 0
+        assert row["stress_ready"] is True
+
+
 def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:
     payload = run_matrix(mc=1, steps=8, seed=4, quick=True, scenarios=["load_step"], include_ablation=False)
     input_json = tmp_path / "result.json"
@@ -720,12 +759,14 @@ def test_safe_neural_horizon_pwm_tracked_release_has_baseline_strength_audit() -
     audit = analyze_baselines(release_dir)
     assert audit["host_baseline_scaffold_ready"] is True
     assert audit["publication_strong_baselines_ready"] is False
+    assert audit["stress_evidence_ready"] is True
     assert audit["baseline_count"] == 7
     for row in audit["baselines"].values():
         assert row["source_marker_present"] is True
         assert row["matrix_coverage_ready"] is True
         assert row["safety_ready"] is True
         assert row["pareto_participation_count"] > 0
+        assert row["stress_evidence_ready"] is True
         assert row["baseline_scaffold_ready"] is True
         assert row["publication_tuned_ready"] is False
 
@@ -749,6 +790,7 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert audit["checks"]["publication_plots_fft_thd_ready"] is True
     assert audit["checks"]["domain_randomized_twin_evidence_ready"] is True
     assert audit["checks"]["baseline_strength_audit_ready"] is True
+    assert audit["checks"]["baseline_stress_evidence_ready"] is True
     assert audit["checks"]["trained_domain_randomized_twin_ready"] is True
     assert audit["checks"]["publication_mc500_ready"] is True
     assert audit["checks"]["strong_baselines_ready"] is False
@@ -762,8 +804,17 @@ def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> No
     mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
     mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
+    baseline_stress_json = tmp_path / "baseline_stress.json"
+    baseline_stress_json.write_text(json.dumps(_baseline_stress_payload()), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
+    package_release(
+        input_json=input_json,
+        out_dir=out_dir,
+        tag="test_tag",
+        mc100_json=mc100_json,
+        mc500_json=mc500_json,
+        baseline_stress_json=baseline_stress_json,
+    )
 
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -785,8 +836,17 @@ def test_release_checker_requires_acceptance_summary(tmp_path) -> None:
     mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
     mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
+    baseline_stress_json = tmp_path / "baseline_stress.json"
+    baseline_stress_json.write_text(json.dumps(_baseline_stress_payload()), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
+    package_release(
+        input_json=input_json,
+        out_dir=out_dir,
+        tag="test_tag",
+        mc100_json=mc100_json,
+        mc500_json=mc500_json,
+        baseline_stress_json=baseline_stress_json,
+    )
 
     (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").unlink()
 
@@ -805,8 +865,17 @@ def test_release_and_theory_reject_fake_mc500_evidence(tmp_path) -> None:
     bad_mc500["controllers"].pop("safe_neural_horizon_pwm_h2")
     mc500_json = tmp_path / "mc500.json"
     mc500_json.write_text(json.dumps(bad_mc500), encoding="utf-8")
+    baseline_stress_json = tmp_path / "baseline_stress.json"
+    baseline_stress_json.write_text(json.dumps(_baseline_stress_payload()), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
+    package_release(
+        input_json=input_json,
+        out_dir=out_dir,
+        tag="test_tag",
+        mc100_json=mc100_json,
+        mc500_json=mc500_json,
+        baseline_stress_json=baseline_stress_json,
+    )
 
     release_check = analyze_release(out_dir)
     assert release_check["checks"]["mc500_publication_content_ready"] is False
@@ -828,8 +897,17 @@ def test_release_checker_rejects_unsafe_manifest_paths(tmp_path) -> None:
     mc100_json.write_text(json.dumps(_mc_smoke_payload(100)), encoding="utf-8")
     mc500_json = tmp_path / "mc500.json"
     mc500_json.write_text(json.dumps(_mc_smoke_payload(500)), encoding="utf-8")
+    baseline_stress_json = tmp_path / "baseline_stress.json"
+    baseline_stress_json.write_text(json.dumps(_baseline_stress_payload()), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json, mc500_json=mc500_json)
+    package_release(
+        input_json=input_json,
+        out_dir=out_dir,
+        tag="test_tag",
+        mc100_json=mc100_json,
+        mc500_json=mc500_json,
+        baseline_stress_json=baseline_stress_json,
+    )
 
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

@@ -121,6 +121,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [run_safe_neural_horizon_pwm_study.py](C:/mic_theory/tools/run_safe_neural_horizon_pwm_study.py): quick host-level MC smoke for the new research track
 - [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
 - [build_safe_neural_horizon_pwm_figures.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_figures.py): builds aggregate SVG/CSV figures from Safe Neural Horizon PWM JSON results
+- [build_safe_neural_horizon_pwm_baseline_stress.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_baseline_stress.py): builds bounded host stress evidence for the classical comparison baselines
 - [check_safe_neural_horizon_pwm_baselines.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_baselines.py): audits whether the comparison baselines are separate, covered, safe, and publication-tuned
 - [check_safe_neural_horizon_pwm_release.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_release.py): validates the host-release evidence and SHA-256 manifest
 - [check_safe_neural_horizon_pwm_novelty.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_novelty.py): audits the allowed host-level novelty claim and explicitly rejects overclaims
@@ -179,9 +180,10 @@ Run the host-level scenario/ablation/Pareto matrix for the new research track:
 python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
 python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json
 python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
+python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
 python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence
 python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence
-python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
 python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict

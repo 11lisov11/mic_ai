@@ -159,28 +159,31 @@ def _twin_evidence_status(release_dir: Path | None) -> tuple[bool, list[str]]:
     return not missing, missing
 
 
-def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, list[str]]:
+def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, bool, list[str]]:
     if release_dir is None:
-        return False, False, ["release directory with safe_neural_horizon_pwm_baseline_strength_audit.json"]
+        return False, False, False, ["release directory with safe_neural_horizon_pwm_baseline_strength_audit.json"]
     audit_path = release_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json"
     if not audit_path.exists():
-        return False, False, ["safe_neural_horizon_pwm_baseline_strength_audit.json"]
+        return False, False, False, ["safe_neural_horizon_pwm_baseline_strength_audit.json"]
     payload = _load_json(audit_path)
     missing: list[str] = []
     if payload.get("hardware_claim") is not False:
         missing.append("hardware_claim=false")
     host_ready = bool(payload.get("host_baseline_scaffold_ready", False))
     publication_ready = bool(payload.get("publication_strong_baselines_ready", False))
+    stress_ready = bool(payload.get("stress_evidence_ready", False))
     if not host_ready:
         missing.append("host_baseline_scaffold_ready=true")
+    if not stress_ready:
+        missing.append("stress_evidence_ready=true")
     baselines = dict(payload.get("baselines", {}))
     for name, row_raw in baselines.items():
         row = dict(row_raw)
         if not bool(row.get("baseline_scaffold_ready", False)):
             missing.append(f"{name}: baseline_scaffold_ready")
     if not publication_ready:
-        missing.append("publication_strong_baselines_ready=true after tuning/stress evidence")
-    return host_ready, publication_ready, missing
+        missing.append("publication_strong_baselines_ready=true after parameter-sweep tuning evidence")
+    return host_ready, publication_ready, stress_ready, missing
 
 
 def _status(pass_condition: bool, partial_condition: bool = False) -> str:
@@ -364,8 +367,14 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [] if twin_evidence_ready else twin_missing,
     )
 
-    baseline_scaffold_ready, publication_baselines_ready, baseline_missing = _baseline_strength_status(release_dir)
+    (
+        baseline_scaffold_ready,
+        publication_baselines_ready,
+        baseline_stress_ready,
+        baseline_missing,
+    ) = _baseline_strength_status(release_dir)
     checks["baseline_strength_audit_ready"] = baseline_scaffold_ready
+    checks["baseline_stress_evidence_ready"] = baseline_stress_ready
     _criterion(
         criteria,
         "baseline_strength_audit",
