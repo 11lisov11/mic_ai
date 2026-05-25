@@ -20,7 +20,7 @@ SAFE_CONTROLLER_VARIANTS = {
 }
 COMPARISON_CONTROLLERS = {
     "protected_ai_pwm_h1_proxy",
-    "fcs_mpc_one_step_proxy",
+    "fcs_mpc_one_step_baseline",
     "foc_svm_key_baseline",
     "dtc_hysteresis_proxy",
     "dtc_svm_proxy",
@@ -116,7 +116,7 @@ def analyze_novelty(path: Path) -> Dict[str, Any]:
     if not checks["publication_mc_minimum_met"]:
         warnings.append("publication-scale MC is not met; current tracked release is host evidence only")
 
-    warnings.append("FOC-SVM is now a separate host key-level baseline; remaining classical baselines are still proxy controllers")
+    warnings.append("FOC-SVM and FCS-MPC are separate host baselines; remaining classical baselines are still proxy controllers")
     warnings.append("neural twin is a scaffold, not a trained domain-randomized ensemble")
 
     host_novelty_claim_supported = not failures

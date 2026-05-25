@@ -72,7 +72,7 @@ def _scatter_svg(rows: list[dict[str, Any]], x_key: str, y_key: str, title: str,
         "safe_neural_horizon_pwm_h2": "#0b6bcb",
         "safe_neural_horizon_pwm_h3_thermal": "#12805c",
         "safe_neural_horizon_pwm_h4_sparse": "#b45f06",
-        "fcs_mpc_one_step_proxy": "#6f42c1",
+        "fcs_mpc_one_step_baseline": "#6f42c1",
         "foc_svm_key_baseline": "#444444",
     }
     lines = [

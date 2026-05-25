@@ -349,7 +349,7 @@ Scope:
 - parameter randomization: Rs, Rr, Lm, J, B
 - compared rows:
   - `protected_ai_pwm_h1_proxy`
-  - `fcs_mpc_one_step_proxy`
+  - `fcs_mpc_one_step_baseline`
   - `foc_svm_key_baseline`
   - `safe_neural_horizon_pwm_h2`
 
@@ -372,17 +372,16 @@ python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest
 | Controller | Mean speed error | Mean current | Max current mean | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | protected_ai_pwm_h1_proxy | 84.322 | 1.532 | 2.576 | 42.11 | 0.983 | 3.40 | 0.00 | 0 | 0 |
-| fcs_mpc_one_step_proxy | 84.356 | 1.113 | 2.080 | 82.73 | 1.000 | 0.47 | 0.00 | 0 | 0 |
+| fcs_mpc_one_step_baseline | 82.544 | 2.547 | 3.355 | 22.36 | 1.000 | 0.01 | 0.00 | 0 | 0 |
 | foc_svm_key_baseline | 83.844 | 1.011 | 2.568 | 37.38 | 1.000 | 0.00 | 0.00 | 0 | 0 |
 | safe_neural_horizon_pwm_h2 | 84.148 | 1.710 | 2.873 | 44.31 | 0.983 | 4.67 | 0.00 | 0 | 0 |
 
 Preliminary reading:
 
-- The new `foc_svm_key_baseline` is the strongest row in this short MC=100 smoke for speed error, current, switching, and fallback count.
-- `safe_neural_horizon_pwm_h2` still uses slightly less feedback than dense FOC-SVM/FCS rows, but it does not dominate the new FOC-SVM baseline in this smoke.
-- It uses less feedback than the one-step FCS proxy.
-- It switches less than the one-step FCS proxy.
-- It has higher current stress than the one-step FCS proxy.
+- The new `fcs_mpc_one_step_baseline` is strongest in this short MC=100 smoke for speed error and switching, but it uses higher current than FOC-SVM and SNH-H2.
+- The new `foc_svm_key_baseline` is strongest for mean current and fallback count in this smoke.
+- `safe_neural_horizon_pwm_h2` still uses slightly less feedback than dense FOC-SVM/FCS rows, but it does not dominate the new FOC-SVM/FCS-MPC baselines in this smoke.
+- It must now be judged against a real one-step FCS-MPC baseline, not the older weight-tuned proxy.
 - It does not yet prove superiority over FOC-SVM, DTC-SVM, or a tuned production FCS-MPC; this is exactly why the baseline upgrade matters.
 - Safety waveform violations were zero in this host-level test.
 
@@ -431,7 +430,7 @@ Scope:
   - `sensor_dropout`
 - comparison baselines:
   - `foc_svm_key_baseline` (separate host key-level PI/current/SVM baseline; not final publication tuned)
-  - `fcs_mpc_one_step_proxy`
+  - `fcs_mpc_one_step_baseline` (separate host one-step current/torque/flux FCS-MPC baseline; not final publication tuned)
   - `dtc_hysteresis_proxy`
   - `dtc_svm_proxy`
   - `deadbeat_current_proxy`
@@ -439,7 +438,8 @@ Scope:
 
 Important limitation:
 
-- These are host-level proxies used to expose trade-offs and bugs. They are not yet the final strong baselines required for a paper claim.
+- FOC-SVM and one-step FCS-MPC are now separate host baselines, but not yet tuned publication-grade baselines.
+- DTC, DTC-SVM, deadbeat, sensorless/adaptive FOC, and protected H1 comparison rows are still host-level proxies used to expose trade-offs and bugs.
 
 Tracked release package:
 
@@ -485,7 +485,7 @@ Interpretation:
 Observed pattern in the host matrix:
 
 - `safe_neural_horizon_pwm_h4_sparse` often reduces feedback and switching, but it can increase current stress and fallback/fault events. This is useful, not a failure of the study: sparse/horizon control must be current-constrained harder before it can be promoted.
-- `fcs_mpc_one_step_proxy` generally keeps current low but switches more frequently and uses dense feedback.
+- `fcs_mpc_one_step_baseline` is now a separate host FCS-MPC baseline: it predicts one step for each legal vector and minimizes current/torque/flux/switching/loss cost through the same Safety Gateway.
 - `foc_svm_key_baseline` is now a separate host key-level FOC-SVM baseline with speed PI, dq current PI, nearest legal vector/SVM selection, and the same Safety Gateway. It is stronger than the old proxy, but still not a final tuned publication baseline.
 - `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
 - Fault-injection summary reports `all_gateway_cases_no_shoot_through = true`; the raw shoot-through detector triggers on deliberately illegal raw gate emulation; the dead-time path detector distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths.
@@ -502,7 +502,7 @@ The current comparison is not enough for publication.
 Required next baselines:
 
 - tune and stress-test `foc_svm_key_baseline` into a publication-grade key-level FOC-SVM baseline with the same inverter/dead-time/min-pulse/current limits
-- replace `fcs_mpc_one_step_proxy` with tuned FCS-MPC current/torque/flux baseline
+- tune and stress-test `fcs_mpc_one_step_baseline` into a publication-grade FCS-MPC current/torque/flux baseline
 - replace `dtc_hysteresis_proxy` with tuned DTC hysteresis
 - replace `dtc_svm_proxy` with tuned DTC-SVM
 - replace `deadbeat_current_proxy` with tuned deadbeat predictive current control
@@ -527,7 +527,7 @@ Still not publication-grade:
 - tuned strong classical baselines;
 - publication-scale MC `N=500..1000`;
 - full thermal/spectral ablations;
-- final Pareto fronts after tuning FOC-SVM and replacing the remaining proxy baselines;
+- final Pareto fronts after tuning FOC-SVM/FCS-MPC and replacing the remaining proxy baselines;
 - MCU/HIL/bench timing evidence.
 
 ## MCU/HIL/Bench Status

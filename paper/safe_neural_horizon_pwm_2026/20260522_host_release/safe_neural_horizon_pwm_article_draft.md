@@ -80,14 +80,14 @@ Fault-injection result:
 
 - H2 is the safer current research candidate than the sparse H4 variant in the short host matrix.
 - Sparse H4 can reduce feedback and switching, but current stress and fallback events increase in several scenarios.
-- One-step FCS proxy tends to keep current lower but uses dense feedback and more switching.
-- The FOC-SVM comparison is now a separate host key-level baseline; remaining classical comparison rows are still proxy baselines.
-- The new FOC-SVM baseline is competitive in the first MC=100 smoke, so SNH-PWM cannot claim superiority over classical FOC-SVM yet.
+- The FCS-MPC comparison is now a separate one-step current/torque/flux predictive baseline.
+- The FOC-SVM comparison is now a separate host key-level baseline; DTC/deadbeat/sensorless comparison rows are still proxy baselines.
+- The new FOC-SVM/FCS-MPC baselines are competitive, so SNH-PWM cannot claim classical-control superiority yet.
 
 ## Limitations
 
 - Host simulation only.
-- FOC-SVM is host key-level, but not final tuned publication-grade; FCS-MPC/DTC/deadbeat/sensorless rows are still proxies.
+- FOC-SVM and FCS-MPC are host baselines, but not final tuned publication-grade; DTC/deadbeat/sensorless rows are still proxies.
 - No trained domain-randomized neural twin yet.
 - First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.
 - No long-run trace package with FFT/THD torque-current evidence yet.
@@ -96,7 +96,7 @@ Fault-injection result:
 
 ## Required Next Work
 
-- Tune the FOC-SVM key-level baseline and replace remaining proxy baselines with tuned strong baselines.
+- Tune the FOC-SVM/FCS-MPC baselines and replace remaining proxy baselines with tuned strong baselines.
 - Run publication-scale MC after baseline replacement.
 - Add publication-grade plots and FFT/THD metrics.
 - Port the safety gateway and timing checks to the target MCU/HIL path.

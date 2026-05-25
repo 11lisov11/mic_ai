@@ -17,7 +17,7 @@ from tools.run_safe_neural_horizon_pwm_study import DEFAULT_SCENARIOS
 ALLOWED_FAULT_LATCH_SCENARIOS = {"fault_injection_runtime"}
 REQUIRED_CONTROLLERS = {
     "protected_ai_pwm_h1_proxy",
-    "fcs_mpc_one_step_proxy",
+    "fcs_mpc_one_step_baseline",
     "foc_svm_key_baseline",
     "dtc_hysteresis_proxy",
     "dtc_svm_proxy",
@@ -214,9 +214,12 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     checks["foc_svm_key_baseline_ready"] = bool(scenarios) and all(
         "foc_svm_key_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
     )
+    checks["fcs_mpc_one_step_baseline_ready"] = bool(scenarios) and all(
+        "fcs_mpc_one_step_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
+    )
     checks["strong_baselines_ready"] = False
     warnings.append(
-        "strong baselines are not complete; FOC-SVM is a host key-level baseline, but FCS-MPC/DTC/deadbeat/sensorless entries are still proxy controllers"
+        "strong baselines are not complete; FOC-SVM and one-step FCS-MPC are host baselines, but DTC/deadbeat/sensorless entries are still proxy controllers"
     )
 
     host_release_ready = not failures

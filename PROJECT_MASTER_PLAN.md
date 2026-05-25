@@ -132,7 +132,7 @@ Status on `2026-05-22`:
 - MC=100 smoke runs and records zero safety waveform violations for the new H=2 variant
 - MC=5 scenario matrix runs across start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout host scenarios
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
-- host-level comparison baselines exist; FOC-SVM is now a separate key-level PI/current/SVM baseline, while FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are still proxy baselines
+- host-level comparison baselines exist; FOC-SVM is now a separate key-level PI/current/SVM baseline and FCS-MPC is now a separate one-step predictive current/torque/flux baseline, while DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are still proxy baselines
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
@@ -261,6 +261,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Run first `N=100` host-level smoke for the new branch.
 - [x] Add host-level comparison baselines for FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC.
 - [x] Replace the old weight-tuned `foc_svm_key_proxy` with a separate host key-level FOC-SVM baseline using speed PI, dq current PI, dq/alpha-beta transforms, nearest legal vector selection, and the same Safety Gateway.
+- [x] Replace the old weight-tuned `fcs_mpc_one_step_proxy` with a separate host one-step FCS-MPC current/torque/flux baseline over the same 8 legal vectors and Safety Gateway.
 - [x] Add scenario matrix smoke for start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout cases.
 - [x] Expand scenario matrix to the full TZ host set plus explicit `sensor_dropout` stress case.
 - [x] Add ablation smoke variants for horizon, feedback density, switching penalty, and current penalty.
@@ -273,14 +274,14 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Replace proxy FOC-SVM with a tuned key-level FOC-SVM baseline using the same inverter/dead-time/min-pulse/current constraints.
-- [ ] Replace proxy FCS-MPC with a tuned FCS-MPC current/torque/flux baseline.
+- [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.
 - [ ] Replace proxy DTC and DTC-SVM with tuned DTC/DTC-SVM baselines.
 - [ ] Replace proxy deadbeat current control with tuned deadbeat predictive current-control baseline.
 - [ ] Replace proxy sensorless/adaptive FOC with MRAS/EKF/adaptive FOC.
 - [x] Expand robust host scenario matrix to the full 30-scenario research TZ plus one explicit dropout stress case.
 - [x] Expand fault-injection matrix to include raw shoot-through request emulation, no-dead-time transition emulation, and hardware-like desat/UVLO cases.
 - [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants with publication-scale MC.
-- [ ] Generate publication-grade Pareto fronts after tuning FOC-SVM and replacing the remaining proxy baselines.
+- [ ] Generate publication-grade Pareto fronts after tuning FOC-SVM/FCS-MPC and replacing the remaining proxy baselines.
 - [ ] Generate publication-grade time-series plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto after trace logging is added.
 - [x] Prepare host-level article draft; clearly mark MCU/HIL/bench as not done.
 
