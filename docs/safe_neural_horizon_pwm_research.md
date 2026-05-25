@@ -354,6 +354,7 @@ Scope:
   - `dtc_hysteresis_baseline`
   - `dtc_svm_baseline`
   - `deadbeat_current_baseline`
+  - `sensorless_adaptive_foc_baseline`
   - `safe_neural_horizon_pwm_h2`
 
 The run is a smoke/diagnostic study, not final control-performance evidence.
@@ -380,7 +381,8 @@ python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest
 | dtc_hysteresis_baseline | 84.791 | 0.309 | 0.683 | 142.76 | 1.000 | 0.45 | 0.00 | 0 | 0 |
 | dtc_svm_baseline | 84.695 | 0.578 | 2.008 | 17.98 | 1.000 | 0.00 | 0.00 | 0 | 0 |
 | deadbeat_current_baseline | 84.523 | 0.450 | 1.462 | 9.16 | 1.000 | 0.00 | 0.00 | 0 | 0 |
-| safe_neural_horizon_pwm_h2 | 84.297 | 1.645 | 2.832 | 46.05 | 0.983 | 4.35 | 0.00 | 0 | 0 |
+| sensorless_adaptive_foc_baseline | 84.602 | 0.759 | 2.604 | 15.40 | 0.933 | 0.00 | 0.00 | 0 | 0 |
+| safe_neural_horizon_pwm_h2 | 84.211 | 1.737 | 2.938 | 43.56 | 0.983 | 5.14 | 0.00 | 0 | 0 |
 
 Preliminary reading:
 
@@ -389,6 +391,7 @@ Preliminary reading:
 - The new `dtc_hysteresis_baseline` is safe after current-penalty tuning, but it pays with very high switching and worse speed error in this smoke.
 - The new `dtc_svm_baseline` is safe in MC=100 and cuts switching strongly relative to DTC hysteresis, but it is still not publication tuned and has worse speed error than FCS-MPC/FOC-SVM in this short smoke.
 - The new `deadbeat_current_baseline` is safe after switching-budget tuning and has low current/switching, but its speed tracking is still weaker than FCS-MPC/FOC-SVM in this short smoke.
+- The new `sensorless_adaptive_foc_baseline` is safe in MC=100, uses less feedback than dense FOC baselines, and keeps switching low; it is still only a host MRAS-like/Rs-adaptive scaffold, not a production sensorless drive.
 - `safe_neural_horizon_pwm_h2` still uses slightly less feedback than dense FOC-SVM/FCS rows, but it does not dominate the new FOC-SVM/FCS-MPC baselines in this smoke.
 - It must now be judged against a real one-step FCS-MPC baseline, not the older weight-tuned proxy.
 - It does not yet prove superiority over tuned production-grade FOC-SVM, DTC-SVM, or FCS-MPC; this is exactly why the baseline tuning phase still matters.
@@ -443,12 +446,12 @@ Scope:
   - `dtc_hysteresis_baseline` (separate host torque/flux hysteresis DTC baseline; not final publication tuned)
   - `dtc_svm_baseline` (separate host torque/flux voltage-reference DTC-SVM baseline; not final publication tuned)
   - `deadbeat_current_baseline` (separate host deadbeat predictive current-control baseline; not final publication tuned)
-  - `sensorless_adaptive_foc_proxy`
+  - `sensorless_adaptive_foc_baseline` (separate host MRAS-like observer/Rs-adaptive FOC baseline; not final publication tuned)
 
 Important limitation:
 
-- FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, and deadbeat current control are now separate host baselines, but not yet tuned publication-grade baselines.
-- Sensorless/adaptive FOC and protected H1 comparison rows are still host-level proxies used to expose trade-offs and bugs.
+- FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are now separate host baselines, but not yet tuned publication-grade baselines.
+- The protected H1 comparison row is still a host-level prior-model proxy used to expose trade-offs against the new horizon architecture.
 
 Tracked release package:
 
@@ -489,7 +492,7 @@ The tracked release also contains:
 Interpretation:
 
 - `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
-- `publication_theory_complete = false` remains intentional until the FOC-SVM key baseline is tuned, remaining proxy baselines are replaced, the neural twin is trained/identified, MC reaches publication scale, and long-run FFT/THD/trace evidence exists.
+- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength, the neural twin is trained/identified, MC reaches publication scale, and long-run FFT/THD/trace evidence exists.
 
 Observed pattern in the host matrix:
 
@@ -499,6 +502,7 @@ Observed pattern in the host matrix:
 - `dtc_hysteresis_baseline` is now a separate host DTC hysteresis baseline: torque and flux hysteresis comparators request increase/decrease/hold, then a legal vector is selected through the same Safety Gateway.
 - `dtc_svm_baseline` is now a separate host DTC-SVM baseline: torque and flux PI loops synthesize a stator-flux-frame voltage reference, then nearest legal-vector SVM selection is passed through the same Safety Gateway.
 - `deadbeat_current_baseline` is now a separate host deadbeat predictive current-control baseline: dq current references are projected to alpha-beta, a one-step deadbeat voltage is estimated, and legal-vector selection is constrained by the same Safety Gateway.
+- `sensorless_adaptive_foc_baseline` is now a separate host sensorless/adaptive FOC baseline: it avoids measured speed feedback, estimates speed from flux-angle movement, adapts Rs from current residuals, and uses nearest legal-vector SVM through the same Safety Gateway.
 - `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
 - Fault-injection summary reports `all_gateway_cases_no_shoot_through = true`; the raw shoot-through detector triggers on deliberately illegal raw gate emulation; the dead-time path detector distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths.
 
@@ -518,7 +522,7 @@ Required next baselines:
 - tune and stress-test `dtc_hysteresis_baseline` into a publication-grade DTC hysteresis baseline
 - tune and stress-test `dtc_svm_baseline` into a publication-grade DTC-SVM baseline
 - tune and stress-test `deadbeat_current_baseline` into a publication-grade deadbeat predictive current-control baseline
-- replace `sensorless_adaptive_foc_proxy` with MRAS/EKF/adaptive FOC
+- tune and stress-test `sensorless_adaptive_foc_baseline` into a publication-grade MRAS/EKF/adaptive FOC baseline
 - current protected AI-PWM release model
 
 ## Robust Tests Status
@@ -539,7 +543,7 @@ Still not publication-grade:
 - tuned strong classical baselines;
 - publication-scale MC `N=500..1000`;
 - full thermal/spectral ablations;
-- final Pareto fronts after tuning FOC-SVM/FCS-MPC and replacing the remaining proxy baselines;
+- final Pareto fronts after tuning the host classical baselines and replacing/strengthening the protected H1 prior-model proxy if needed;
 - MCU/HIL/bench timing evidence.
 
 ## MCU/HIL/Bench Status

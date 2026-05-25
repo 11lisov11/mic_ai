@@ -22,7 +22,7 @@ REQUIRED_CONTROLLERS = {
     "dtc_hysteresis_baseline",
     "dtc_svm_baseline",
     "deadbeat_current_baseline",
-    "sensorless_adaptive_foc_proxy",
+    "sensorless_adaptive_foc_baseline",
     "safe_neural_horizon_pwm_h2",
     "safe_neural_horizon_pwm_h3_thermal",
     "safe_neural_horizon_pwm_h4_sparse",
@@ -231,9 +231,12 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     checks["deadbeat_current_baseline_ready"] = bool(scenarios) and all(
         "deadbeat_current_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
     )
+    checks["sensorless_adaptive_foc_baseline_ready"] = bool(scenarios) and all(
+        "sensorless_adaptive_foc_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
+    )
     checks["strong_baselines_ready"] = False
     warnings.append(
-        "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, and deadbeat current control are host baselines, but sensorless entries are still proxy controllers"
+        "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final publication-tuned"
     )
 
     host_release_ready = not failures

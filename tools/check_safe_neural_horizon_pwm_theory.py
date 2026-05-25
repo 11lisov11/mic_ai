@@ -168,7 +168,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         "comparison_matrix",
         _status(comparison_matrix),
         ["safe_neural_horizon_pwm_results.json:matrix"],
-        [] if comparison_matrix else ["safe variants plus FOC-SVM/FCS-MPC/DTC/DTC-SVM baselines and remaining proxy controllers"],
+        [] if comparison_matrix else ["safe variants plus FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines"],
     )
 
     missing_scenarios = [name for name in DEFAULT_SCENARIOS if name not in scenarios]
@@ -258,6 +258,10 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         ROOT / "control" / "deadbeat_current_baseline.py",
         ["DeadbeatCurrentBaselineController", "_deadbeat_voltage_ref", "_select_vector", "candidate_current_error"],
     ) and comparison_matrix
+    sensorless_adaptive_foc_baseline_ready = _source_contains(
+        ROOT / "control" / "sensorless_adaptive_foc_baseline.py",
+        ["SensorlessAdaptiveFocBaselineController", "_mras_speed_update", "_adapt_rs", "omega_hat"],
+    ) and comparison_matrix
     trained_twin_ready = False
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
     publication_plots_ready = False
@@ -266,13 +270,14 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     checks["dtc_hysteresis_baseline_ready"] = dtc_hysteresis_baseline_ready
     checks["dtc_svm_baseline_ready"] = dtc_svm_baseline_ready
     checks["deadbeat_current_baseline_ready"] = deadbeat_current_baseline_ready
+    checks["sensorless_adaptive_foc_baseline_ready"] = sensorless_adaptive_foc_baseline_ready
     checks["strong_baselines_ready"] = strong_baselines_ready
     checks["trained_domain_randomized_twin_ready"] = trained_twin_ready
     checks["publication_mc500_ready"] = publication_mc_ready
     checks["publication_plots_fft_thd_ready"] = publication_plots_ready
     warnings.extend(
         [
-            "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, and deadbeat current control have separate host baselines, but sensorless remains a proxy implementation",
+            "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
             "neural twin is still a scaffold, not a trained domain-randomized model",
             "publication-scale MC and FFT/THD trace package are still open",
         ]

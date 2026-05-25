@@ -20,6 +20,10 @@ from control.dtc_svm_baseline import DtcSvmBaselineConfig, DtcSvmBaselineControl
 from control.fcs_mpc_baseline import FcsMpcOneStepBaselineConfig, FcsMpcOneStepBaselineController
 from control.foc_svm_key_baseline import FocSvmKeyBaselineConfig, FocSvmKeyBaselineController
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
+from control.sensorless_adaptive_foc_baseline import (
+    SensorlessAdaptiveFocBaselineConfig,
+    SensorlessAdaptiveFocBaselineController,
+)
 from models.induction_motor_alpha_beta import (
     AlphaBetaInductionMotorModel,
     AlphaBetaMotorParams,
@@ -44,7 +48,7 @@ BASE_CONTROLLER_SPECS = [
     ("dtc_hysteresis_baseline", 1, 1),
     ("dtc_svm_baseline", 1, 1),
     ("deadbeat_current_baseline", 1, 1),
-    ("sensorless_adaptive_foc_proxy", 1, 8),
+    ("sensorless_adaptive_foc_baseline", 1, 8),
     ("safe_neural_horizon_pwm_h2", 2, 10),
 ]
 
@@ -149,6 +153,7 @@ def _controller_specs(quick: bool = False) -> list[tuple[str, int, int]]:
             ("dtc_hysteresis_baseline", 1, 1),
             ("dtc_svm_baseline", 1, 1),
             ("deadbeat_current_baseline", 1, 1),
+            ("sensorless_adaptive_foc_baseline", 1, 8),
             ("safe_neural_horizon_pwm_h2", 2, 10),
         ]
     specs.extend(EXTENDED_CONTROLLER_SPECS)
@@ -210,6 +215,22 @@ def _controller(
         )
         cfg = DeadbeatCurrentBaselineConfig(dt_s=inverter.t_pwm_s)
         return DeadbeatCurrentBaselineController(base_motor, inverter, AIPwmSafetyGateway(limits), cfg)  # type: ignore[return-value]
+
+    if label == "sensorless_adaptive_foc_baseline":
+        limits = GatewayLimits(
+            t_pwm_s=inverter.t_pwm_s,
+            dead_time_s=inverter.dead_time_s,
+            min_pulse_s=inverter.min_pulse_s,
+            i_soft_a=max(2.5 * base_motor.i_limit, 3.5),
+            i_trip_a=max(3.5 * base_motor.i_limit, 5.0),
+            vdc_min_v=0.4 * inverter.Vdc,
+            vdc_max_v=1.25 * inverter.Vdc,
+            tj_trip_c=125.0,
+            confidence_min=0.35,
+            risk_max=1.6,
+        )
+        cfg = SensorlessAdaptiveFocBaselineConfig(dt_s=inverter.t_pwm_s)
+        return SensorlessAdaptiveFocBaselineController(base_motor, inverter, AIPwmSafetyGateway(limits), cfg)  # type: ignore[return-value]
 
     if label == "fcs_mpc_one_step_baseline":
         limits = GatewayLimits(
@@ -275,13 +296,6 @@ def _controller(
         switching_weight = 0.008
         torque_ripple_weight = 0.16
         flux_weight = 0.75
-    elif "sensorless" in label:
-        speed_kp = 0.028
-        current_weight = 0.14
-        switching_weight = 0.035
-        feedback_weight = 0.12
-        feedback_error_threshold = 40.0
-        confidence_min = 0.15
     elif "protected" in label:
         switching_weight = 0.04
         risk_weight = 0.55

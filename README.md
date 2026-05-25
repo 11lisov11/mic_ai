@@ -113,6 +113,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [dtc_svm_baseline.py](C:/mic_theory/control/dtc_svm_baseline.py): host DTC-SVM comparison baseline with torque/flux voltage synthesis and Safety Gateway protection
 - [fcs_mpc_baseline.py](C:/mic_theory/control/fcs_mpc_baseline.py): host one-step FCS-MPC comparison baseline over legal inverter vectors with Safety Gateway protection
 - [foc_svm_key_baseline.py](C:/mic_theory/control/foc_svm_key_baseline.py): host key-level FOC-SVM comparison baseline with PI speed/current loops and Safety Gateway protection
+- [sensorless_adaptive_foc_baseline.py](C:/mic_theory/control/sensorless_adaptive_foc_baseline.py): host sensorless/adaptive FOC baseline with MRAS-like speed observer, Rs adaptation, and Safety Gateway protection
 - [safe_neural_horizon_pwm.py](C:/mic_theory/control/safe_neural_horizon_pwm.py): event-triggered neural-horizon AI-PWM controller scaffold
 - [run_safe_neural_horizon_pwm_study.py](C:/mic_theory/tools/run_safe_neural_horizon_pwm_study.py): quick host-level MC smoke for the new research track
 - [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
