@@ -159,12 +159,12 @@ def _twin_evidence_status(release_dir: Path | None) -> tuple[bool, list[str]]:
     return not missing, missing
 
 
-def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, bool, list[str]]:
+def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, bool, bool, list[str]]:
     if release_dir is None:
-        return False, False, False, ["release directory with safe_neural_horizon_pwm_baseline_strength_audit.json"]
+        return False, False, False, False, ["release directory with safe_neural_horizon_pwm_baseline_strength_audit.json"]
     audit_path = release_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json"
     if not audit_path.exists():
-        return False, False, False, ["safe_neural_horizon_pwm_baseline_strength_audit.json"]
+        return False, False, False, False, ["safe_neural_horizon_pwm_baseline_strength_audit.json"]
     payload = _load_json(audit_path)
     missing: list[str] = []
     if payload.get("hardware_claim") is not False:
@@ -172,10 +172,13 @@ def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, boo
     host_ready = bool(payload.get("host_baseline_scaffold_ready", False))
     publication_ready = bool(payload.get("publication_strong_baselines_ready", False))
     stress_ready = bool(payload.get("stress_evidence_ready", False))
+    tuning_ready = bool(payload.get("tuning_evidence_ready", False))
     if not host_ready:
         missing.append("host_baseline_scaffold_ready=true")
     if not stress_ready:
         missing.append("stress_evidence_ready=true")
+    if not tuning_ready:
+        missing.append("tuning_evidence_ready=true")
     baselines = dict(payload.get("baselines", {}))
     for name, row_raw in baselines.items():
         row = dict(row_raw)
@@ -183,7 +186,7 @@ def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, boo
             missing.append(f"{name}: baseline_scaffold_ready")
     if not publication_ready:
         missing.append("publication_strong_baselines_ready=true after parameter-sweep tuning evidence")
-    return host_ready, publication_ready, stress_ready, missing
+    return host_ready, publication_ready, stress_ready, tuning_ready, missing
 
 
 def _status(pass_condition: bool, partial_condition: bool = False) -> str:
@@ -371,10 +374,12 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         baseline_scaffold_ready,
         publication_baselines_ready,
         baseline_stress_ready,
+        baseline_tuning_ready,
         baseline_missing,
     ) = _baseline_strength_status(release_dir)
     checks["baseline_strength_audit_ready"] = baseline_scaffold_ready
     checks["baseline_stress_evidence_ready"] = baseline_stress_ready
+    checks["baseline_tuning_evidence_ready"] = baseline_tuning_ready
     _criterion(
         criteria,
         "baseline_strength_audit",
@@ -462,9 +467,9 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     checks["publication_plots_fft_thd_ready"] = publication_plots_ready
     warnings.extend(
         [
-            "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
+            "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have bounded host tuning evidence" if strong_baselines_ready else "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have separate host baselines, but are not final publication-tuned",
             "domain-randomized twin evidence is host-only and theta-conditioned; production online identification remains open",
-            "publication-scale MC500 host evidence exists before final strong-baseline tuning" if publication_mc_ready else "publication-scale MC is still open",
+            "publication-scale MC500 host evidence exists" if publication_mc_ready else "publication-scale MC is still open",
         ]
     )
     if not publication_trace_ready:

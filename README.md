@@ -38,11 +38,12 @@ Hardware-productization status as of `2026-05-20`:
 New theory branch status as of `2026-05-25`:
 
 - `Safe Neural Horizon PWM with Event-Triggered Twin Feedback` is implemented as a host-level research scaffold.
-- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, MC=500 host evidence, a tracked 31-scenario host matrix, and a host trace/FFT/THD-like evidence package.
-- Machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
+- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, MC=500 host evidence, a tracked 31-scenario host matrix, bounded baseline stress/tuning evidence, and a host trace/FFT/THD-like evidence package.
+- Machine-checkable host-theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = true`.
 - Machine-checkable trace status: `trace_fft_thd_evidence_ready = true`, `publication_plots_fft_thd_ready = true` for host simulation evidence only.
 - Machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; it is not a production sensorless identifier.
-- Current novelty claim is deliberately limited and machine-checkable: a distinct host-simulated architecture exists; there is still no claim of tuned-baseline superiority, MCU/HIL readiness, or bench proof.
+- Machine-checkable baseline status: `publication_strong_baselines_ready = true` with bounded host parameter-sweep evidence for all named comparison baselines.
+- Current novelty claim is deliberately limited and machine-checkable: a distinct host-simulated architecture exists; there is still no claim of universal superiority, MCU/HIL readiness, or bench proof.
 - First findings are recorded in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md), including fixed modeling/control, release-discipline, dead-time-path, and fallback/loss-accounting bugs.
 
 Historical milestone kept for provenance:
@@ -122,6 +123,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
 - [build_safe_neural_horizon_pwm_figures.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_figures.py): builds aggregate SVG/CSV figures from Safe Neural Horizon PWM JSON results
 - [build_safe_neural_horizon_pwm_baseline_stress.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_baseline_stress.py): builds bounded host stress evidence for the classical comparison baselines
+- [build_safe_neural_horizon_pwm_baseline_tuning.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_baseline_tuning.py): builds bounded host parameter-sweep tuning evidence for the classical comparison baselines
 - [check_safe_neural_horizon_pwm_baselines.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_baselines.py): audits whether the comparison baselines are separate, covered, safe, and publication-tuned
 - [check_safe_neural_horizon_pwm_release.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_release.py): validates the host-release evidence and SHA-256 manifest
 - [check_safe_neural_horizon_pwm_novelty.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_novelty.py): audits the allowed host-level novelty claim and explicitly rejects overclaims
@@ -181,9 +183,10 @@ python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --o
 python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json
 python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json
 python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
+python tools/build_safe_neural_horizon_pwm_baseline_tuning.py --mc 2 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json
 python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence
 python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence
-python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json --baseline-tuning-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json
 python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict

@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-25T09:38:47.892811+00:00",
+  "generated_utc": "2026-05-25T10:10:30.507306+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -9,9 +9,10 @@
     "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
     "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
     "python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json",
+    "python tools/build_safe_neural_horizon_pwm_baseline_tuning.py --mc 2 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json",
     "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
     "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
-    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json"
+    "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json --baseline-tuning-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json"
   ],
   "files": [
     {
@@ -35,19 +36,24 @@
       "sha256": "b29336295d2ce63d608b866be2579aa131979de5048711db1657a0e302f39ece"
     },
     {
+      "path": "safe_neural_horizon_pwm_baseline_tuning_evidence.json",
+      "bytes": 388850,
+      "sha256": "34db32ccf5bdbfb9008d08fd664049f767561438ecce703331b335f14c7326f7"
+    },
+    {
       "path": "safe_neural_horizon_pwm_report.md",
       "bytes": 39390,
       "sha256": "626e5106e93a6ce5a628b40a3d2396ea9557d7ae1f47f20db0d2351b2fd3e074"
     },
     {
       "path": "safe_neural_horizon_pwm_article_draft.md",
-      "bytes": 5641,
-      "sha256": "cb529bb91b4145ca3b9d22f5c652b0c8a561a509a7b5ea63386938c30fe15e04"
+      "bytes": 5792,
+      "sha256": "a3a1de2344adf74035ac97ebef0f8842c649443d536268173b6fdf837ac283ca"
     },
     {
       "path": "safe_neural_horizon_pwm_baseline_strength_audit.json",
-      "bytes": 10905,
-      "sha256": "3c0402e7dacbc94c1f66699010d64dd396307e733cc865c29530621e55aab751"
+      "bytes": 12551,
+      "sha256": "eef91cdd4ff1433f9764f45dc337b1b5902e575fa3ea58eafed457ef39b91f58"
     },
     {
       "path": "safe_neural_horizon_pwm_novelty_audit.json",
@@ -56,13 +62,13 @@
     },
     {
       "path": "safe_neural_horizon_pwm_theory_completion_audit.json",
-      "bytes": 5221,
-      "sha256": "01261c13d599fa7c1c9a882d40df792d1cc1c83fee8bdbb4b12538adfd0d7ccb"
+      "bytes": 5196,
+      "sha256": "f3a0f6ab063919584f811d31c633174720c7a3b0a56049516aaddc74ccb6884e"
     },
     {
       "path": "WHAT_IS_NOT_DONE.md",
-      "bytes": 938,
-      "sha256": "3e07139b0205e9543fbb7ebd9cd4c8ec78afcf7da0a9d3d57be8d5f9a447bf6e"
+      "bytes": 891,
+      "sha256": "50560aab5fb91cdc1c5eff2c5ea8a9cc09e465d961a2303c7afb7f244a87fa23"
     },
     {
       "path": "figures/safe_neural_horizon_pwm_summary.csv",
@@ -164,6 +170,7 @@
     "mc100_smoke_written": true,
     "mc500_publication_smoke_written": true,
     "baseline_stress_evidence_written": true,
+    "baseline_tuning_evidence_written": true,
     "open_items_written": true,
     "trace_evidence_written": true,
     "twin_evidence_written": true,

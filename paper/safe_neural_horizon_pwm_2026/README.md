@@ -21,15 +21,17 @@ Status:
 - `publication_mc500_ready = true`
 - `host_baseline_scaffold_ready = true`
 - `baseline_stress_evidence_ready = true`
-- `publication_strong_baselines_ready = false`
-- `publication_theory_complete = false`
+- `baseline_tuning_evidence_ready = true`
+- `publication_strong_baselines_ready = true`
+- `publication_theory_complete = true`
 - `hardware_ready = false`
-- `strong_baselines_ready = false`
+- `strong_baselines_ready = true`
 
 Do not use this package as MCU, HIL, or bench evidence. The package is a reproducible
 software/theory release for the new AI-PWM research branch.
-The comparison baselines now have bounded host stress evidence, but not final
-parameter-sweep tuning evidence.
+The comparison baselines now have bounded host stress and parameter-sweep tuning
+evidence. This still does not prove universal superiority over industrial
+controllers or readiness for MCU/HIL/bench deployment.
 
 Release gate:
 

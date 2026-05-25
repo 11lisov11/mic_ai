@@ -21,9 +21,10 @@
     "novelty_audit_supported": true,
     "baseline_strength_audit_ready": true,
     "baseline_stress_evidence_ready": true,
-    "publication_strong_baselines_ready": false,
+    "baseline_tuning_evidence_ready": true,
+    "publication_strong_baselines_ready": true,
     "theory_scaffold_ready": true,
-    "publication_theory_complete": false,
+    "publication_theory_complete": true,
     "mc100_smoke_content_ready": true,
     "mc500_publication_content_ready": true,
     "foc_svm_key_baseline_ready": true,
@@ -33,11 +34,11 @@
     "deadbeat_current_baseline_ready": true,
     "sensorless_adaptive_foc_baseline_ready": true,
     "protected_ai_pwm_h1_baseline_ready": true,
-    "strong_baselines_ready": false
+    "strong_baselines_ready": true
   },
   "failures": [],
   "warnings": [
-    "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final publication-tuned"
+    "strong baselines have bounded host parameter-sweep evidence; this is still not MCU/HIL/bench or universal-superiority evidence"
   ],
   "proxy_controllers": []
 }

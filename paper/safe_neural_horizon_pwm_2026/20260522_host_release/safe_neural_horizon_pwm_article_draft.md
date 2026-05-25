@@ -12,6 +12,7 @@ This draft describes a host-simulated induction-motor control variant that combi
 - Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.
 - Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.
 - Domain-randomized theta-conditioned twin identification evidence with multi-step rollout losses.
+- Bounded parameter-sweep tuning evidence for all named host comparison baselines.
 - Scenario matrix, ablation smoke, Pareto extraction, fault-injection summary, and host trace/FFT evidence package.
 - Machine-checkable release, novelty, and theory-completion audits.
 
@@ -23,7 +24,7 @@ Compared with classical FOC-SVM, the controller does not synthesize continuous v
 
 The tracked release therefore supports only this claim: a distinct host-simulated control architecture exists and is machine-checked against the current host evidence.
 
-The companion theory-completion audit separates `host_theory_scaffold_ready = true` from `publication_theory_complete = false`. This is intentional: the host scaffold is ready for continued research, but publication-grade superiority and hardware readiness are not claimed.
+The companion theory-completion audit separates host/software evidence from hardware evidence. When `publication_theory_complete = true`, it means the current host-theory evidence package passes the configured software gates; it still does not claim MCU, HIL, bench, or universal-superiority readiness.
 
 ## Method
 
@@ -88,7 +89,7 @@ Fault-injection result:
 ## Limitations
 
 - Host simulation only.
-- FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final tuned publication-grade.
+- FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have bounded host tuning evidence, but are still not hardware or vendor-grade certified controllers.
 - Domain-randomized theta-conditioned twin evidence exists, but it is host-only and assumes theta/passport or identification context.
 - Host MC=500 publication-scale smoke exists, but final MC must be repeated after strong-baseline tuning.
 - Host trace package with time-series CSV plus FFT/THD-like torque-current evidence exists, but it is still simulation-only and not hardware THD.
@@ -97,7 +98,7 @@ Fault-injection result:
 
 ## Required Next Work
 
-- Tune the FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines into strong publication baselines.
+- Expand the bounded tuning sweep into larger publication sweeps after any model/controller change.
 - Re-run publication-scale MC after baseline replacement/tuning.
 - Expand the host trace/FFT package after baseline tuning and validate it against HIL/bench traces.
 - Replace the theta-conditioned host twin with a production online identifier before MCU/HIL/bench claims.

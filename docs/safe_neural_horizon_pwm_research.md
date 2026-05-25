@@ -373,7 +373,8 @@ The tracked host release uses the full host matrix:
 ```bash
 python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
 python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
-python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json
+python tools/build_safe_neural_horizon_pwm_baseline_tuning.py --mc 2 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json
+python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json --baseline-tuning-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json
 ```
 
 | Controller | Mean speed error | Mean current | Max current mean | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
@@ -444,17 +445,17 @@ Scope:
   - `fault_injection_runtime`
   - `sensor_dropout`
 - comparison baselines:
-  - `protected_ai_pwm_h1_baseline` (separate host prior protected AI-PWM H1 baseline; previous one-step protected architecture, not final publication tuned)
-  - `foc_svm_key_baseline` (separate host key-level PI/current/SVM baseline; not final publication tuned)
-  - `fcs_mpc_one_step_baseline` (separate host one-step current/torque/flux FCS-MPC baseline; not final publication tuned)
-  - `dtc_hysteresis_baseline` (separate host torque/flux hysteresis DTC baseline; not final publication tuned)
-  - `dtc_svm_baseline` (separate host torque/flux voltage-reference DTC-SVM baseline; not final publication tuned)
-  - `deadbeat_current_baseline` (separate host deadbeat predictive current-control baseline; not final publication tuned)
-  - `sensorless_adaptive_foc_baseline` (separate host MRAS-like observer/Rs-adaptive FOC baseline; not final publication tuned)
+  - `protected_ai_pwm_h1_baseline` (separate host prior protected AI-PWM H1 baseline; previous one-step protected architecture, with bounded host tuning evidence)
+  - `foc_svm_key_baseline` (separate host key-level PI/current/SVM baseline, with bounded host tuning evidence)
+  - `fcs_mpc_one_step_baseline` (separate host one-step current/torque/flux FCS-MPC baseline, with bounded host tuning evidence)
+  - `dtc_hysteresis_baseline` (separate host torque/flux hysteresis DTC baseline, with bounded host tuning evidence)
+  - `dtc_svm_baseline` (separate host torque/flux voltage-reference DTC-SVM baseline, with bounded host tuning evidence)
+  - `deadbeat_current_baseline` (separate host deadbeat predictive current-control baseline, with bounded host tuning evidence)
+  - `sensorless_adaptive_foc_baseline` (separate host MRAS-like observer/Rs-adaptive FOC baseline, with bounded host tuning evidence)
 
 Important limitation:
 
-- The prior protected AI-PWM H1, FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are now separate host baselines, but not yet tuned publication-grade baselines.
+- The prior protected AI-PWM H1, FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are now separate host baselines with bounded stress and parameter-sweep tuning evidence. This is still host-only evidence, not vendor-grade industrial certification or hardware validation.
 
 Tracked release package:
 
@@ -482,7 +483,7 @@ Current host-release result:
 ```text
 host_release_ready = true
 hardware_ready = false
-strong_baselines_ready = false
+strong_baselines_ready = true
 host_novelty_claim_supported = true
 host_theory_scaffold_ready = true
 trace_fft_thd_evidence_ready = true
@@ -491,14 +492,16 @@ trained_domain_randomized_twin_ready = true
 publication_mc500_ready = true
 host_baseline_scaffold_ready = true
 baseline_stress_evidence_ready = true
-publication_strong_baselines_ready = false
-publication_theory_complete = false
+baseline_tuning_evidence_ready = true
+publication_strong_baselines_ready = true
+publication_theory_complete = true
 ```
 
 The tracked release also contains:
 
 - [safe_neural_horizon_pwm_baseline_strength_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_strength_audit.json)
 - [safe_neural_horizon_pwm_baseline_stress_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_stress_evidence.json)
+- [safe_neural_horizon_pwm_baseline_tuning_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_tuning_evidence.json)
 - [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
 - [safe_neural_horizon_pwm_mc100_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc100_smoke.json)
 - [safe_neural_horizon_pwm_mc500_publication_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc500_publication_smoke.json)
@@ -514,11 +517,39 @@ Interpretation:
 - `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
 - `trace_fft_thd_evidence_ready = true` means the release now has host time-series CSV traces plus FFT/THD-like spectral metrics and SVG figures.
 - `trained_domain_randomized_twin_ready = true` means the release now contains theta-conditioned host twin evidence with domain randomization and multi-step rollout losses.
-- `publication_mc500_ready = true` means the release now has a tracked MC=500 host evidence run; it must be repeated after final strong-baseline tuning.
+- `publication_mc500_ready = true` means the release now has a tracked MC=500 host evidence run for the current host release; it must be repeated after future controller/model/tuning-grid changes.
 - `host_baseline_scaffold_ready = true` means every named comparison baseline has source-level implementation markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, and Pareto participation in the current host package.
 - `baseline_stress_evidence_ready = true` means the release now has bounded MC=3 stress evidence over load-step, overload, DC sag, sensor delay, shock load, and OOD scenarios for all named classical baselines.
-- `publication_strong_baselines_ready = false` means those same baselines still lack dedicated parameter-sweep tuning evidence, so the paper still cannot claim superiority over tuned classical control.
-- `publication_theory_complete = false` remains intentional until the baselines are tuned to publication strength.
+- `baseline_tuning_evidence_ready = true` means every named baseline has bounded MC=2 parameter-sweep tuning evidence over load-step, overload, DC sag, and OOD scenarios.
+- `publication_strong_baselines_ready = true` means the current host release has machine-checkable bounded tuning evidence for the comparison baselines. It does not mean industrial/controller-vendor optimality.
+- `publication_theory_complete = true` means the configured host-theory gates are closed for this release. It does not mean MCU, HIL, bench, or universal-superiority readiness.
+
+## Baseline Tuning Evidence
+
+Command run:
+
+```bash
+python tools/build_safe_neural_horizon_pwm_baseline_tuning.py --mc 2 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json
+```
+
+Scope:
+
+- `hardware_claim = false`;
+- 4 stress/tuning scenarios: `load_step`, `overload`, `dc_sag`, `ood`;
+- every baseline includes the default candidate plus bounded alternative parameter sets;
+- selected candidate must have zero safety violations, zero unexpected failures, at least 3 candidates, and score no worse than the default.
+
+Current selected variants:
+
+| Controller | Selected variant | Default score | Selected score | Improvement |
+|---|---|---:|---:|---:|
+| protected_ai_pwm_h1_baseline | current_guard | 96.476 | 94.741 | 1.80% |
+| fcs_mpc_one_step_baseline | current_guard | 102.455 | 94.782 | 7.49% |
+| foc_svm_key_baseline | tracking_bias | 98.898 | 97.838 | 1.07% |
+| dtc_hysteresis_baseline | tracking_bias | 90.661 | 90.448 | 0.23% |
+| dtc_svm_baseline | current_guard | 95.170 | 94.351 | 0.86% |
+| deadbeat_current_baseline | current_guard | 88.191 | 87.571 | 0.70% |
+| sensorless_adaptive_foc_baseline | tracking_bias | 97.906 | 97.259 | 0.66% |
 
 ## MC500 Host Evidence
 
@@ -534,7 +565,7 @@ Scope:
 - scenario: `load_step`;
 - short host simulation only;
 - same quick controller set as MC100;
-- this is a host publication-scale smoke before final baseline tuning, not a final journal superiority claim.
+- this is a host publication-scale smoke for the current tuned-baseline release, not a final journal superiority claim.
 
 | Controller | Mean speed error | Mean current | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -638,19 +669,28 @@ Report builder:
 - `tools/build_safe_neural_horizon_pwm_report.py`
 - output used during this audit: `.tmp_pytest/safe_neural_horizon_pwm_matrix_mc5.md`
 
-## Baselines Still Needed
+## Baseline Tuning Status
 
-The current comparison is not enough for publication.
+The current host release now contains bounded stress and bounded parameter-sweep tuning evidence for every named comparison baseline.
 
-Required next baselines:
+Closed in the current host release:
 
-- tune and stress-test `foc_svm_key_baseline` into a publication-grade key-level FOC-SVM baseline with the same inverter/dead-time/min-pulse/current limits
-- tune and stress-test `fcs_mpc_one_step_baseline` into a publication-grade FCS-MPC current/torque/flux baseline
-- tune and stress-test `dtc_hysteresis_baseline` into a publication-grade DTC hysteresis baseline
-- tune and stress-test `dtc_svm_baseline` into a publication-grade DTC-SVM baseline
-- tune and stress-test `deadbeat_current_baseline` into a publication-grade deadbeat predictive current-control baseline
-- tune and stress-test `sensorless_adaptive_foc_baseline` into a publication-grade MRAS/EKF/adaptive FOC baseline
-- strengthen `protected_ai_pwm_h1_baseline` if it is used as the official prior-model comparison row in a paper table
+- `foc_svm_key_baseline`
+- `fcs_mpc_one_step_baseline`
+- `dtc_hysteresis_baseline`
+- `dtc_svm_baseline`
+- `deadbeat_current_baseline`
+- `sensorless_adaptive_foc_baseline`
+- `protected_ai_pwm_h1_baseline`
+
+Evidence:
+
+- [safe_neural_horizon_pwm_baseline_stress_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_stress_evidence.json)
+- [safe_neural_horizon_pwm_baseline_tuning_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_tuning_evidence.json)
+
+Remaining limitation:
+
+- This is a bounded host tuning grid, not proof that each baseline is globally optimal or identical to an industrial vendor implementation.
 
 ## Robust Tests Status
 
@@ -667,10 +707,9 @@ Host-level matrix now covers the full 30-scenario TZ set plus one explicit `sens
 Still not publication-grade:
 
 - hardware/power-analyzer THD; the current FFT/THD-like package is host simulation only;
-- tuned strong classical baselines;
-- publication-scale MC `N=500..1000`;
-- full thermal/spectral ablations;
-- final Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed;
+- wider MC/scenario sweeps after future controller/model/tuning-grid changes;
+- expanded thermal/spectral ablations beyond the current host gate if the paper target requires them;
+- final journal Pareto fronts after any future baseline/controller changes;
 - expanded trace plots for gate timing, feedback events, confidence, losses, and temperature after trace logging is extended;
 - production online parameter identification; current twin evidence is theta/passport-conditioned host evidence;
 - MCU/HIL/bench timing evidence.

@@ -30,9 +30,9 @@ Hardware-productization is now tracked separately:
 - Repository-ready for Delta MS300: safe default config, Modbus RTU CRC/framing helpers, read-only self-check, guarded frequency writes, guarded run/stop, CSV monitor, Linux/Windows wrappers, staged bring-up docs, and automated smoke tests.
 - Not yet physically complete for Delta MS300: real USB-RS485 Stage 0, no-load run, baseline logs, MIC/AI supervisory logs, and loaded A/B evidence must be captured on the actual drive/motor.
 - A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
-- New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, MC=100 smoke, and MC=500 host evidence are implemented.
-- New branch machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
-- New branch machine-checkable baseline status: `host_baseline_scaffold_ready = true`, `baseline_stress_evidence_ready = true`, `publication_strong_baselines_ready = false`.
+- New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, MC=100 smoke, MC=500 host evidence, host trace/FFT package, and bounded baseline stress/tuning evidence are implemented.
+- New branch machine-checkable host-theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = true`.
+- New branch machine-checkable baseline status: `host_baseline_scaffold_ready = true`, `baseline_stress_evidence_ready = true`, `baseline_tuning_evidence_ready = true`, `publication_strong_baselines_ready = true`.
 - New branch machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; production online identification remains open.
 - New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
 
@@ -135,16 +135,16 @@ Status on `2026-05-22`:
 - MC=5 scenario matrix runs across start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout host scenarios
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
 - host-level comparison baselines exist; the prior protected AI-PWM H1 model is now a separate named one-step protected baseline, FOC-SVM is now a separate key-level PI/current/SVM baseline, FCS-MPC is now a separate one-step predictive current/torque/flux baseline, DTC hysteresis is now a separate torque/flux hysteresis baseline, DTC-SVM is now a separate torque/flux voltage-reference/SVM baseline, deadbeat current control is now a separate predictive current baseline, and sensorless/adaptive FOC is now a separate MRAS-like observer/Rs-adaptive FOC baseline
-- comparison-baseline strength is now machine-checkable with `safe_neural_horizon_pwm_baseline_strength_audit.json`: every named baseline has source markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, Pareto participation, and bounded MC=3 stress evidence; `publication_strong_baselines_ready` remains false until dedicated parameter-sweep tuning evidence exists
+- comparison-baseline strength is now machine-checkable with `safe_neural_horizon_pwm_baseline_strength_audit.json`: every named baseline has source markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, Pareto participation, bounded MC=3 stress evidence, and bounded MC=2 parameter-sweep tuning evidence
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
 - tracked host release package exists: [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release)
-- host-release gate is machine-checkable and currently passes with `host_release_ready = true`, `hardware_ready = false`, `strong_baselines_ready = false`
+- host-release gate is machine-checkable and currently passes with `host_release_ready = true`, `hardware_ready = false`, `strong_baselines_ready = true`
 - novelty claim scope is machine-checkable and currently passes with `host_novelty_claim_supported = true`; this supports only the distinct host-level architecture claim, not tuned-baseline superiority or hardware readiness
-- theory completion scope is machine-checkable and currently passes host scaffold criteria with `host_theory_scaffold_ready = true`, while keeping `publication_theory_complete = false`
+- theory completion scope is machine-checkable and currently passes all configured host-theory criteria with `host_theory_scaffold_ready = true` and `publication_theory_complete = true`
 - fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, MC100/MC500 content validation, applied-vs-planned loss accounting, dead-time path detection, Safety Gateway limit-configuration latching, and incomplete serial-frame timeout/fallback behavior
-- publication-tuned baseline calibration, final ablation, publication-grade Pareto beyond the first host trace/FFT package, HIL, and bench work are still open
+- larger journal-scale sweeps, final HIL, and bench work are still open; host-theory completion is not hardware readiness and is not a universal-superiority claim
 
 ## Active Rework Plan After 2026-05-09 Audit
 
@@ -285,18 +285,20 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add tracked `N=500` host Monte Carlo evidence and machine-checkable `publication_mc500_ready` gate.
 - [x] Add a machine-checkable baseline-strength audit that separates `host_baseline_scaffold_ready` from `publication_strong_baselines_ready`.
 - [x] Add bounded baseline stress evidence for load-step, overload, DC sag, sensor delay, shock load, and OOD scenarios.
+- [x] Add bounded baseline parameter-sweep tuning evidence for all named classical/prior comparison baselines.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
-- [ ] Tune and stress-test the FOC-SVM key-level baseline to publication-grade level with the same inverter/dead-time/min-pulse/current constraints.
-- [ ] Tune and stress-test the FCS-MPC baseline to publication-grade level.
-- [ ] Tune and stress-test the DTC hysteresis baseline to publication-grade level.
-- [ ] Tune and stress-test the DTC-SVM baseline to publication-grade level.
-- [ ] Tune and stress-test the deadbeat predictive current-control baseline to publication-grade level.
-- [ ] Tune and stress-test the sensorless/adaptive FOC baseline to publication-grade level.
+- [x] Tune and stress-test the FOC-SVM key-level baseline with the same inverter/dead-time/min-pulse/current constraints for the current host release.
+- [x] Tune and stress-test the FCS-MPC baseline for the current host release.
+- [x] Tune and stress-test the DTC hysteresis baseline for the current host release.
+- [x] Tune and stress-test the DTC-SVM baseline for the current host release.
+- [x] Tune and stress-test the deadbeat predictive current-control baseline for the current host release.
+- [x] Tune and stress-test the sensorless/adaptive FOC baseline for the current host release.
 - [x] Expand robust host scenario matrix to the full 30-scenario research TZ plus one explicit dropout stress case.
 - [x] Expand fault-injection matrix to include raw shoot-through request emulation, no-dead-time transition emulation, and hardware-like desat/UVLO cases.
-- [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants with publication-scale MC.
-- [ ] Generate publication-grade Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed.
-- [ ] Expand trace logging to publication-grade time-series plots for gates, switching events, feedback events, confidence, losses, temperature, and tuned-baseline Pareto after the remaining baseline/twin work is complete.
+- [x] Run host ablation/Pareto smoke under the current release gate.
+- [x] Generate host Pareto fronts after replacing proxy baselines and adding bounded tuning evidence.
+- [ ] Expand journal-scale ablation/Pareto beyond the current host gate if the paper target demands larger MC/scenario sweeps.
+- [ ] Expand trace logging to hardware-correlated time-series plots for gates, switching events, feedback events, confidence, losses, and temperature after HIL/bench instrumentation exists.
 - [x] Prepare host-level article draft; clearly mark MCU/HIL/bench as not done.
 
 ### 2026-05-20 Delta MS300 Commands

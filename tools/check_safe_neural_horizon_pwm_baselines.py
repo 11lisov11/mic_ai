@@ -81,6 +81,29 @@ def _stress_evidence(release_dir: Path | None) -> tuple[dict[str, Any], bool, li
     return payload, not failures, failures
 
 
+def _tuning_evidence(release_dir: Path | None) -> tuple[dict[str, Any], bool, list[str]]:
+    if release_dir is None:
+        return {}, False, ["release directory with safe_neural_horizon_pwm_baseline_tuning_evidence.json"]
+    path = release_dir / "safe_neural_horizon_pwm_baseline_tuning_evidence.json"
+    if not path.exists():
+        return {}, False, ["safe_neural_horizon_pwm_baseline_tuning_evidence.json"]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    failures: list[str] = []
+    if payload.get("hardware_claim") is not False:
+        failures.append("baseline tuning hardware_claim=false")
+    if int(payload.get("mc_trials", 0)) < 2:
+        failures.append("baseline tuning mc_trials>=2")
+    if int(payload.get("steps_per_trial", 0)) < 40:
+        failures.append("baseline tuning steps_per_trial>=40")
+    if len(list(payload.get("scenarios", []))) < 3:
+        failures.append("baseline tuning scenario_count>=3")
+    if not bool(payload.get("baseline_tuning_ready", False)):
+        failures.append("baseline_tuning_ready=true")
+    if not bool(payload.get("publication_tuning_claim", False)):
+        failures.append("publication_tuning_claim=true")
+    return payload, not failures, failures
+
+
 def analyze_baselines(path: Path) -> Dict[str, Any]:
     payload, release_dir = _load_payload(path)
     matrix = dict(payload.get("matrix", {}))
@@ -88,10 +111,14 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
     trace_covered = _trace_controllers(release_dir)
     stress_payload, stress_global_ready, stress_global_failures = _stress_evidence(release_dir)
     stress_controllers = dict(stress_payload.get("controllers", {}))
+    tuning_payload, tuning_global_ready, tuning_global_failures = _tuning_evidence(release_dir)
+    tuning_controllers = dict(tuning_payload.get("controllers", {}))
     failures: list[str] = []
     warnings: list[str] = []
     if stress_global_failures:
         failures.extend(stress_global_failures)
+    if tuning_global_failures:
+        warnings.extend(tuning_global_failures)
     rows: Dict[str, Any] = {}
 
     for controller in sorted(COMPARISON_CONTROLLERS):
@@ -135,18 +162,29 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
             and float(stress_row.get("safety_violations_worst", 1.0)) == 0.0
             and int(stress_row.get("unexpected_failure_count", 1)) == 0
         )
+        tuning_row = dict(tuning_controllers.get(controller, {}))
+        selected_score = float(tuning_row.get("selected_score", float("inf"))) if tuning_row else float("inf")
+        default_score = float(tuning_row.get("default_score", float("inf"))) if tuning_row else float("inf")
+        tuning_evidence_ready = bool(
+            tuning_global_ready
+            and tuning_row
+            and tuning_row.get("tuning_ready", False)
+            and int(tuning_row.get("candidate_count", 0)) >= 3
+            and selected_score <= default_score + 1e-9
+            and float(tuning_row.get("safety_violations_worst", 1.0)) == 0.0
+            and int(tuning_row.get("unexpected_failure_count", 1)) == 0
+        )
         matrix_coverage_ready = bool(scenarios) and not missing_scenarios
         safety_ready = safety_worst == 0.0 and unexpected_failure_count == 0
         pareto_ready = bool(pareto_scenarios)
         baseline_scaffold_ready = all(
             [source_marker_present, matrix_coverage_ready, safety_ready, pareto_ready, finite_metrics]
         )
-        # This release still has no parameter-sweep/tuned-controller evidence file.
-        publication_tuned_ready = False
+        publication_tuned_ready = bool(stress_evidence_ready and tuning_evidence_ready)
         if not baseline_scaffold_ready:
             failures.append(f"{controller}: baseline scaffold is incomplete")
         if not publication_tuned_ready:
-            warnings.append(f"{controller}: no publication-grade parameter-sweep tuning evidence yet")
+            warnings.append(f"{controller}: publication-grade parameter-sweep tuning evidence is incomplete")
 
         rows[controller] = {
             "source_marker_present": source_marker_present,
@@ -159,6 +197,14 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
             "pareto_scenarios": pareto_scenarios,
             "trace_present": trace_present,
             "stress_evidence_ready": stress_evidence_ready,
+            "tuning_evidence_ready": tuning_evidence_ready,
+            "tuning_candidate_count": int(tuning_row.get("candidate_count", 0)) if tuning_row else 0,
+            "selected_tuning_variant": str(tuning_row.get("selected_variant", "")) if tuning_row else "",
+            "tuning_default_score": default_score,
+            "tuning_selected_score": selected_score,
+            "tuning_improvement_vs_default_pct": float(tuning_row.get("improvement_vs_default_pct", 0.0))
+            if tuning_row
+            else 0.0,
             "finite_metrics": finite_metrics,
             "max_mean_abs_speed_error": max_speed_mean,
             "max_mean_current_abs": max_current_mean,
@@ -194,12 +240,23 @@ def analyze_baselines(path: Path) -> Dict[str, Any]:
             if stress_payload
             else False,
         },
+        "tuning_evidence_ready": tuning_global_ready
+        and all(bool(row["tuning_evidence_ready"]) for row in rows.values()),
+        "tuning_evidence": {
+            "mc_trials": int(tuning_payload.get("mc_trials", 0)) if tuning_payload else 0,
+            "steps_per_trial": int(tuning_payload.get("steps_per_trial", 0)) if tuning_payload else 0,
+            "scenario_count": len(list(tuning_payload.get("scenarios", []))) if tuning_payload else 0,
+            "publication_tuning_claim": bool(tuning_payload.get("publication_tuning_claim", False))
+            if tuning_payload
+            else False,
+        },
         "baselines": rows,
         "failures": failures,
         "warnings": warnings,
         "interpretation": (
-            "The comparison baselines are separate safe host implementations with scenario coverage and Pareto "
-            "participation, but they are not yet publication-tuned strong baselines."
+            "The comparison baselines are separate safe host implementations with scenario coverage, Pareto "
+            "participation, bounded stress evidence, and bounded parameter-sweep tuning evidence when "
+            "publication_strong_baselines_ready is true. This remains host-only evidence."
         ),
     }
 

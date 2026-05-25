@@ -32,6 +32,7 @@ REQUIRED_RELEASE_FILES = {
     "safe_neural_horizon_pwm_report.md",
     "safe_neural_horizon_pwm_article_draft.md",
     "safe_neural_horizon_pwm_baseline_stress_evidence.json",
+    "safe_neural_horizon_pwm_baseline_tuning_evidence.json",
     "safe_neural_horizon_pwm_baseline_strength_audit.json",
     "safe_neural_horizon_pwm_novelty_audit.json",
     "safe_neural_horizon_pwm_theory_completion_audit.json",
@@ -261,6 +262,7 @@ def analyze_release(path: Path) -> Dict[str, Any]:
             baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
             checks["baseline_strength_audit_ready"] = bool(baseline.get("host_baseline_scaffold_ready", False))
             checks["baseline_stress_evidence_ready"] = bool(baseline.get("stress_evidence_ready", False))
+            checks["baseline_tuning_evidence_ready"] = bool(baseline.get("tuning_evidence_ready", False))
             checks["publication_strong_baselines_ready"] = bool(
                 baseline.get("publication_strong_baselines_ready", False)
             )
@@ -268,9 +270,12 @@ def analyze_release(path: Path) -> Dict[str, Any]:
                 failures.append("baseline strength audit does not support the host baseline scaffold")
             if not checks["baseline_stress_evidence_ready"]:
                 failures.append("baseline strength audit does not support baseline stress evidence")
+            if not checks["baseline_tuning_evidence_ready"]:
+                failures.append("baseline strength audit does not support baseline tuning evidence")
         else:
             checks["baseline_strength_audit_ready"] = False
             checks["baseline_stress_evidence_ready"] = False
+            checks["baseline_tuning_evidence_ready"] = False
             checks["publication_strong_baselines_ready"] = False
             failures.append("missing safe_neural_horizon_pwm_baseline_strength_audit.json")
         theory_path = release_dir / "safe_neural_horizon_pwm_theory_completion_audit.json"
@@ -321,10 +326,15 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     checks["protected_ai_pwm_h1_baseline_ready"] = bool(scenarios) and all(
         "protected_ai_pwm_h1_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
     )
-    checks["strong_baselines_ready"] = False
-    warnings.append(
-        "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final publication-tuned"
-    )
+    checks["strong_baselines_ready"] = bool(checks.get("publication_strong_baselines_ready", False))
+    if checks["strong_baselines_ready"]:
+        warnings.append(
+            "strong baselines have bounded host parameter-sweep evidence; this is still not MCU/HIL/bench or universal-superiority evidence"
+        )
+    else:
+        warnings.append(
+            "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final publication-tuned"
+        )
 
     host_release_ready = not failures
     return {

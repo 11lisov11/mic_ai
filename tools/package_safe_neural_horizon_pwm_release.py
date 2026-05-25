@@ -39,11 +39,15 @@ def _article_draft(
     trace_payload: Dict[str, Any] | None = None,
     twin_payload: Dict[str, Any] | None = None,
     mc500_payload: Dict[str, Any] | None = None,
+    baseline_tuning_payload: Dict[str, Any] | None = None,
 ) -> str:
     scenarios = list(payload.get("scenarios", []))
     trace_ready = bool(trace_payload and trace_payload.get("trace_evidence_ready", False))
     twin_ready = bool(twin_payload and twin_payload.get("trained_domain_randomized_twin_ready", False))
     mc500_ready = bool(mc500_payload and int(mc500_payload.get("mc_trials", 0)) >= 500)
+    baseline_tuning_ready = bool(
+        baseline_tuning_payload and baseline_tuning_payload.get("baseline_tuning_ready", False)
+    )
     lines: List[str] = []
     lines.append("# Safe Neural Horizon PWM with Event-Triggered Twin Feedback")
     lines.append("")
@@ -63,6 +67,8 @@ def _article_draft(
     lines.append("- Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.")
     lines.append("- Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.")
     lines.append("- Domain-randomized theta-conditioned twin identification evidence with multi-step rollout losses.")
+    if baseline_tuning_ready:
+        lines.append("- Bounded parameter-sweep tuning evidence for all named host comparison baselines.")
     lines.append("- Scenario matrix, ablation smoke, Pareto extraction, fault-injection summary, and host trace/FFT evidence package.")
     lines.append("- Machine-checkable release, novelty, and theory-completion audits.")
     lines.append("")
@@ -85,9 +91,9 @@ def _article_draft(
     lines.append("The tracked release therefore supports only this claim: a distinct host-simulated control architecture exists and is machine-checked against the current host evidence.")
     lines.append("")
     lines.append(
-        "The companion theory-completion audit separates `host_theory_scaffold_ready = true` from "
-        "`publication_theory_complete = false`. This is intentional: the host scaffold is ready for continued "
-        "research, but publication-grade superiority and hardware readiness are not claimed."
+        "The companion theory-completion audit separates host/software evidence from hardware evidence. "
+        "When `publication_theory_complete = true`, it means the current host-theory evidence package passes "
+        "the configured software gates; it still does not claim MCU, HIL, bench, or universal-superiority readiness."
     )
     lines.append("")
     lines.append("## Method")
@@ -128,7 +134,10 @@ def _article_draft(
     lines.append("## Limitations")
     lines.append("")
     lines.append("- Host simulation only.")
-    lines.append("- FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final tuned publication-grade.")
+    if baseline_tuning_ready:
+        lines.append("- FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC have bounded host tuning evidence, but are still not hardware or vendor-grade certified controllers.")
+    else:
+        lines.append("- FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are host baselines, but not final tuned publication-grade.")
     if twin_ready:
         lines.append("- Domain-randomized theta-conditioned twin evidence exists, but it is host-only and assumes theta/passport or identification context.")
     else:
@@ -146,7 +155,10 @@ def _article_draft(
     lines.append("")
     lines.append("## Required Next Work")
     lines.append("")
-    lines.append("- Tune the FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines into strong publication baselines.")
+    if baseline_tuning_ready:
+        lines.append("- Expand the bounded tuning sweep into larger publication sweeps after any model/controller change.")
+    else:
+        lines.append("- Tune the FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines into strong publication baselines.")
     if mc500_ready:
         lines.append("- Re-run publication-scale MC after baseline replacement/tuning.")
     else:
@@ -169,35 +181,49 @@ def _open_items(
     trace_payload: Dict[str, Any] | None = None,
     twin_payload: Dict[str, Any] | None = None,
     mc500_payload: Dict[str, Any] | None = None,
+    baseline_tuning_payload: Dict[str, Any] | None = None,
 ) -> str:
     trace_ready = bool(trace_payload and trace_payload.get("trace_evidence_ready", False))
     twin_ready = bool(twin_payload and twin_payload.get("trained_domain_randomized_twin_ready", False))
     mc500_ready = bool(mc500_payload and int(mc500_payload.get("mc_trials", 0)) >= 500)
-    trace_item = (
-        "- Expand the host trace/FFT/THD-like package after baseline tuning; current evidence is simulation-only and not hardware power-analyzer THD."
-        if trace_ready
-        else "- Add publication-grade long-run metrics: THD, FFT torque, switching loss, conduction loss, thermal imbalance, EMI/common-mode proxy."
+    baseline_tuning_ready = bool(
+        baseline_tuning_payload and baseline_tuning_payload.get("baseline_tuning_ready", False)
     )
+    if trace_ready and baseline_tuning_ready:
+        trace_item = "- Expand the host trace/FFT/THD-like package after future model/controller changes; current evidence is simulation-only and not hardware power-analyzer THD."
+    elif trace_ready:
+        trace_item = "- Expand the host trace/FFT/THD-like package after baseline tuning; current evidence is simulation-only and not hardware power-analyzer THD."
+    else:
+        trace_item = "- Add publication-grade long-run metrics: THD, FFT torque, switching loss, conduction loss, thermal imbalance, EMI/common-mode proxy."
     twin_item = (
         "- Replace the theta-conditioned host twin evidence with a production online parameter identifier before MCU/HIL/bench claims."
         if twin_ready
         else "- Train or identify the neural twin with domain randomization and multi-step losses."
     )
-    mc_item = (
-        "- Re-run MC=500..1000 after strong baselines are tuned; current MC500 is host evidence before final tuning."
-        if mc500_ready
-        else "- Run MC=500..1000 after strong baselines are ready."
-    )
-    complete_guard = (
-        "- Keep `publication_theory_complete=false` until strong baselines are present; host trace/twin/MC500 evidence alone is not enough."
-        if mc500_ready
-        else "- Keep `publication_theory_complete=false` until strong baselines and MC=500..1000 are present; host trace/twin evidence alone is not enough."
-    )
+    if baseline_tuning_ready and mc500_ready:
+        mc_item = "- Re-run/scale MC=500..1000 after any controller, model, or tuning-grid change; current MC500 is valid for this host release."
+    elif mc500_ready:
+        mc_item = "- Re-run MC=500..1000 after strong baselines are tuned; current MC500 is host evidence before final tuning."
+    else:
+        mc_item = "- Run MC=500..1000 after strong baselines are ready."
+    if baseline_tuning_ready and mc500_ready:
+        baseline_item = "- Expand bounded baseline tuning to wider MC/scenario sweeps before any journal superiority claim."
+        complete_guard = "- Keep hardware readiness false: host theory completion does not replace MCU/HIL/bench validation."
+    elif baseline_tuning_ready:
+        baseline_item = "- Bounded baseline tuning evidence exists; MC=500..1000 remains open after any final controller/model edits."
+        complete_guard = "- Keep `publication_theory_complete=false` until MC=500..1000 and plot gates are present."
+    else:
+        baseline_item = "- Tune the host key-level FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat, and sensorless/adaptive FOC baselines to publication-grade strength."
+        complete_guard = (
+            "- Keep `publication_theory_complete=false` until strong baselines are present; host trace/twin/MC500 evidence alone is not enough."
+            if mc500_ready
+            else "- Keep `publication_theory_complete=false` until strong baselines and MC=500..1000 are present; host trace/twin evidence alone is not enough."
+        )
     return "\n".join(
         [
             "# Safe Neural Horizon PWM Open Items",
             "",
-            "- Tune the host key-level FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat, and sensorless/adaptive FOC baselines to publication-grade strength.",
+            baseline_item,
             trace_item,
             mc_item,
             twin_item,
@@ -251,6 +277,7 @@ def package_release(
     mc100_json: Path | None = None,
     mc500_json: Path | None = None,
     baseline_stress_json: Path | None = None,
+    baseline_tuning_json: Path | None = None,
     trace_dir: Path | None = None,
     twin_dir: Path | None = None,
 ) -> Dict[str, Any]:
@@ -291,6 +318,20 @@ def package_release(
             f"--out-json {stress_source}` or pass --baseline-stress-json"
         )
     shutil.copyfile(stress_source, baseline_stress_json)
+    tuning_source = (
+        baseline_tuning_json
+        if baseline_tuning_json is not None
+        else ROOT / ".tmp_pytest" / "safe_neural_horizon_pwm_baseline_tuning.json"
+    )
+    baseline_tuning_json = out_dir / "safe_neural_horizon_pwm_baseline_tuning_evidence.json"
+    if not tuning_source.exists():
+        raise FileNotFoundError(
+            f"tracked release requires baseline tuning evidence; run "
+            f"`python tools/build_safe_neural_horizon_pwm_baseline_tuning.py "
+            f"--out-json {tuning_source}` or pass --baseline-tuning-json"
+        )
+    shutil.copyfile(tuning_source, baseline_tuning_json)
+    baseline_tuning_payload = json.loads(baseline_tuning_json.read_text(encoding="utf-8"))
     report_md = out_dir / "safe_neural_horizon_pwm_report.md"
     article_md = out_dir / "safe_neural_horizon_pwm_article_draft.md"
     baseline_json = out_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json"
@@ -302,10 +343,10 @@ def package_release(
     trace_files, trace_payload = _copy_trace_evidence(trace_dir, out_dir)
     twin_files, twin_payload = _copy_twin_evidence(twin_dir, out_dir)
     _write(report_md, build_report(payload))
-    _write(article_md, _article_draft(payload, trace_payload, twin_payload, mc500_payload))
+    _write(article_md, _article_draft(payload, trace_payload, twin_payload, mc500_payload, baseline_tuning_payload))
     _write(baseline_json, json.dumps(analyze_baselines(out_dir), ensure_ascii=False, indent=2) + "\n")
     _write(novelty_json, json.dumps(analyze_novelty(out_dir), ensure_ascii=False, indent=2) + "\n")
-    _write(open_items_md, _open_items(trace_payload, twin_payload, mc500_payload))
+    _write(open_items_md, _open_items(trace_payload, twin_payload, mc500_payload, baseline_tuning_payload))
     figure_files = build_figures(copied_json, out_dir / "figures")
     _write(theory_json, json.dumps(analyze_theory(out_dir), ensure_ascii=False, indent=2) + "\n")
 
@@ -316,6 +357,7 @@ def package_release(
         mc100_json,
         mc500_json,
         baseline_stress_json,
+        baseline_tuning_json,
         report_md,
         article_md,
         baseline_json,
@@ -337,9 +379,10 @@ def package_release(
             "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 100 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc100.json",
             "python tools/run_safe_neural_horizon_pwm_study.py --quick --mc 500 --steps 120 --out-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json",
             "python tools/build_safe_neural_horizon_pwm_baseline_stress.py --mc 3 --steps 80 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json",
+            "python tools/build_safe_neural_horizon_pwm_baseline_tuning.py --mc 2 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json",
             "python tools/build_safe_neural_horizon_pwm_trace_evidence.py --steps 512 --out-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence",
             "python tools/build_safe_neural_horizon_pwm_twin_evidence.py --out-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence",
-            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json",
+            "python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release --trace-dir .tmp_pytest/safe_neural_horizon_pwm_trace_evidence --twin-dir .tmp_pytest/safe_neural_horizon_pwm_twin_evidence --mc500-json .tmp_pytest/safe_neural_horizon_pwm_study_mc500.json --baseline-stress-json .tmp_pytest/safe_neural_horizon_pwm_baseline_stress.json --baseline-tuning-json .tmp_pytest/safe_neural_horizon_pwm_baseline_tuning.json",
         ],
         "files": [
             {
@@ -358,6 +401,7 @@ def package_release(
             "mc100_smoke_written": mc100_json.exists(),
             "mc500_publication_smoke_written": mc500_json.exists(),
             "baseline_stress_evidence_written": baseline_stress_json.exists(),
+            "baseline_tuning_evidence_written": baseline_tuning_json.exists(),
             "open_items_written": open_items_md.exists(),
             "trace_evidence_written": bool(trace_files),
             "twin_evidence_written": bool(twin_files),
@@ -384,6 +428,7 @@ def main() -> None:
     parser.add_argument("--mc100-json", default="")
     parser.add_argument("--mc500-json", default="")
     parser.add_argument("--baseline-stress-json", default="")
+    parser.add_argument("--baseline-tuning-json", default="")
     parser.add_argument("--trace-dir", default="")
     parser.add_argument("--twin-dir", default="")
     args = parser.parse_args()
@@ -396,6 +441,9 @@ def main() -> None:
         mc500_json=Path(args.mc500_json).expanduser().resolve() if str(args.mc500_json).strip() else None,
         baseline_stress_json=Path(args.baseline_stress_json).expanduser().resolve()
         if str(args.baseline_stress_json).strip()
+        else None,
+        baseline_tuning_json=Path(args.baseline_tuning_json).expanduser().resolve()
+        if str(args.baseline_tuning_json).strip()
         else None,
         trace_dir=Path(args.trace_dir).expanduser().resolve() if str(args.trace_dir).strip() else None,
         twin_dir=Path(args.twin_dir).expanduser().resolve() if str(args.twin_dir).strip() else None,
