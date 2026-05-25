@@ -1,0 +1,32 @@
+{
+  "status": "safe_neural_horizon_pwm_novelty_audit",
+  "host_novelty_claim_supported": true,
+  "allowed_claim": "SNH-PWM is a distinct host-simulated control architecture combining event-triggered twin feedback, neural cost shaping, horizon inverter-vector search, and protected AI-PWM Safety Gateway.",
+  "not_allowed_claims": [
+    "publication-grade superiority over tuned FOC-SVM/FCS-MPC/DTC baselines",
+    "MCU/HIL/bench readiness",
+    "full no-feedback control",
+    "trained neural-twin optimality"
+  ],
+  "checks": {
+    "host_simulation_status": true,
+    "hardware_claim_false": true,
+    "full_tz_scenario_set_present": true,
+    "scenario_count": 31,
+    "safe_variants_present": true,
+    "comparison_controllers_present": true,
+    "ablation_smoke_present": true,
+    "no_shoot_through_gateway_cases": true,
+    "raw_shoot_through_detector_triggered": true,
+    "deadtime_path_detector_triggered": true,
+    "novel_control_tuple_present": true,
+    "first_study_mc_minimum_met": true,
+    "publication_mc_minimum_met": false
+  },
+  "failures": [],
+  "warnings": [
+    "publication-scale MC is not met; current tracked release is host evidence only",
+    "classical baselines are proxy controllers, not final tuned strong baselines",
+    "neural twin is a scaffold, not a trained domain-randomized ensemble"
+  ]
+}

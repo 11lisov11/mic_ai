@@ -134,9 +134,11 @@ Status on `2026-05-22`:
 - host-level proxy baselines exist for FOC-SVM, FCS-MPC, DTC, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC; these are explicitly not final strong baselines
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
+- host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
 - tracked host release package exists: [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release)
 - host-release gate is machine-checkable and currently passes with `host_release_ready = true`, `hardware_ready = false`, `strong_baselines_ready = false`
-- two bugs were found and fixed: pre-step current reporting in the alpha-beta model, and missing flux-building cost that made startup select zero vector
+- novelty claim scope is machine-checkable and currently passes with `host_novelty_claim_supported = true`; this supports only the distinct host-level architecture claim, not tuned-baseline superiority or hardware readiness
+- fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, applied-vs-planned loss accounting, dead-time path detection, and incomplete serial-frame timeout/fallback behavior
 - strong key-level baselines, full robust matrix, final ablation, Pareto, HIL, and bench work are still open
 
 ## Active Rework Plan After 2026-05-09 Audit
@@ -263,6 +265,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add markdown report builder for Safe Neural Horizon PWM JSON outputs.
 - [x] Add tracked Safe Neural Horizon PWM host release package with JSON results, markdown report, article draft, open-items file, and SHA-256 manifest.
 - [x] Add machine-checkable Safe Neural Horizon PWM host-release gate with manifest hash validation.
+- [x] Add machine-checkable Safe Neural Horizon PWM novelty gate that limits the claim to a distinct host-simulated architecture and rejects overclaims.
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Replace proxy FOC-SVM with a tuned key-level FOC-SVM baseline using the same inverter/dead-time/min-pulse/current constraints.

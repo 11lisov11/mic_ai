@@ -31,6 +31,7 @@ REQUIRED_RELEASE_FILES = {
     "safe_neural_horizon_pwm_results.json",
     "safe_neural_horizon_pwm_report.md",
     "safe_neural_horizon_pwm_article_draft.md",
+    "safe_neural_horizon_pwm_novelty_audit.json",
     "WHAT_IS_NOT_DONE.md",
     "figures/safe_neural_horizon_pwm_summary.csv",
     "figures/fig_speed_error_vs_current.svg",
@@ -184,6 +185,17 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     checks["manifest_paths_safe"] = manifest_paths_safe
     if manifest_failures:
         failures.extend(manifest_failures)
+
+    if release_dir is not None:
+        novelty_path = release_dir / "safe_neural_horizon_pwm_novelty_audit.json"
+        if novelty_path.exists():
+            novelty = json.loads(novelty_path.read_text(encoding="utf-8"))
+            checks["novelty_audit_supported"] = bool(novelty.get("host_novelty_claim_supported", False))
+            if not checks["novelty_audit_supported"]:
+                failures.append("novelty audit does not support the host-level novelty claim")
+        else:
+            checks["novelty_audit_supported"] = False
+            failures.append("missing safe_neural_horizon_pwm_novelty_audit.json")
 
     proxy_controllers = sorted(name for name in REQUIRED_CONTROLLERS if name.endswith("_proxy"))
     checks["strong_baselines_ready"] = False

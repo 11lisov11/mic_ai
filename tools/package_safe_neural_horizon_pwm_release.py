@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.build_safe_neural_horizon_pwm_figures import build_figures
 from tools.check_safe_neural_horizon_pwm_release import analyze_release
+from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
 
 
 def _sha256(path: Path) -> str:
@@ -49,9 +50,27 @@ def _article_draft(payload: Dict[str, Any]) -> str:
     lines.append("- Alpha-beta induction-motor model with parameter randomization hooks.")
     lines.append("- Two-level inverter model with legal vector set, dead-time proxy, loss proxy, and common-mode proxy.")
     lines.append("- Safety Gateway that prevents direct AI access to raw high/low gate commands.")
-    lines.append("- Host-tested no-shoot-through timing waveform invariant for vector transitions.")
+    lines.append("- Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.")
     lines.append("- Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.")
     lines.append("- Scenario matrix, ablation smoke, Pareto extraction, and fault-injection summary.")
+    lines.append("")
+    lines.append("## Novelty Claim Scope")
+    lines.append("")
+    lines.append(
+        "The host-level novelty claim is architectural, not a hardware or universal-superiority claim: SNH-PWM combines "
+        "event-triggered twin feedback, neural cost shaping, finite-horizon inverter-vector search, and a protected "
+        "AI-PWM Safety Gateway into one control law."
+    )
+    lines.append("")
+    lines.append(
+        "Compared with classical FOC-SVM, the controller does not synthesize continuous voltage references and then apply "
+        "SVM; it searches legal inverter vectors directly under feedback/switching/risk costs. Compared with one-step "
+        "FCS-MPC, it adds neural cost shaping, event-triggered feedback economy, and a mandatory gate-safety layer. "
+        "Compared with the prior protected AI-PWM H1 model, it adds horizon search, twin uncertainty, and explicit "
+        "feedback-usage optimization."
+    )
+    lines.append("")
+    lines.append("The tracked release therefore supports only this claim: a distinct host-simulated control architecture exists and is machine-checked against the current host evidence.")
     lines.append("")
     lines.append("## Method")
     lines.append("")
@@ -77,6 +96,8 @@ def _article_draft(payload: Dict[str, Any]) -> str:
         lines.append("Fault-injection result:")
         lines.append(f"- all_gateway_cases_no_shoot_through: `{bool(fault.get('all_gateway_cases_no_shoot_through', False))}`")
         lines.append(f"- raw_shoot_through_detector_triggered: `{bool(fault.get('raw_shoot_through_detector_triggered', False))}`")
+        no_deadtime = dict(dict(fault.get("cases", {})).get("no_deadtime_transition_emulation", {}))
+        lines.append(f"- deadtime_transition_detector_triggered: `{bool(no_deadtime.get('blocked_by_gateway_deadtime_path', False))}`")
         lines.append("")
     lines.append("## Preliminary Findings")
     lines.append("")
@@ -129,17 +150,19 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
     shutil.copyfile(input_json, copied_json)
     report_md = out_dir / "safe_neural_horizon_pwm_report.md"
     article_md = out_dir / "safe_neural_horizon_pwm_article_draft.md"
+    novelty_json = out_dir / "safe_neural_horizon_pwm_novelty_audit.json"
     open_items_md = out_dir / "WHAT_IS_NOT_DONE.md"
     acceptance_json = out_dir / "HOST_ACCEPTANCE_SUMMARY.json"
 
     _write(report_md, build_report(payload))
     _write(article_md, _article_draft(payload))
+    _write(novelty_json, json.dumps(analyze_novelty(copied_json), ensure_ascii=False, indent=2) + "\n")
     _write(open_items_md, _open_items())
     figure_files = build_figures(copied_json, out_dir / "figures")
 
     # Do not include HOST_ACCEPTANCE_SUMMARY.json in the manifest hash list: it is
     # generated after the manifest so it can validate the manifest itself.
-    files = [copied_json, report_md, article_md, open_items_md, *figure_files]
+    files = [copied_json, report_md, article_md, novelty_json, open_items_md, *figure_files]
     manifest = {
         "tag": tag,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -161,6 +184,7 @@ def package_release(input_json: Path, out_dir: Path, tag: str) -> Dict[str, Any]
         "acceptance": {
             "report_written": report_md.exists(),
             "article_draft_written": article_md.exists(),
+            "novelty_audit_written": novelty_json.exists(),
             "open_items_written": open_items_md.exists(),
             "acceptance_summary_written": True,
             "host_release_ready": False,

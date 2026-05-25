@@ -35,12 +35,12 @@ Hardware-productization status as of `2026-05-20`:
 - The Delta MS300 path is repo-side ready for safe Modbus RTU self-check, read-only telemetry, guarded frequency writes, guarded run/stop, CSV logging, and staged bring-up.
 - With a commercial VFD, MIC/AI cannot directly command the researched `id_ref` actuator; the MS300 owns fast current/vector loops, so this path is a slow supervisory frequency/profile layer until deeper drive-side controls are proven.
 
-New theory branch status as of `2026-05-22`:
+New theory branch status as of `2026-05-25`:
 
 - `Safe Neural Horizon PWM with Event-Triggered Twin Feedback` is implemented as a host-level research scaffold.
-- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, and MC=100 smoke.
-- Current claim is deliberately limited: `HOST_SIMULATION_ONLY`, no MCU/HIL/bench proof.
-- First findings are recorded in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md), including two fixed modeling/control bugs.
+- It adds an alpha-beta induction-motor model, two-level inverter vector model, protected AI-PWM Safety Gateway, neural-horizon controller, neural twin/event-feedback scaffold, tests, MC=100 smoke, and a tracked 31-scenario host matrix.
+- Current novelty claim is deliberately limited and machine-checkable: a distinct host-simulated architecture exists; there is still no claim of tuned-baseline superiority, MCU/HIL readiness, or bench proof.
+- First findings are recorded in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md), including fixed modeling/control, release-discipline, dead-time-path, and fallback/loss-accounting bugs.
 
 Historical milestone kept for provenance:
 
@@ -112,6 +112,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [build_safe_neural_horizon_pwm_report.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_report.py): builds a markdown report from Safe Neural Horizon PWM JSON results
 - [build_safe_neural_horizon_pwm_figures.py](C:/mic_theory/tools/build_safe_neural_horizon_pwm_figures.py): builds aggregate SVG/CSV figures from Safe Neural Horizon PWM JSON results
 - [check_safe_neural_horizon_pwm_release.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_release.py): validates the host-release evidence and SHA-256 manifest
+- [check_safe_neural_horizon_pwm_novelty.py](C:/mic_theory/tools/check_safe_neural_horizon_pwm_novelty.py): audits the allowed host-level novelty claim and explicitly rejects overclaims
 - [package_safe_neural_horizon_pwm_release.py](C:/mic_theory/tools/package_safe_neural_horizon_pwm_release.py): packages Safe Neural Horizon PWM host-simulation release evidence
 - [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md): current theory report, limitations, and next work
 - [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release): tracked Safe Neural Horizon PWM host-level release package
@@ -166,6 +167,7 @@ Run the host-level scenario/ablation/Pareto matrix for the new research track:
 python tools/run_safe_neural_horizon_pwm_study.py --matrix --mc 3 --steps 60 --out-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json
 python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest/safe_neural_horizon_pwm_full_host_matrix_mc3.json --out-dir paper/safe_neural_horizon_pwm_2026/20260522_host_release --tag 20260522_safe_neural_horizon_pwm_host_release
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 ```
 
 Run a read-only Delta MS300 check after wiring an isolated USB-RS485 adapter and

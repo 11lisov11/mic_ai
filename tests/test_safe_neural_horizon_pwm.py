@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from pathlib import Path
 
 from config.env import create_default_env
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
@@ -27,6 +28,7 @@ from tools.run_safe_neural_horizon_pwm_study import pareto_front, run_fault_inje
 from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
 from tools.check_safe_neural_horizon_pwm_release import analyze_release
+from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
 from tools.build_safe_neural_horizon_pwm_figures import build_figures
 
 
@@ -339,6 +341,14 @@ def test_check_safe_neural_horizon_pwm_release_and_figures(tmp_path) -> None:
     files = build_figures(input_json, tmp_path / "figures")
     assert len(files) == 4
     assert all(path.exists() for path in files)
+
+
+def test_safe_neural_horizon_pwm_tracked_release_supports_host_novelty_claim() -> None:
+    release_dir = Path("paper/safe_neural_horizon_pwm_2026/20260522_host_release")
+    audit = analyze_novelty(release_dir)
+    assert audit["host_novelty_claim_supported"] is True
+    assert audit["checks"]["deadtime_path_detector_triggered"] is True
+    assert "MCU/HIL/bench readiness" in audit["not_allowed_claims"]
 
 
 def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> None:

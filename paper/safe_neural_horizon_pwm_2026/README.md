@@ -13,6 +13,7 @@ Status:
 - `HOST_SIMULATION_ONLY`
 - `hardware_claim = false`
 - `host_release_ready = true`
+- `host_novelty_claim_supported = true`
 - `hardware_ready = false`
 - `strong_baselines_ready = false`
 
@@ -23,4 +24,5 @@ Release gate:
 
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 ```

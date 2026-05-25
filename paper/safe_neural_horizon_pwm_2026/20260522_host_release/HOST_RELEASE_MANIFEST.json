@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-23T10:03:38.602194+00:00",
+  "generated_utc": "2026-05-25T06:14:09.482129+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -21,8 +21,13 @@
     },
     {
       "path": "safe_neural_horizon_pwm_article_draft.md",
-      "bytes": 3313,
-      "sha256": "a7f94f6e008069b4bd03b7804086fcb75c8b8e12e52a643e80f567ad0068aae8"
+      "bytes": 4315,
+      "sha256": "e52f26f19ee2afbb0f9e469aa2731650a77c34f61f71310bf86aa8eedebfc936"
+    },
+    {
+      "path": "safe_neural_horizon_pwm_novelty_audit.json",
+      "bytes": 1363,
+      "sha256": "3f44795e19800022356ec242c23115e852f66cf6f48117633ff45702e75eb478"
     },
     {
       "path": "WHAT_IS_NOT_DONE.md",
@@ -53,6 +58,7 @@
   "acceptance": {
     "report_written": true,
     "article_draft_written": true,
+    "novelty_audit_written": true,
     "open_items_written": true,
     "acceptance_summary_written": true,
     "host_release_ready": true,

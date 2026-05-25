@@ -9,9 +9,17 @@ This draft describes a host-simulated induction-motor control variant that combi
 - Alpha-beta induction-motor model with parameter randomization hooks.
 - Two-level inverter model with legal vector set, dead-time proxy, loss proxy, and common-mode proxy.
 - Safety Gateway that prevents direct AI access to raw high/low gate commands.
-- Host-tested no-shoot-through timing waveform invariant for vector transitions.
+- Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.
 - Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.
 - Scenario matrix, ablation smoke, Pareto extraction, and fault-injection summary.
+
+## Novelty Claim Scope
+
+The host-level novelty claim is architectural, not a hardware or universal-superiority claim: SNH-PWM combines event-triggered twin feedback, neural cost shaping, finite-horizon inverter-vector search, and a protected AI-PWM Safety Gateway into one control law.
+
+Compared with classical FOC-SVM, the controller does not synthesize continuous voltage references and then apply SVM; it searches legal inverter vectors directly under feedback/switching/risk costs. Compared with one-step FCS-MPC, it adds neural cost shaping, event-triggered feedback economy, and a mandatory gate-safety layer. Compared with the prior protected AI-PWM H1 model, it adds horizon search, twin uncertainty, and explicit feedback-usage optimization.
+
+The tracked release therefore supports only this claim: a distinct host-simulated control architecture exists and is machine-checked against the current host evidence.
 
 ## Method
 
@@ -63,6 +71,7 @@ Scenario list:
 Fault-injection result:
 - all_gateway_cases_no_shoot_through: `True`
 - raw_shoot_through_detector_triggered: `True`
+- deadtime_transition_detector_triggered: `True`
 
 ## Preliminary Findings
 

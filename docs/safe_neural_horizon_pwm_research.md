@@ -1,6 +1,6 @@
 # Safe Neural Horizon PWM Research Track
 
-Date: `2026-05-22`
+Date: `2026-05-25`
 Status: `HOST_SIMULATION_ONLY`
 Hardware claim: `false`
 
@@ -28,6 +28,35 @@ The testable hypothesis is narrower:
 - The AI layer must never command raw low-side gates. It may only request one of eight legal inverter vectors.
 - A Safety Gateway must be able to reject unsafe vector requests, enforce dead-time/min-pulse/current/confidence limits, and keep the no-shoot-through invariant true for every generated gate waveform.
 - Full no-feedback control is not claimed; the target is event-triggered/almost-feedbackless control with fallback when uncertainty grows.
+
+## Novelty Claim
+
+The current host-level novelty claim is precise:
+
+`SNH-PWM` is a distinct control architecture that combines:
+
+- event-triggered neural-twin feedback;
+- deterministic neural cost shaping;
+- finite-horizon legal inverter-vector search;
+- feedback/switching/risk costs inside the vector-selection objective;
+- a Safety Gateway that enforces both no-shoot-through and no-direct-HIGH-to-LOW transition paths.
+
+This is not just a neural replacement for a PI loop:
+
+- compared with FOC-SVM, SNH-PWM does not first synthesize continuous `v_d/v_q` references and then run SVM; it searches legal inverter vectors directly;
+- compared with one-step FCS-MPC, SNH-PWM adds neural cost shaping, event-triggered feedback economy, and a mandatory protected AI-PWM gateway;
+- compared with the earlier protected AI-PWM H1 variant, SNH-PWM adds horizon search, twin uncertainty, ablation variants, and explicit feedback-usage optimization.
+
+Allowed claim from the tracked evidence:
+
+- a new host-simulated control architecture exists and is machine-checkable.
+
+Not allowed yet:
+
+- publication-grade superiority over tuned FOC-SVM/FCS-MPC/DTC baselines;
+- MCU/HIL/bench readiness;
+- full no-feedback control;
+- trained neural-twin optimality.
 
 ## Architecture
 
@@ -197,6 +226,20 @@ not (BH and BL)
 not (CH and CL)
 ```
 
+The tested timing-path invariant is:
+
+```text
+HIGH_ON -> BOTH_OFF -> LOW_ON
+LOW_ON  -> BOTH_OFF -> HIGH_ON
+```
+
+Direct adjacent transitions are rejected by the host detector:
+
+```text
+HIGH_ON -> LOW_ON
+LOW_ON  -> HIGH_ON
+```
+
 Host-level test:
 
 ```bash
@@ -206,7 +249,7 @@ python -m pytest -q tests/test_safe_neural_horizon_pwm.py
 Current result:
 
 ```text
-14 passed
+20 passed
 ```
 
 The test file includes:
@@ -222,6 +265,7 @@ The test file includes:
 - H=4 bounded sequence-selection smoke
 - matrix, Pareto, fault-summary, and markdown-report builder smoke
 - host-release packager smoke
+- release-novelty audit smoke
 
 ## AI Controller And AI-PWM
 
@@ -259,6 +303,9 @@ Important bug found and fixed during this implementation:
 - First version returned pre-step currents from the alpha-beta model, so the smoke showed zero current and zero switching. This made the comparison meaningless.
 - First version had no flux-building objective; at zero initial flux all torque candidates looked similar and the optimizer selected zero vector. This is a real induction-motor control pitfall.
 - The current version adds a flux objective and zero-vector penalty during low-flux startup.
+- The Safety Gateway originally checked only shoot-through states, not direct HIGH-to-LOW timing-path violations. The current version adds `has_direct_leg_transition()` and `DEADTIME_FAULT` checks.
+- Controller thermal/loss metrics originally used the planned sequence before Safety Gateway fallback. The current version reports applied losses/switching after the gateway decision.
+- The release checker originally trusted whatever files were listed in the manifest. The current version requires all essential release artifacts and rejects unsafe manifest paths.
 
 ## Neural Twin And Event Feedback
 
@@ -407,6 +454,7 @@ Host-release gate:
 
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 ```
 
 Current host-release result:
@@ -415,6 +463,7 @@ Current host-release result:
 host_release_ready = true
 hardware_ready = false
 strong_baselines_ready = false
+host_novelty_claim_supported = true
 ```
 
 Observed pattern in the host matrix:
@@ -423,7 +472,7 @@ Observed pattern in the host matrix:
 - `fcs_mpc_one_step_proxy` generally keeps current low but switches more frequently and uses dense feedback.
 - `foc_svm_key_proxy` is a useful conservative proxy with lower switching, but it is not a full tuned FOC-SVM implementation.
 - `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
-- Fault-injection summary reports `all_gateway_cases_no_shoot_through = true` and the raw shoot-through detector triggers on deliberately illegal raw gate emulation.
+- Fault-injection summary reports `all_gateway_cases_no_shoot_through = true`; the raw shoot-through detector triggers on deliberately illegal raw gate emulation; the dead-time path detector distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths.
 
 Report builder:
 
@@ -444,26 +493,26 @@ Required next baselines:
 - replace `sensorless_adaptive_foc_proxy` with MRAS/EKF/adaptive FOC
 - current protected AI-PWM release model
 
-## Required Robust Tests Still Open
+## Robust Tests Status
 
-Not finished:
+Host-level matrix now covers the full 30-scenario TZ set plus one explicit `sensor_dropout` stress case:
 
-- long nominal scenarios
-- start with load
-- load throw/shed
-- reverse
-- braking/regeneration
-- low speed and zero speed
-- field weakening
-- DC-link sag
-- motor/inverter heating
-- sensor noise/delay/failure
-- one-current-sensor fault
-- OOD/fault injection matrix
-- H=3/H=4 full comparison
-- thermal and spectral ablations
-- Pareto front generation
-- publication-grade plots
+- start/no-load, start/load, ramp, load throw/shed, reverse, braking, regeneration;
+- low speed, zero speed, field weakening, overload, DC-link sag;
+- motor heating, inverter heating, Rs/Rr/Lm/J errors;
+- random, periodic, and shock load;
+- two-mass proxy;
+- current/speed sensor noise, sensor delay, speed sensor failure, current sensor failure;
+- OOD, runtime fault injection, and sensor dropout.
+
+Still not publication-grade:
+
+- long-duration traces with FFT/THD;
+- tuned strong classical baselines;
+- publication-scale MC `N=500..1000`;
+- full thermal/spectral ablations;
+- final Pareto fronts after replacing proxy baselines;
+- MCU/HIL/bench timing evidence.
 
 ## MCU/HIL/Bench Status
 
@@ -498,9 +547,11 @@ What is shown:
 - two-level inverter vector model exists
 - Safety Gateway exists
 - no-shoot-through waveform invariant is host-tested
+- no-direct-HIGH-to-LOW transition-path invariant is host-tested
 - horizon AI-PWM controller exists
 - neural twin and event feedback scaffold exists
 - MC=100 smoke runs without safety waveform violations for the new H=2 variant
+- tracked novelty audit supports only the host-level distinct-architecture claim
 
 What is not shown:
 
