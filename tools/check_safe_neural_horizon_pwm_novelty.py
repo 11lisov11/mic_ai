@@ -24,7 +24,7 @@ COMPARISON_CONTROLLERS = {
     "foc_svm_key_baseline",
     "dtc_hysteresis_baseline",
     "dtc_svm_baseline",
-    "deadbeat_current_proxy",
+    "deadbeat_current_baseline",
     "sensorless_adaptive_foc_proxy",
 }
 ABLATION_KEYS = {
@@ -116,7 +116,7 @@ def analyze_novelty(path: Path) -> Dict[str, Any]:
     if not checks["publication_mc_minimum_met"]:
         warnings.append("publication-scale MC is not met; current tracked release is host evidence only")
 
-    warnings.append("FOC-SVM, FCS-MPC, DTC hysteresis, and DTC-SVM are separate host baselines; remaining classical baselines are still proxy controllers")
+    warnings.append("FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, and deadbeat current control are separate host baselines; remaining classical baselines are still proxy controllers")
     warnings.append("neural twin is a scaffold, not a trained domain-randomized ensemble")
 
     host_novelty_claim_supported = not failures

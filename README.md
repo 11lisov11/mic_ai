@@ -108,6 +108,7 @@ The promoted `AL31` checkpoint is under ignored `outputs/` by design. The tracke
 - [induction_motor_alpha_beta.py](C:/mic_theory/models/induction_motor_alpha_beta.py): alpha-beta induction motor model for the new Safety Neural Horizon PWM research track
 - [two_level_inverter.py](C:/mic_theory/models/two_level_inverter.py): key-level two-level inverter vector model
 - [ai_pwm_gateway.py](C:/mic_theory/safety/ai_pwm_gateway.py): protected AI-PWM Safety Gateway and no-shoot-through waveform helpers
+- [deadbeat_current_baseline.py](C:/mic_theory/control/deadbeat_current_baseline.py): host deadbeat predictive current-control baseline with Safety Gateway protection
 - [dtc_baseline.py](C:/mic_theory/control/dtc_baseline.py): host DTC hysteresis comparison baseline over legal inverter vectors with Safety Gateway protection
 - [dtc_svm_baseline.py](C:/mic_theory/control/dtc_svm_baseline.py): host DTC-SVM comparison baseline with torque/flux voltage synthesis and Safety Gateway protection
 - [fcs_mpc_baseline.py](C:/mic_theory/control/fcs_mpc_baseline.py): host one-step FCS-MPC comparison baseline over legal inverter vectors with Safety Gateway protection

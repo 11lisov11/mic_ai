@@ -76,6 +76,7 @@ def _scatter_svg(rows: list[dict[str, Any]], x_key: str, y_key: str, title: str,
         "foc_svm_key_baseline": "#444444",
         "dtc_hysteresis_baseline": "#a23b72",
         "dtc_svm_baseline": "#d55e00",
+        "deadbeat_current_baseline": "#007f7f",
     }
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',

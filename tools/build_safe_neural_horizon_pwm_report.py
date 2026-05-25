@@ -154,7 +154,7 @@ def build_report(payload: Dict[str, Any]) -> str:
     lines.append("## Honest Status")
     lines.append("")
     lines.append("- Shown: host-level vector safety, scenario smoke, ablation smoke, Pareto extraction.")
-    lines.append("- Not shown: publication-tuned FOC-SVM/DTC-SVM strength, trained neural twin, MCU timing, HIL, or bench safety.")
+    lines.append("- Not shown: publication-tuned FOC-SVM/DTC-SVM/deadbeat strength, trained neural twin, MCU timing, HIL, or bench safety.")
     lines.append("")
     return "\n".join(lines)
 

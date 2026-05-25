@@ -25,14 +25,14 @@
     "fcs_mpc_one_step_baseline_ready": true,
     "dtc_hysteresis_baseline_ready": true,
     "dtc_svm_baseline_ready": true,
+    "deadbeat_current_baseline_ready": true,
     "strong_baselines_ready": false
   },
   "failures": [],
   "warnings": [
-    "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, and DTC-SVM are host baselines, but deadbeat/sensorless entries are still proxy controllers"
+    "strong baselines are not complete; FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, and deadbeat current control are host baselines, but sensorless entries are still proxy controllers"
   ],
   "proxy_controllers": [
-    "deadbeat_current_proxy",
     "protected_ai_pwm_h1_proxy",
     "sensorless_adaptive_foc_proxy"
   ]

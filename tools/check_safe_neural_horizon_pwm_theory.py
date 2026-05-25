@@ -254,6 +254,10 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         ROOT / "control" / "dtc_svm_baseline.py",
         ["DtcSvmBaselineController", "_voltage_reference", "_select_svm_vector", "torque_error", "flux_error"],
     ) and comparison_matrix
+    deadbeat_current_baseline_ready = _source_contains(
+        ROOT / "control" / "deadbeat_current_baseline.py",
+        ["DeadbeatCurrentBaselineController", "_deadbeat_voltage_ref", "_select_vector", "candidate_current_error"],
+    ) and comparison_matrix
     trained_twin_ready = False
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
     publication_plots_ready = False
@@ -261,13 +265,14 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     checks["fcs_mpc_one_step_baseline_ready"] = fcs_mpc_one_step_baseline_ready
     checks["dtc_hysteresis_baseline_ready"] = dtc_hysteresis_baseline_ready
     checks["dtc_svm_baseline_ready"] = dtc_svm_baseline_ready
+    checks["deadbeat_current_baseline_ready"] = deadbeat_current_baseline_ready
     checks["strong_baselines_ready"] = strong_baselines_ready
     checks["trained_domain_randomized_twin_ready"] = trained_twin_ready
     checks["publication_mc500_ready"] = publication_mc_ready
     checks["publication_plots_fft_thd_ready"] = publication_plots_ready
     warnings.extend(
         [
-            "FOC-SVM, one-step FCS-MPC, DTC hysteresis, and DTC-SVM have separate host baselines, but deadbeat/sensorless remain proxy implementations",
+            "FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, and deadbeat current control have separate host baselines, but sensorless remains a proxy implementation",
             "neural twin is still a scaffold, not a trained domain-randomized model",
             "publication-scale MC and FFT/THD trace package are still open",
         ]

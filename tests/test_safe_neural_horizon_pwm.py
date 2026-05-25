@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 
 from config.env import create_default_env
+from control.deadbeat_current_baseline import DeadbeatCurrentBaselineConfig, DeadbeatCurrentBaselineController
 from control.dtc_baseline import DtcHysteresisBaselineConfig, DtcHysteresisBaselineController
 from control.dtc_svm_baseline import DtcSvmBaselineConfig, DtcSvmBaselineController
 from control.fcs_mpc_baseline import FcsMpcOneStepBaselineConfig, FcsMpcOneStepBaselineController
@@ -304,6 +305,40 @@ def test_dtc_svm_baseline_selects_legal_vector() -> None:
     assert math.isfinite(result.metrics["flux_error"])
 
 
+def test_deadbeat_current_baseline_selects_legal_vector() -> None:
+    params = _motor_params()
+    inverter = _inverter_params()
+    limits = GatewayLimits(
+        t_pwm_s=inverter.t_pwm_s,
+        dead_time_s=inverter.dead_time_s,
+        min_pulse_s=inverter.min_pulse_s,
+        i_soft_a=20.0,
+        i_trip_a=25.0,
+        vdc_min_v=40.0,
+        vdc_max_v=500.0,
+        confidence_min=0.3,
+        risk_max=2.0,
+    )
+    controller = DeadbeatCurrentBaselineController(
+        params,
+        inverter,
+        AIPwmSafetyGateway(limits),
+        DeadbeatCurrentBaselineConfig(dt_s=inverter.t_pwm_s),
+    )
+    result = controller.step(
+        omega_ref=40.0,
+        load_torque_nm=0.1,
+        measured_state=AlphaBetaMotorState(),
+        measured_i_abs=0.0,
+        vdc=inverter.Vdc,
+    )
+    assert 0 <= result.vector_id <= 7
+    assert result.decision.gates.shoot_through is False
+    assert math.isfinite(result.metrics["v_alpha_deadbeat"])
+    assert math.isfinite(result.metrics["v_beta_deadbeat"])
+    assert math.isfinite(result.metrics["candidate_current_error"])
+
+
 def test_controller_h4_sequence_selection_is_bounded() -> None:
     motor = _motor_params()
     inverter = _inverter_params()
@@ -410,6 +445,7 @@ def test_safe_neural_horizon_pwm_matrix_smoke() -> None:
     assert "foc_svm_key_baseline" in scenario
     assert "dtc_hysteresis_baseline" in scenario
     assert "dtc_svm_baseline" in scenario
+    assert "deadbeat_current_baseline" in scenario
     assert "safe_neural_horizon_pwm_h2" in scenario
     assert scenario["safe_neural_horizon_pwm_h2"]["safety_violations"]["worst"] == 0.0
     assert payload["ablation"]["pareto_front"]
@@ -511,6 +547,7 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert audit["checks"]["fcs_mpc_one_step_baseline_ready"] is True
     assert audit["checks"]["dtc_hysteresis_baseline_ready"] is True
     assert audit["checks"]["dtc_svm_baseline_ready"] is True
+    assert audit["checks"]["deadbeat_current_baseline_ready"] is True
     assert audit["checks"]["strong_baselines_ready"] is False
 
 
