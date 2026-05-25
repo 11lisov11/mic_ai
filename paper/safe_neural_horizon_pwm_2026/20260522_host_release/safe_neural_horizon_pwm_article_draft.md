@@ -14,7 +14,7 @@ This draft describes a host-simulated induction-motor control variant that combi
 - Domain-randomized theta-conditioned twin identification evidence with multi-step rollout losses.
 - Bounded parameter-sweep tuning evidence for all named host comparison baselines.
 - Scenario matrix, ablation smoke, Pareto extraction, fault-injection summary, and host trace/FFT evidence package.
-- Machine-checkable release, novelty, and theory-completion audits.
+- Machine-checkable release, algorithm-identity, novelty, and theory-completion audits.
 
 ## Novelty Claim Scope
 

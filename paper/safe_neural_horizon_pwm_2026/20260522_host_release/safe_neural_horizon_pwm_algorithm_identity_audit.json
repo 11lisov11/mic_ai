@@ -1,0 +1,144 @@
+{
+  "status": "safe_neural_horizon_pwm_algorithm_identity_audit",
+  "hardware_claim": false,
+  "new_algorithm_identity_supported": true,
+  "algorithm_name": "Safe Neural Horizon PWM with Event-Triggered Twin Feedback",
+  "algorithm_identity_tuple": [
+    "finite-horizon legal inverter-vector search",
+    "deterministic neural cost shaping",
+    "event-triggered neural-twin feedback and confidence",
+    "protected AI-PWM Safety Gateway with no raw low-side gate access",
+    "multiobjective cost: tracking/current/switching/loss/thermal/ripple/feedback/risk"
+  ],
+  "claim_scope": {
+    "allowed": "distinct host-simulated control-law identity",
+    "not_allowed": [
+      "MCU/HIL/bench readiness",
+      "universal superiority over industrial controllers",
+      "full no-feedback operation under unknown load and drift"
+    ]
+  },
+  "checks": {
+    "host_scope": true,
+    "hardware_claim_false": true,
+    "scenario_count": 31,
+    "all_required_controller_rows_present": true,
+    "baseline_artifact_present": true,
+    "twin_artifact_present": true,
+    "trace_artifact_present": true,
+    "tuning_artifact_present": true,
+    "strong_baselines_ready": true,
+    "baseline_tuning_ready": true,
+    "twin_evidence_ready": true,
+    "trace_evidence_ready": true
+  },
+  "essential_features": {
+    "legal_vector_horizon_search": {
+      "source_file": "control\\safe_neural_horizon_pwm.py",
+      "ready": true,
+      "missing_markers": [],
+      "why_it_matters": "SNH-PWM optimizes finite sequences of legal inverter vectors instead of a continuous voltage reference."
+    },
+    "neural_cost_shaping": {
+      "source_file": "control\\safe_neural_horizon_pwm.py",
+      "ready": true,
+      "missing_markers": [],
+      "why_it_matters": "The neural layer shapes the MPC-like cost, rather than replacing only a PI loop."
+    },
+    "event_triggered_twin_feedback": {
+      "source_file": "control\\safe_neural_horizon_pwm.py",
+      "ready": true,
+      "missing_markers": [],
+      "why_it_matters": "The control loop explicitly trades feedback usage against model uncertainty and residuals."
+    },
+    "protected_ai_pwm_gateway": {
+      "source_file": "safety\\ai_pwm_gateway.py",
+      "ready": true,
+      "missing_markers": [],
+      "why_it_matters": "The AI can request only legal vector IDs; raw high/low gate access remains outside the AI interface."
+    },
+    "multiobjective_drive_cost": {
+      "source_file": "control\\safe_neural_horizon_pwm.py",
+      "ready": true,
+      "missing_markers": [],
+      "why_it_matters": "The objective jointly covers tracking, current stress, switching/loss/thermal/ripple, feedback economy, and risk."
+    }
+  },
+  "baseline_distinction_matrix": {
+    "deadbeat_current_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "multiobjective neural cost shaping",
+        "event-triggered twin feedback",
+        "horizon sequence objective"
+      ],
+      "snh_distinction": "Deadbeat control targets one-step current matching; SNH-PWM optimizes a broader multiobjective drive cost.",
+      "ready": true
+    },
+    "dtc_hysteresis_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "neural cost shaping",
+        "finite-horizon sequence optimization",
+        "event-triggered twin feedback"
+      ],
+      "snh_distinction": "DTC hysteresis follows torque/flux comparator commands; SNH-PWM optimizes predicted vector sequences under risk and feedback costs.",
+      "ready": true
+    },
+    "dtc_svm_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "direct horizon vector search",
+        "neural cost shaping",
+        "feedback-economy objective"
+      ],
+      "snh_distinction": "DTC-SVM synthesizes a torque/flux voltage reference; SNH-PWM optimizes legal vector sequences directly.",
+      "ready": true
+    },
+    "fcs_mpc_one_step_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "horizon H>1",
+        "neural cost shaping",
+        "feedback-economy objective",
+        "twin residual confidence"
+      ],
+      "snh_distinction": "One-step FCS-MPC predicts legal vectors for one tick; SNH-PWM adds horizon search, neural shaping, and event feedback.",
+      "ready": true
+    },
+    "foc_svm_key_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "direct finite-horizon legal-vector search",
+        "neural cost shaping",
+        "event-triggered twin feedback"
+      ],
+      "snh_distinction": "FOC-SVM synthesizes dq voltage references and then selects an SVM-like vector; SNH-PWM searches vector sequences directly.",
+      "ready": true
+    },
+    "protected_ai_pwm_h1_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "finite horizon H>1",
+        "H2/H3/H4 comparison",
+        "explicit horizon-search novelty over the prior H1 architecture"
+      ],
+      "snh_distinction": "SNH-PWM generalizes the prior protected one-step AI-PWM into a horizon controller with event/twin/risk costs.",
+      "ready": true
+    },
+    "sensorless_adaptive_foc_baseline": {
+      "comparison_present": true,
+      "missing_snh_features": [
+        "AI-PWM horizon vector search",
+        "neural cost shaping",
+        "protected vector-sequence objective"
+      ],
+      "snh_distinction": "Sensorless/adaptive FOC estimates speed/Rs for classical FOC; SNH-PWM uses twin uncertainty inside vector-sequence selection.",
+      "ready": true
+    }
+  },
+  "failures": [],
+  "warnings": [
+    "This proves a distinct host-simulated control-law identity, not MCU/HIL/bench readiness or universal superiority."
+  ]
+}

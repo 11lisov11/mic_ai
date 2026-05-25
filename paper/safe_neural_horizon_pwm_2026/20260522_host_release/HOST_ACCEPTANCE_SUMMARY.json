@@ -18,6 +18,7 @@
     "required_release_files_present": true,
     "manifest_paths_safe": true,
     "acceptance_summary_present": true,
+    "algorithm_identity_supported": true,
     "novelty_audit_supported": true,
     "baseline_strength_audit_ready": true,
     "baseline_stress_evidence_ready": true,

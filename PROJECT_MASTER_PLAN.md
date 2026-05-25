@@ -32,6 +32,7 @@ Hardware-productization is now tracked separately:
 - A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
 - New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, MC=100 smoke, MC=500 host evidence, host trace/FFT package, and bounded baseline stress/tuning evidence are implemented.
 - New branch machine-checkable host-theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = true`.
+- New branch machine-checkable algorithm-identity status: `new_algorithm_identity_supported = true`.
 - New branch machine-checkable baseline status: `host_baseline_scaffold_ready = true`, `baseline_stress_evidence_ready = true`, `baseline_tuning_evidence_ready = true`, `publication_strong_baselines_ready = true`.
 - New branch machine-checkable twin status: `trained_domain_randomized_twin_ready = true` for theta-conditioned host evidence only; production online identification remains open.
 - New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
@@ -136,6 +137,7 @@ Status on `2026-05-22`:
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
 - host-level comparison baselines exist; the prior protected AI-PWM H1 model is now a separate named one-step protected baseline, FOC-SVM is now a separate key-level PI/current/SVM baseline, FCS-MPC is now a separate one-step predictive current/torque/flux baseline, DTC hysteresis is now a separate torque/flux hysteresis baseline, DTC-SVM is now a separate torque/flux voltage-reference/SVM baseline, deadbeat current control is now a separate predictive current baseline, and sensorless/adaptive FOC is now a separate MRAS-like observer/Rs-adaptive FOC baseline
 - comparison-baseline strength is now machine-checkable with `safe_neural_horizon_pwm_baseline_strength_audit.json`: every named baseline has source markers, 31-scenario matrix coverage, zero safety violations, zero unexpected failures, Pareto participation, bounded MC=3 stress evidence, and bounded MC=2 parameter-sweep tuning evidence
+- algorithm identity is now machine-checkable with `safe_neural_horizon_pwm_algorithm_identity_audit.json`: SNH-PWM is identified by finite-horizon legal-vector search, deterministic neural cost shaping, event-triggered neural-twin feedback/confidence, protected AI-PWM gateway, and multiobjective drive cost
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
@@ -279,6 +281,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add machine-checkable Safe Neural Horizon PWM host-release gate with manifest hash validation.
 - [x] Add machine-checkable Safe Neural Horizon PWM novelty gate that limits the claim to a distinct host-simulated architecture and rejects overclaims.
 - [x] Add machine-checkable Safe Neural Horizon PWM theory-completion audit that separates `host_theory_scaffold_ready` from `publication_theory_complete`.
+- [x] Add machine-checkable Safe Neural Horizon PWM algorithm-identity audit that proves the host-level control-law identity is distinct from FOC-SVM, FCS-MPC, DTC/DTC-SVM, deadbeat, sensorless/adaptive FOC, and prior protected H1.
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Add host trace/FFT/THD-like evidence package with time-series CSV, speed trace SVG, spectral SVG, and machine-checkable theory gate.
 - [x] Add domain-randomized theta-conditioned twin evidence with multi-step rollout losses and machine-checkable theory gate.

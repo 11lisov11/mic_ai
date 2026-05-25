@@ -21,12 +21,12 @@
     "deadtime_path_detector_triggered": true,
     "novel_control_tuple_present": true,
     "first_study_mc_minimum_met": true,
-    "publication_mc_minimum_met": false
+    "publication_mc_minimum_met": true,
+    "algorithm_identity_supported": true
   },
   "failures": [],
   "warnings": [
-    "publication-scale MC is not met; current tracked release is host evidence only",
-    "FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are separate host baselines; they are not final publication-tuned",
+    "FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are separate host baselines with bounded tuning evidence in the tracked release",
     "domain-randomized twin evidence is theta-conditioned host evidence, not a production sensorless ensemble"
   ]
 }

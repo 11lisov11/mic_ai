@@ -473,6 +473,7 @@ Host-release gate:
 
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_algorithm_identity.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
@@ -485,6 +486,7 @@ host_release_ready = true
 hardware_ready = false
 strong_baselines_ready = true
 host_novelty_claim_supported = true
+new_algorithm_identity_supported = true
 host_theory_scaffold_ready = true
 trace_fft_thd_evidence_ready = true
 publication_plots_fft_thd_ready = true
@@ -500,6 +502,7 @@ publication_theory_complete = true
 The tracked release also contains:
 
 - [safe_neural_horizon_pwm_baseline_strength_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_strength_audit.json)
+- [safe_neural_horizon_pwm_algorithm_identity_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_algorithm_identity_audit.json)
 - [safe_neural_horizon_pwm_baseline_stress_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_stress_evidence.json)
 - [safe_neural_horizon_pwm_baseline_tuning_evidence.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_baseline_tuning_evidence.json)
 - [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
@@ -515,6 +518,7 @@ The tracked release also contains:
 Interpretation:
 
 - `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
+- `new_algorithm_identity_supported = true` means the release has a machine-checkable identity tuple: finite-horizon legal-vector search, deterministic neural cost shaping, event-triggered neural-twin feedback/confidence, protected AI-PWM gateway, and multiobjective drive cost. This is the formal host-level evidence that the method is a distinct control algorithm.
 - `trace_fft_thd_evidence_ready = true` means the release now has host time-series CSV traces plus FFT/THD-like spectral metrics and SVG figures.
 - `trained_domain_randomized_twin_ready = true` means the release now contains theta-conditioned host twin evidence with domain randomization and multi-step rollout losses.
 - `publication_mc500_ready = true` means the release now has a tracked MC=500 host evidence run for the current host release; it must be repeated after future controller/model/tuning-grid changes.
@@ -523,6 +527,32 @@ Interpretation:
 - `baseline_tuning_evidence_ready = true` means every named baseline has bounded MC=2 parameter-sweep tuning evidence over load-step, overload, DC sag, and OOD scenarios.
 - `publication_strong_baselines_ready = true` means the current host release has machine-checkable bounded tuning evidence for the comparison baselines. It does not mean industrial/controller-vendor optimality.
 - `publication_theory_complete = true` means the configured host-theory gates are closed for this release. It does not mean MCU, HIL, bench, or universal-superiority readiness.
+
+## Algorithm Identity Evidence
+
+The release now contains a dedicated machine-checkable identity audit:
+
+- [safe_neural_horizon_pwm_algorithm_identity_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_algorithm_identity_audit.json)
+
+The identity tuple is:
+
+- finite-horizon legal inverter-vector search;
+- deterministic neural cost shaping;
+- event-triggered neural-twin feedback and confidence;
+- protected AI-PWM Safety Gateway with no raw low-side gate access;
+- multiobjective cost over tracking, current, switching, loss, thermal, ripple, feedback usage, and risk.
+
+The audit also records why SNH-PWM is distinct from:
+
+- prior protected AI-PWM H1;
+- FOC-SVM;
+- one-step FCS-MPC;
+- DTC hysteresis;
+- DTC-SVM;
+- deadbeat predictive current control;
+- sensorless/adaptive FOC.
+
+This proves a distinct host-level control-law identity. It does not prove MCU/HIL/bench readiness or universal superiority.
 
 ## Baseline Tuning Evidence
 

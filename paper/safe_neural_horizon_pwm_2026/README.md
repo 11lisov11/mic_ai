@@ -14,6 +14,7 @@ Status:
 - `hardware_claim = false`
 - `host_release_ready = true`
 - `host_novelty_claim_supported = true`
+- `new_algorithm_identity_supported = true`
 - `host_theory_scaffold_ready = true`
 - `trace_fft_thd_evidence_ready = true`
 - `publication_plots_fft_thd_ready = true`
@@ -37,6 +38,7 @@ Release gate:
 
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_algorithm_identity.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_baselines.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict

@@ -1,6 +1,6 @@
 {
   "tag": "20260522_safe_neural_horizon_pwm_host_release",
-  "generated_utc": "2026-05-25T10:10:30.507306+00:00",
+  "generated_utc": "2026-05-25T11:35:12.298598+00:00",
   "status": "HOST_SIMULATION_ONLY",
   "hardware_claim": false,
   "input_json": "C:\\mic_theory\\.tmp_pytest\\safe_neural_horizon_pwm_full_host_matrix_mc3.json",
@@ -47,8 +47,8 @@
     },
     {
       "path": "safe_neural_horizon_pwm_article_draft.md",
-      "bytes": 5792,
-      "sha256": "a3a1de2344adf74035ac97ebef0f8842c649443d536268173b6fdf837ac283ca"
+      "bytes": 5812,
+      "sha256": "919369dab65bb1d950da6ed00feb6c77943deeb2a3d63873533d0a4941f2d440"
     },
     {
       "path": "safe_neural_horizon_pwm_baseline_strength_audit.json",
@@ -56,14 +56,19 @@
       "sha256": "eef91cdd4ff1433f9764f45dc337b1b5902e575fa3ea58eafed457ef39b91f58"
     },
     {
+      "path": "safe_neural_horizon_pwm_algorithm_identity_audit.json",
+      "bytes": 5840,
+      "sha256": "34b4b7a1e0db778c702448cc4c046c137d2c37a7831cb67c00edc491a14834fc"
+    },
+    {
       "path": "safe_neural_horizon_pwm_novelty_audit.json",
-      "bytes": 1487,
-      "sha256": "28c152e425d3375eb4d2f0ea354fb3ec816fd6147ca58919b157c940b93bdd0e"
+      "bytes": 1456,
+      "sha256": "ff506bc6c88cbc9ec9ddaa7b80768bed38d97ae5288511ea52e9869897677db4"
     },
     {
       "path": "safe_neural_horizon_pwm_theory_completion_audit.json",
-      "bytes": 5196,
-      "sha256": "f3a0f6ab063919584f811d31c633174720c7a3b0a56049516aaddc74ccb6884e"
+      "bytes": 5434,
+      "sha256": "971c9d67f6628211c8427946ca490bfbdfd8b3c2d1b13dbfa9a90e30dccf408b"
     },
     {
       "path": "WHAT_IS_NOT_DONE.md",
@@ -165,6 +170,7 @@
     "report_written": true,
     "article_draft_written": true,
     "baseline_strength_audit_written": true,
+    "algorithm_identity_audit_written": true,
     "novelty_audit_written": true,
     "theory_completion_audit_written": true,
     "mc100_smoke_written": true,

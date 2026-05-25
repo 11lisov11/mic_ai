@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 
 from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.build_safe_neural_horizon_pwm_figures import build_figures
+from tools.check_safe_neural_horizon_pwm_algorithm_identity import analyze_algorithm_identity
 from tools.check_safe_neural_horizon_pwm_baselines import analyze_baselines
 from tools.check_safe_neural_horizon_pwm_release import analyze_release
 from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
@@ -70,7 +71,7 @@ def _article_draft(
     if baseline_tuning_ready:
         lines.append("- Bounded parameter-sweep tuning evidence for all named host comparison baselines.")
     lines.append("- Scenario matrix, ablation smoke, Pareto extraction, fault-injection summary, and host trace/FFT evidence package.")
-    lines.append("- Machine-checkable release, novelty, and theory-completion audits.")
+    lines.append("- Machine-checkable release, algorithm-identity, novelty, and theory-completion audits.")
     lines.append("")
     lines.append("## Novelty Claim Scope")
     lines.append("")
@@ -335,6 +336,7 @@ def package_release(
     report_md = out_dir / "safe_neural_horizon_pwm_report.md"
     article_md = out_dir / "safe_neural_horizon_pwm_article_draft.md"
     baseline_json = out_dir / "safe_neural_horizon_pwm_baseline_strength_audit.json"
+    identity_json = out_dir / "safe_neural_horizon_pwm_algorithm_identity_audit.json"
     novelty_json = out_dir / "safe_neural_horizon_pwm_novelty_audit.json"
     theory_json = out_dir / "safe_neural_horizon_pwm_theory_completion_audit.json"
     open_items_md = out_dir / "WHAT_IS_NOT_DONE.md"
@@ -345,6 +347,7 @@ def package_release(
     _write(report_md, build_report(payload))
     _write(article_md, _article_draft(payload, trace_payload, twin_payload, mc500_payload, baseline_tuning_payload))
     _write(baseline_json, json.dumps(analyze_baselines(out_dir), ensure_ascii=False, indent=2) + "\n")
+    _write(identity_json, json.dumps(analyze_algorithm_identity(out_dir), ensure_ascii=False, indent=2) + "\n")
     _write(novelty_json, json.dumps(analyze_novelty(out_dir), ensure_ascii=False, indent=2) + "\n")
     _write(open_items_md, _open_items(trace_payload, twin_payload, mc500_payload, baseline_tuning_payload))
     figure_files = build_figures(copied_json, out_dir / "figures")
@@ -361,6 +364,7 @@ def package_release(
         report_md,
         article_md,
         baseline_json,
+        identity_json,
         novelty_json,
         theory_json,
         open_items_md,
@@ -396,6 +400,7 @@ def package_release(
             "report_written": report_md.exists(),
             "article_draft_written": article_md.exists(),
             "baseline_strength_audit_written": baseline_json.exists(),
+            "algorithm_identity_audit_written": identity_json.exists(),
             "novelty_audit_written": novelty_json.exists(),
             "theory_completion_audit_written": theory_json.exists(),
             "mc100_smoke_written": mc100_json.exists(),

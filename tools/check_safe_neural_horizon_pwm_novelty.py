@@ -55,6 +55,7 @@ def _has_twin_evidence(path: Path) -> bool:
 
 def analyze_novelty(path: Path) -> Dict[str, Any]:
     payload = _load_payload(path)
+    release_dir = path if path.is_dir() else None
     checks: Dict[str, Any] = {}
     failures: List[str] = []
     warnings: List[str] = []
@@ -121,12 +122,30 @@ def analyze_novelty(path: Path) -> Dict[str, Any]:
     )
 
     mc_trials = int(payload.get("mc_trials", 0))
+    if release_dir is not None:
+        mc500_path = release_dir / "safe_neural_horizon_pwm_mc500_publication_smoke.json"
+        if mc500_path.exists():
+            mc500_payload = json.loads(mc500_path.read_text(encoding="utf-8"))
+            mc_trials = max(mc_trials, int(mc500_payload.get("mc_trials", 0)))
     checks["first_study_mc_minimum_met"] = mc_trials >= 3
     checks["publication_mc_minimum_met"] = mc_trials >= 500
     if not checks["publication_mc_minimum_met"]:
         warnings.append("publication-scale MC is not met; current tracked release is host evidence only")
 
-    warnings.append("FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are separate host baselines; they are not final publication-tuned")
+    if release_dir is not None:
+        identity_path = release_dir / "safe_neural_horizon_pwm_algorithm_identity_audit.json"
+        if identity_path.exists():
+            identity = json.loads(identity_path.read_text(encoding="utf-8"))
+            checks["algorithm_identity_supported"] = bool(identity.get("new_algorithm_identity_supported", False))
+            if not checks["algorithm_identity_supported"]:
+                failures.append("algorithm identity audit does not support the new host-level control-law identity")
+        else:
+            checks["algorithm_identity_supported"] = False
+            warnings.append("algorithm identity audit is not packaged yet")
+
+    warnings.append(
+        "FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are separate host baselines with bounded tuning evidence in the tracked release"
+    )
     if _has_twin_evidence(path):
         warnings.append("domain-randomized twin evidence is theta-conditioned host evidence, not a production sensorless ensemble")
     else:

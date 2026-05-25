@@ -34,6 +34,7 @@ REQUIRED_RELEASE_FILES = {
     "safe_neural_horizon_pwm_baseline_stress_evidence.json",
     "safe_neural_horizon_pwm_baseline_tuning_evidence.json",
     "safe_neural_horizon_pwm_baseline_strength_audit.json",
+    "safe_neural_horizon_pwm_algorithm_identity_audit.json",
     "safe_neural_horizon_pwm_novelty_audit.json",
     "safe_neural_horizon_pwm_theory_completion_audit.json",
     "safe_neural_horizon_pwm_mc100_smoke.json",
@@ -249,6 +250,15 @@ def analyze_release(path: Path) -> Dict[str, Any]:
             failures.append("missing HOST_ACCEPTANCE_SUMMARY.json")
 
         novelty_path = release_dir / "safe_neural_horizon_pwm_novelty_audit.json"
+        identity_path = release_dir / "safe_neural_horizon_pwm_algorithm_identity_audit.json"
+        if identity_path.exists():
+            identity = json.loads(identity_path.read_text(encoding="utf-8"))
+            checks["algorithm_identity_supported"] = bool(identity.get("new_algorithm_identity_supported", False))
+            if not checks["algorithm_identity_supported"]:
+                failures.append("algorithm identity audit does not support the new host-level control-law identity")
+        else:
+            checks["algorithm_identity_supported"] = False
+            failures.append("missing safe_neural_horizon_pwm_algorithm_identity_audit.json")
         if novelty_path.exists():
             novelty = json.loads(novelty_path.read_text(encoding="utf-8"))
             checks["novelty_audit_supported"] = bool(novelty.get("host_novelty_claim_supported", False))

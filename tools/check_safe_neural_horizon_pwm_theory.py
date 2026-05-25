@@ -189,6 +189,28 @@ def _baseline_strength_status(release_dir: Path | None) -> tuple[bool, bool, boo
     return host_ready, publication_ready, stress_ready, tuning_ready, missing
 
 
+def _algorithm_identity_status(release_dir: Path | None) -> tuple[bool, list[str]]:
+    if release_dir is None:
+        return False, ["release directory with safe_neural_horizon_pwm_algorithm_identity_audit.json"]
+    audit_path = release_dir / "safe_neural_horizon_pwm_algorithm_identity_audit.json"
+    if not audit_path.exists():
+        return False, ["safe_neural_horizon_pwm_algorithm_identity_audit.json"]
+    payload = _load_json(audit_path)
+    missing: list[str] = []
+    if payload.get("hardware_claim") is not False:
+        missing.append("hardware_claim=false")
+    if not bool(payload.get("new_algorithm_identity_supported", False)):
+        missing.append("new_algorithm_identity_supported=true")
+    if len(list(payload.get("algorithm_identity_tuple", []))) < 5:
+        missing.append("algorithm_identity_tuple length >= 5")
+    features = dict(payload.get("essential_features", {}))
+    for name, row_raw in features.items():
+        row = dict(row_raw)
+        if not bool(row.get("ready", False)):
+            missing.append(f"{name}: ready")
+    return not missing, missing
+
+
 def _status(pass_condition: bool, partial_condition: bool = False) -> str:
     if pass_condition:
         return "pass"
@@ -388,6 +410,16 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         [] if baseline_scaffold_ready else baseline_missing,
     )
 
+    algorithm_identity_ready, algorithm_identity_missing = _algorithm_identity_status(release_dir)
+    checks["algorithm_identity_ready"] = algorithm_identity_ready
+    _criterion(
+        criteria,
+        "algorithm_identity_audit",
+        _status(algorithm_identity_ready, release_dir is not None),
+        ["safe_neural_horizon_pwm_algorithm_identity_audit.json"],
+        [] if algorithm_identity_ready else algorithm_identity_missing,
+    )
+
     if release_dir is not None:
         report_files = [
             release_dir / "safe_neural_horizon_pwm_report.md",
@@ -488,6 +520,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         "baseline_strength_audit_ready",
         "report_and_release_artifacts",
         "honest_claim_boundaries",
+        "algorithm_identity_ready",
     ]
     host_theory_scaffold_ready = all(bool(checks.get(key, False)) for key in host_required)
     publication_theory_complete = all(
