@@ -18,6 +18,8 @@
     "required_release_files_present": true,
     "manifest_paths_safe": true,
     "novelty_audit_supported": true,
+    "theory_scaffold_ready": true,
+    "publication_theory_complete": false,
     "strong_baselines_ready": false
   },
   "failures": [],

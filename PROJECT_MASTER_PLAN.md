@@ -1,6 +1,6 @@
 # PROJECT MASTER PLAN (ACTIVE)
 
-Date updated: `2026-05-22`
+Date updated: `2026-05-25`
 Repository: `C:\mic_theory`
 
 ## Status
@@ -31,6 +31,7 @@ Hardware-productization is now tracked separately:
 - Not yet physically complete for Delta MS300: real USB-RS485 Stage 0, no-load run, baseline logs, MIC/AI supervisory logs, and loaded A/B evidence must be captured on the actual drive/motor.
 - A new theory/research branch is active: `Safe Neural Horizon PWM with Event-Triggered Twin Feedback`.
 - New branch status: host-level alpha-beta model, two-level inverter vector model, AI-PWM Safety Gateway, horizon controller, event-feedback twin scaffold, tests, and MC=100 smoke are implemented.
+- New branch machine-checkable theory status: `host_theory_scaffold_ready = true`, `publication_theory_complete = false`.
 - New branch limitation: this is not MCU/HIL/bench evidence and must not be described as hardware-ready.
 
 Historical strict-verified `2-motor` release kept for provenance:
@@ -138,6 +139,7 @@ Status on `2026-05-22`:
 - tracked host release package exists: [20260522_host_release](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release)
 - host-release gate is machine-checkable and currently passes with `host_release_ready = true`, `hardware_ready = false`, `strong_baselines_ready = false`
 - novelty claim scope is machine-checkable and currently passes with `host_novelty_claim_supported = true`; this supports only the distinct host-level architecture claim, not tuned-baseline superiority or hardware readiness
+- theory completion scope is machine-checkable and currently passes host scaffold criteria with `host_theory_scaffold_ready = true`, while keeping `publication_theory_complete = false`
 - fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, applied-vs-planned loss accounting, dead-time path detection, and incomplete serial-frame timeout/fallback behavior
 - strong key-level baselines, full robust matrix, final ablation, Pareto, HIL, and bench work are still open
 
@@ -266,6 +268,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Add tracked Safe Neural Horizon PWM host release package with JSON results, markdown report, article draft, open-items file, and SHA-256 manifest.
 - [x] Add machine-checkable Safe Neural Horizon PWM host-release gate with manifest hash validation.
 - [x] Add machine-checkable Safe Neural Horizon PWM novelty gate that limits the claim to a distinct host-simulated architecture and rejects overclaims.
+- [x] Add machine-checkable Safe Neural Horizon PWM theory-completion audit that separates `host_theory_scaffold_ready` from `publication_theory_complete`.
 - [x] Add aggregate CSV/SVG figures for host-release speed/current, feedback/switching, and H2 scenario summary.
 - [x] Document found bugs and current limitations in [safe_neural_horizon_pwm_research.md](C:/mic_theory/docs/safe_neural_horizon_pwm_research.md).
 - [ ] Replace proxy FOC-SVM with a tuned key-level FOC-SVM baseline using the same inverter/dead-time/min-pulse/current constraints.

@@ -29,6 +29,7 @@ from tools.build_safe_neural_horizon_pwm_report import build_report
 from tools.package_safe_neural_horizon_pwm_release import package_release
 from tools.check_safe_neural_horizon_pwm_release import analyze_release
 from tools.check_safe_neural_horizon_pwm_novelty import analyze_novelty
+from tools.check_safe_neural_horizon_pwm_theory import analyze_theory
 from tools.build_safe_neural_horizon_pwm_figures import build_figures
 
 
@@ -319,11 +320,16 @@ def test_package_safe_neural_horizon_pwm_release(tmp_path) -> None:
     payload = run_matrix(mc=1, steps=8, seed=3, quick=True, scenarios=["load_step"], include_ablation=False)
     input_json = tmp_path / "result.json"
     input_json.write_text(__import__("json").dumps(payload), encoding="utf-8")
+    mc100_json = tmp_path / "mc100.json"
+    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
     out_dir = tmp_path / "release"
-    manifest = package_release(input_json=input_json, out_dir=out_dir, tag="test_tag")
+    manifest = package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
     assert manifest["hardware_claim"] is False
     assert (out_dir / "safe_neural_horizon_pwm_report.md").exists()
     assert (out_dir / "safe_neural_horizon_pwm_article_draft.md").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_novelty_audit.json").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_theory_completion_audit.json").exists()
+    assert (out_dir / "safe_neural_horizon_pwm_mc100_smoke.json").exists()
     assert (out_dir / "WHAT_IS_NOT_DONE.md").exists()
     assert (out_dir / "HOST_ACCEPTANCE_SUMMARY.json").exists()
     assert (out_dir / "figures" / "safe_neural_horizon_pwm_summary.csv").exists()
@@ -351,12 +357,23 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_novelty_claim() -
     assert "MCU/HIL/bench readiness" in audit["not_allowed_claims"]
 
 
+def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold() -> None:
+    release_dir = Path("paper/safe_neural_horizon_pwm_2026/20260522_host_release")
+    audit = analyze_theory(release_dir)
+    assert audit["host_theory_scaffold_ready"] is True
+    assert audit["publication_theory_complete"] is False
+    assert audit["checks"]["first_mc100_smoke"] is True
+    assert audit["checks"]["strong_baselines_ready"] is False
+
+
 def test_release_checker_requires_packaged_artifacts_in_manifest(tmp_path) -> None:
     payload = run_matrix(mc=1, steps=8, seed=6, quick=True, scenarios=["load_step"], include_ablation=False)
     input_json = tmp_path / "result.json"
     input_json.write_text(json.dumps(payload), encoding="utf-8")
+    mc100_json = tmp_path / "mc100.json"
+    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag")
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
 
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -374,8 +391,10 @@ def test_release_checker_rejects_unsafe_manifest_paths(tmp_path) -> None:
     payload = run_matrix(mc=1, steps=8, seed=7, quick=True, scenarios=["load_step"], include_ablation=False)
     input_json = tmp_path / "result.json"
     input_json.write_text(json.dumps(payload), encoding="utf-8")
+    mc100_json = tmp_path / "mc100.json"
+    mc100_json.write_text(json.dumps({"status": "host_smoke", "hardware_claim": False, "mc_trials": 100}), encoding="utf-8")
     out_dir = tmp_path / "release"
-    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag")
+    package_release(input_json=input_json, out_dir=out_dir, tag="test_tag", mc100_json=mc100_json)
 
     manifest_path = out_dir / "HOST_RELEASE_MANIFEST.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

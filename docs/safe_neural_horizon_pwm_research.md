@@ -455,6 +455,7 @@ Host-release gate:
 ```bash
 python tools/check_safe_neural_horizon_pwm_release.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 python tools/check_safe_neural_horizon_pwm_novelty.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
+python tools/check_safe_neural_horizon_pwm_theory.py --input paper/safe_neural_horizon_pwm_2026/20260522_host_release --strict
 ```
 
 Current host-release result:
@@ -464,7 +465,19 @@ host_release_ready = true
 hardware_ready = false
 strong_baselines_ready = false
 host_novelty_claim_supported = true
+host_theory_scaffold_ready = true
+publication_theory_complete = false
 ```
+
+The tracked release also contains:
+
+- [safe_neural_horizon_pwm_theory_completion_audit.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_theory_completion_audit.json)
+- [safe_neural_horizon_pwm_mc100_smoke.json](C:/mic_theory/paper/safe_neural_horizon_pwm_2026/20260522_host_release/safe_neural_horizon_pwm_mc100_smoke.json)
+
+Interpretation:
+
+- `host_theory_scaffold_ready = true` means the new architecture has a reproducible host model, safety gate, horizon controller, scenario matrix, first MC=100 smoke, report artifacts, and honest claim boundaries.
+- `publication_theory_complete = false` remains intentional until proxy baselines are replaced, the neural twin is trained/identified, MC reaches publication scale, and long-run FFT/THD/trace evidence exists.
 
 Observed pattern in the host matrix:
 
@@ -552,6 +565,7 @@ What is shown:
 - neural twin and event feedback scaffold exists
 - MC=100 smoke runs without safety waveform violations for the new H=2 variant
 - tracked novelty audit supports only the host-level distinct-architecture claim
+- tracked theory-completion audit supports `host_theory_scaffold_ready = true`, not publication-grade completion
 
 What is not shown:
 

@@ -32,6 +32,8 @@ REQUIRED_RELEASE_FILES = {
     "safe_neural_horizon_pwm_report.md",
     "safe_neural_horizon_pwm_article_draft.md",
     "safe_neural_horizon_pwm_novelty_audit.json",
+    "safe_neural_horizon_pwm_theory_completion_audit.json",
+    "safe_neural_horizon_pwm_mc100_smoke.json",
     "WHAT_IS_NOT_DONE.md",
     "figures/safe_neural_horizon_pwm_summary.csv",
     "figures/fig_speed_error_vs_current.svg",
@@ -196,6 +198,17 @@ def analyze_release(path: Path) -> Dict[str, Any]:
         else:
             checks["novelty_audit_supported"] = False
             failures.append("missing safe_neural_horizon_pwm_novelty_audit.json")
+        theory_path = release_dir / "safe_neural_horizon_pwm_theory_completion_audit.json"
+        if theory_path.exists():
+            theory = json.loads(theory_path.read_text(encoding="utf-8"))
+            checks["theory_scaffold_ready"] = bool(theory.get("host_theory_scaffold_ready", False))
+            checks["publication_theory_complete"] = bool(theory.get("publication_theory_complete", False))
+            if not checks["theory_scaffold_ready"]:
+                failures.append("theory completion audit does not support the host theory scaffold")
+        else:
+            checks["theory_scaffold_ready"] = False
+            checks["publication_theory_complete"] = False
+            failures.append("missing safe_neural_horizon_pwm_theory_completion_audit.json")
 
     proxy_controllers = sorted(name for name in REQUIRED_CONTROLLERS if name.endswith("_proxy"))
     checks["strong_baselines_ready"] = False

@@ -12,6 +12,7 @@ This draft describes a host-simulated induction-motor control variant that combi
 - Host-tested no-shoot-through and no-direct-HIGH-to-LOW timing-path invariants for vector transitions.
 - Horizon AI-PWM controller with neural cost shaping and event-triggered feedback policy.
 - Scenario matrix, ablation smoke, Pareto extraction, and fault-injection summary.
+- Machine-checkable release, novelty, and theory-completion audits.
 
 ## Novelty Claim Scope
 
@@ -20,6 +21,8 @@ The host-level novelty claim is architectural, not a hardware or universal-super
 Compared with classical FOC-SVM, the controller does not synthesize continuous voltage references and then apply SVM; it searches legal inverter vectors directly under feedback/switching/risk costs. Compared with one-step FCS-MPC, it adds neural cost shaping, event-triggered feedback economy, and a mandatory gate-safety layer. Compared with the prior protected AI-PWM H1 model, it adds horizon search, twin uncertainty, and explicit feedback-usage optimization.
 
 The tracked release therefore supports only this claim: a distinct host-simulated control architecture exists and is machine-checked against the current host evidence.
+
+The companion theory-completion audit separates `host_theory_scaffold_ready = true` from `publication_theory_complete = false`. This is intentional: the host scaffold is ready for continued research, but publication-grade superiority and hardware readiness are not claimed.
 
 ## Method
 
@@ -85,6 +88,8 @@ Fault-injection result:
 - Host simulation only.
 - Proxy baselines, not final tuned FOC-SVM/FCS-MPC/DTC-SVM implementations.
 - No trained domain-randomized neural twin yet.
+- First MC=100 smoke exists, but no MC=500..1000 publication-scale run yet.
+- No long-run trace package with FFT/THD torque-current evidence yet.
 - No fixed-point/WCET analysis.
 - No MCU, HIL, oscilloscope, inverter, or motor-bench validation.
 
