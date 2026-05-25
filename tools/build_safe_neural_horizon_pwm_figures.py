@@ -69,6 +69,7 @@ def _scatter_svg(rows: list[dict[str, Any]], x_key: str, y_key: str, title: str,
     x_min, x_max = min(x_vals), max(x_vals)
     y_min, y_max = min(y_vals), max(y_vals)
     colors = {
+        "protected_ai_pwm_h1_baseline": "#8a8a8a",
         "safe_neural_horizon_pwm_h2": "#0b6bcb",
         "safe_neural_horizon_pwm_h3_thermal": "#12805c",
         "safe_neural_horizon_pwm_h4_sparse": "#b45f06",

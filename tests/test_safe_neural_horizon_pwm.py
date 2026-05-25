@@ -10,6 +10,7 @@ from control.dtc_baseline import DtcHysteresisBaselineConfig, DtcHysteresisBasel
 from control.dtc_svm_baseline import DtcSvmBaselineConfig, DtcSvmBaselineController
 from control.fcs_mpc_baseline import FcsMpcOneStepBaselineConfig, FcsMpcOneStepBaselineController
 from control.foc_svm_key_baseline import FocSvmKeyBaselineConfig, FocSvmKeyBaselineController
+from control.protected_ai_pwm_h1_baseline import ProtectedAiPwmH1BaselineController, protected_h1_config
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
 from control.sensorless_adaptive_foc_baseline import (
     SensorlessAdaptiveFocBaselineConfig,
@@ -384,6 +385,36 @@ def test_sensorless_adaptive_foc_baseline_uses_observer_not_measured_speed() -> 
     assert abs(result.metrics["omega_hat"] - measured.omega_m) > 1.0
 
 
+def test_protected_ai_pwm_h1_baseline_keeps_prior_one_step_policy() -> None:
+    params = _motor_params()
+    inverter = _inverter_params()
+    limits = GatewayLimits(
+        t_pwm_s=inverter.t_pwm_s,
+        dead_time_s=inverter.dead_time_s,
+        min_pulse_s=inverter.min_pulse_s,
+        i_soft_a=20.0,
+        i_trip_a=25.0,
+        vdc_min_v=40.0,
+        vdc_max_v=500.0,
+        confidence_min=0.25,
+        risk_max=1.4,
+    )
+    cfg = protected_h1_config(dt_s=inverter.t_pwm_s, feedback_period=5)
+    controller = ProtectedAiPwmH1BaselineController(params, inverter, AIPwmSafetyGateway(limits), cfg)
+    result = controller.step(
+        omega_ref=40.0,
+        load_torque_nm=0.1,
+        measured_state=AlphaBetaMotorState(),
+        measured_i_abs=0.0,
+        vdc=inverter.Vdc,
+    )
+    assert controller.cfg.horizon == 1
+    assert 0 <= result.vector_id <= 7
+    assert result.decision.gates.shoot_through is False
+    assert result.metrics["prior_protected_h1_baseline"] == 1.0
+    assert result.metrics["horizon"] == 1.0
+
+
 def test_controller_h4_sequence_selection_is_bounded() -> None:
     motor = _motor_params()
     inverter = _inverter_params()
@@ -486,6 +517,7 @@ def test_safe_neural_horizon_pwm_matrix_smoke() -> None:
     assert payload["fault_injection"]["all_gateway_cases_no_shoot_through"] is True
     assert payload["fault_injection"]["raw_shoot_through_detector_triggered"] is True
     scenario = payload["matrix"]["start_no_load"]
+    assert "protected_ai_pwm_h1_baseline" in scenario
     assert "fcs_mpc_one_step_baseline" in scenario
     assert "foc_svm_key_baseline" in scenario
     assert "dtc_hysteresis_baseline" in scenario
@@ -595,6 +627,9 @@ def test_safe_neural_horizon_pwm_tracked_release_supports_host_theory_scaffold()
     assert audit["checks"]["dtc_svm_baseline_ready"] is True
     assert audit["checks"]["deadbeat_current_baseline_ready"] is True
     assert audit["checks"]["sensorless_adaptive_foc_baseline_ready"] is True
+    assert audit["checks"]["protected_ai_pwm_h1_baseline_ready"] is True
+    assert audit["checks"]["named_baseline_comparison_matrix"] is True
+    assert "proxy_comparison_matrix" not in audit["checks"]
     assert audit["checks"]["strong_baselines_ready"] is False
 
 

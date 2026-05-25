@@ -40,7 +40,7 @@
   ],
   "matrix": {
     "start_no_load": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 83.95663787104598,
           "median": 83.9665075365662,
@@ -911,7 +911,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -924,7 +924,7 @@
       ]
     },
     "start_with_load": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 84.1104618138623,
           "median": 84.10803084794716,
@@ -1795,7 +1795,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -1808,7 +1808,7 @@
       ]
     },
     "ramp_to_rated": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 92.07750434617746,
           "median": 92.07798925567322,
@@ -2679,7 +2679,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -2691,7 +2691,7 @@
       ]
     },
     "load_step": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 84.02836909917478,
           "median": 84.03148530694844,
@@ -3562,7 +3562,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -3575,7 +3575,7 @@
       ]
     },
     "load_shed": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 94.43720355164761,
           "median": 94.29840405741736,
@@ -4455,7 +4455,7 @@
       ]
     },
     "reverse": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 62.58589888680765,
           "median": 62.77716895680663,
@@ -5326,7 +5326,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "dtc_hysteresis_baseline",
         "dtc_svm_baseline",
@@ -5335,7 +5335,7 @@
       ]
     },
     "braking": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 44.516565689503956,
           "median": 44.527391133610834,
@@ -6206,7 +6206,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -6218,7 +6218,7 @@
       ]
     },
     "regeneration": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 60.17959513031811,
           "median": 60.185551441714395,
@@ -7097,7 +7097,7 @@
       ]
     },
     "low_speed": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 23.603655756079785,
           "median": 23.54321648527353,
@@ -7979,7 +7979,7 @@
       ]
     },
     "zero_speed": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 0.031836387698867784,
           "median": 0.03664789215822672,
@@ -8850,7 +8850,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "dtc_hysteresis_baseline",
         "dtc_svm_baseline",
@@ -8862,7 +8862,7 @@
       ]
     },
     "field_weakening": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 180.7724352390649,
           "median": 180.68028403258228,
@@ -9744,7 +9744,7 @@
       ]
     },
     "overload": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.58257064061932,
           "median": 86.58522333623031,
@@ -10615,7 +10615,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -10626,7 +10626,7 @@
       ]
     },
     "dc_sag": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.49169136433467,
           "median": 86.43863059020441,
@@ -11506,7 +11506,7 @@
       ]
     },
     "motor_heating": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.6090928563558,
           "median": 86.49002203403958,
@@ -12377,7 +12377,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -12388,7 +12388,7 @@
       ]
     },
     "inverter_heating": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.74417105345834,
           "median": 86.721228366761,
@@ -13270,7 +13270,7 @@
       ]
     },
     "rs_error": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.2966663894145,
           "median": 77.3412702729285,
@@ -14141,7 +14141,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -14153,7 +14153,7 @@
       ]
     },
     "rr_error": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.39310011803815,
           "median": 77.34202429005391,
@@ -15024,7 +15024,7 @@
         "failure_count": 1
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -15037,7 +15037,7 @@
       ]
     },
     "lm_error": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.11234832071727,
           "median": 77.09598877360226,
@@ -15908,7 +15908,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -15920,7 +15920,7 @@
       ]
     },
     "j_error": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.06014230273753,
           "median": 77.04884546277059,
@@ -16791,7 +16791,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -16804,7 +16804,7 @@
       ]
     },
     "random_load": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.54266774754035,
           "median": 86.58193640592164,
@@ -17684,7 +17684,7 @@
       ]
     },
     "periodic_load": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.50624427523474,
           "median": 86.42027543923835,
@@ -18566,7 +18566,7 @@
       ]
     },
     "shock_load": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 86.48978270666352,
           "median": 86.44767653770373,
@@ -19447,7 +19447,7 @@
       ]
     },
     "two_mass_proxy": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 78.59507878739193,
           "median": 78.5921153026556,
@@ -20318,7 +20318,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -20329,7 +20329,7 @@
       ]
     },
     "current_sensor_noise": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.15508242931435,
           "median": 77.12738288298782,
@@ -21200,7 +21200,7 @@
         "failure_count": 1
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -21213,7 +21213,7 @@
       ]
     },
     "speed_sensor_noise": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.2125427674331,
           "median": 77.09190333873613,
@@ -22084,7 +22084,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -22097,7 +22097,7 @@
       ]
     },
     "sensor_delay": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.00057694144986,
           "median": 76.99955276258628,
@@ -22968,7 +22968,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -22981,7 +22981,7 @@
       ]
     },
     "speed_sensor_failure": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.11640951982464,
           "median": 77.09699340177814,
@@ -23852,7 +23852,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -23865,7 +23865,7 @@
       ]
     },
     "current_sensor_failure": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.35892902695879,
           "median": 77.10682364029616,
@@ -24736,7 +24736,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -24748,7 +24748,7 @@
       ]
     },
     "ood": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.0939925764612,
           "median": 77.09141542884782,
@@ -25619,7 +25619,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
         "dtc_svm_baseline",
@@ -25630,7 +25630,7 @@
       ]
     },
     "fault_injection_runtime": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.10064790889199,
           "median": 77.10769631043198,
@@ -26501,7 +26501,7 @@
         "failure_count": 3
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",
@@ -26513,7 +26513,7 @@
       ]
     },
     "sensor_dropout": {
-      "protected_ai_pwm_h1_proxy": {
+      "protected_ai_pwm_h1_baseline": {
         "mean_abs_speed_error": {
           "mean": 77.10050399277513,
           "median": 77.09564292684539,
@@ -27384,7 +27384,7 @@
         "failure_count": 0
       },
       "pareto_front": [
-        "protected_ai_pwm_h1_proxy",
+        "protected_ai_pwm_h1_baseline",
         "fcs_mpc_one_step_baseline",
         "foc_svm_key_baseline",
         "dtc_hysteresis_baseline",

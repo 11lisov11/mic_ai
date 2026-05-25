@@ -19,6 +19,7 @@ from control.dtc_baseline import DtcHysteresisBaselineConfig, DtcHysteresisBasel
 from control.dtc_svm_baseline import DtcSvmBaselineConfig, DtcSvmBaselineController
 from control.fcs_mpc_baseline import FcsMpcOneStepBaselineConfig, FcsMpcOneStepBaselineController
 from control.foc_svm_key_baseline import FocSvmKeyBaselineConfig, FocSvmKeyBaselineController
+from control.protected_ai_pwm_h1_baseline import ProtectedAiPwmH1BaselineController, protected_h1_config
 from control.safe_neural_horizon_pwm import NeuralHorizonConfig, SafeNeuralHorizonPwmController
 from control.sensorless_adaptive_foc_baseline import (
     SensorlessAdaptiveFocBaselineConfig,
@@ -42,7 +43,7 @@ from safety.ai_pwm_gateway import (
 
 
 BASE_CONTROLLER_SPECS = [
-    ("protected_ai_pwm_h1_proxy", 1, 5),
+    ("protected_ai_pwm_h1_baseline", 1, 5),
     ("fcs_mpc_one_step_baseline", 1, 1),
     ("foc_svm_key_baseline", 1, 1),
     ("dtc_hysteresis_baseline", 1, 1),
@@ -147,7 +148,7 @@ def _controller_specs(quick: bool = False) -> list[tuple[str, int, int]]:
     specs = list(BASE_CONTROLLER_SPECS)
     if quick:
         return [
-            ("protected_ai_pwm_h1_proxy", 1, 5),
+            ("protected_ai_pwm_h1_baseline", 1, 5),
             ("fcs_mpc_one_step_baseline", 1, 1),
             ("foc_svm_key_baseline", 1, 1),
             ("dtc_hysteresis_baseline", 1, 1),
@@ -168,6 +169,22 @@ def _controller(
     horizon: int,
     feedback_period: int,
 ) -> SafeNeuralHorizonPwmController:
+    if label == "protected_ai_pwm_h1_baseline":
+        limits = GatewayLimits(
+            t_pwm_s=inverter.t_pwm_s,
+            dead_time_s=inverter.dead_time_s,
+            min_pulse_s=inverter.min_pulse_s,
+            i_soft_a=max(2.5 * base_motor.i_limit, 3.5),
+            i_trip_a=max(3.5 * base_motor.i_limit, 5.0),
+            vdc_min_v=0.4 * inverter.Vdc,
+            vdc_max_v=1.25 * inverter.Vdc,
+            tj_trip_c=125.0,
+            confidence_min=0.25,
+            risk_max=1.4,
+        )
+        cfg = protected_h1_config(dt_s=inverter.t_pwm_s, feedback_period=feedback_period)
+        return ProtectedAiPwmH1BaselineController(base_motor, inverter, AIPwmSafetyGateway(limits), cfg)
+
     if label == "dtc_hysteresis_baseline":
         limits = GatewayLimits(
             t_pwm_s=inverter.t_pwm_s,
@@ -296,10 +313,6 @@ def _controller(
         switching_weight = 0.008
         torque_ripple_weight = 0.16
         flux_weight = 0.75
-    elif "protected" in label:
-        switching_weight = 0.04
-        risk_weight = 0.55
-
     if "thermal" in label:
         thermal_weight = 0.035
         switching_weight += 0.01

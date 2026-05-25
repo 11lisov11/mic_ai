@@ -19,7 +19,7 @@ SAFE_CONTROLLER_VARIANTS = {
     "safe_neural_horizon_pwm_h4_sparse",
 }
 COMPARISON_CONTROLLERS = {
-    "protected_ai_pwm_h1_proxy",
+    "protected_ai_pwm_h1_baseline",
     "fcs_mpc_one_step_baseline",
     "foc_svm_key_baseline",
     "dtc_hysteresis_baseline",

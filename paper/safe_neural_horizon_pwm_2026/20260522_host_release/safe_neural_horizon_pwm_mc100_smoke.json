@@ -7,7 +7,7 @@
   "seed": 7,
   "scenario": "load_step",
   "controllers": {
-    "protected_ai_pwm_h1_proxy": {
+    "protected_ai_pwm_h1_baseline": {
       "mean_abs_speed_error": {
         "mean": 84.32165278144547,
         "median": 84.4210863535996,
@@ -705,7 +705,7 @@
     }
   },
   "pareto_front": [
-    "protected_ai_pwm_h1_proxy",
+    "protected_ai_pwm_h1_baseline",
     "fcs_mpc_one_step_baseline",
     "foc_svm_key_baseline",
     "dtc_hysteresis_baseline",

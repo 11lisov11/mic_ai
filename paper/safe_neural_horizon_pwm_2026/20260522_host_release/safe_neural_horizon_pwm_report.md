@@ -9,14 +9,14 @@
 ## Scope
 
 This is a host-level simulation report. It is not MCU, HIL, or bench evidence.
-Controller names ending with `_proxy` are lightweight comparison proxies, not final strong baselines.
+The comparison matrix uses named host baselines; none of those rows is hardware, HIL, or publication-tuned evidence.
 
 ## Scenario Matrix
 
 ### start_no_load
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 83.957 | 1.148 | 19.000 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 83.957 | 1.148 | 19.000 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 83.889 | 2.057 | 11.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 83.701 | 1.460 | 22.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 84.037 | 0.297 | 72.333 | 1.000 | 0.000 | 0 |
@@ -28,7 +28,7 @@ Controller names ending with `_proxy` are lightweight comparison proxies, not fi
 | safe_neural_horizon_pwm_h4_sparse | 83.876 | 2.444 | 20.333 | 0.883 | 7.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -42,7 +42,7 @@ Pareto front:
 ### start_with_load
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 84.110 | 1.189 | 25.000 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 84.110 | 1.189 | 25.000 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 84.010 | 2.207 | 9.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 84.037 | 1.535 | 21.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 84.141 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
@@ -54,7 +54,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 84.010 | 2.489 | 16.333 | 0.883 | 10.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -68,7 +68,7 @@ Pareto front:
 ### ramp_to_rated
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 92.078 | 1.262 | 26.333 | 0.967 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 92.078 | 1.262 | 26.333 | 0.967 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 92.012 | 1.897 | 13.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 92.004 | 1.369 | 18.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 92.234 | 0.302 | 72.000 | 1.000 | 0.000 | 0 |
@@ -80,7 +80,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 91.269 | 2.740 | 12.000 | 0.717 | 16.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -93,7 +93,7 @@ Pareto front:
 ### load_step
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 84.028 | 1.286 | 25.667 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 84.028 | 1.286 | 25.667 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 83.903 | 2.291 | 9.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 83.962 | 1.536 | 23.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 84.435 | 0.298 | 72.000 | 1.000 | 0.000 | 0 |
@@ -105,7 +105,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 83.937 | 2.616 | 15.333 | 0.883 | 12.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -119,7 +119,7 @@ Pareto front:
 ### load_shed
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 94.437 | 1.284 | 20.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 94.437 | 1.284 | 20.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 94.153 | 2.538 | 7.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 94.247 | 1.335 | 22.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 94.405 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
@@ -141,7 +141,7 @@ Pareto front:
 ### reverse
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 62.586 | 1.110 | 19.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 62.586 | 1.110 | 19.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 62.656 | 1.968 | 16.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 62.792 | 1.285 | 24.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 62.773 | 0.302 | 72.667 | 1.000 | 0.000 | 0 |
@@ -153,7 +153,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 62.649 | 1.991 | 20.667 | 0.533 | 0.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `dtc_hysteresis_baseline`
 - `dtc_svm_baseline`
@@ -163,7 +163,7 @@ Pareto front:
 ### braking
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 44.517 | 1.252 | 22.667 | 0.467 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 44.517 | 1.252 | 22.667 | 0.467 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 43.976 | 1.690 | 22.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 44.481 | 1.262 | 14.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 44.554 | 0.300 | 72.333 | 1.000 | 0.000 | 0 |
@@ -175,7 +175,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 44.499 | 1.322 | 43.333 | 0.367 | 1.000 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -188,7 +188,7 @@ Pareto front:
 ### regeneration
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 60.180 | 1.243 | 25.667 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 60.180 | 1.243 | 25.667 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 59.963 | 1.883 | 19.667 | 1.000 | 0.333 | 0 |
 | foc_svm_key_baseline | 60.015 | 1.504 | 22.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 60.203 | 0.380 | 68.667 | 1.000 | 4.667 | 0 |
@@ -209,7 +209,7 @@ Pareto front:
 ### low_speed
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 23.604 | 1.312 | 24.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 23.604 | 1.312 | 24.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 22.550 | 1.987 | 24.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 23.537 | 1.307 | 19.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 23.680 | 0.303 | 72.000 | 1.000 | 0.000 | 0 |
@@ -233,7 +233,7 @@ Pareto front:
 ### zero_speed
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 0.032 | 0.903 | 29.000 | 0.200 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 0.032 | 0.903 | 29.000 | 0.200 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 0.032 | 0.937 | 26.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 0.134 | 1.124 | 10.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 0.038 | 0.348 | 63.667 | 1.000 | 2.000 | 0 |
@@ -245,7 +245,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 0.036 | 0.763 | 34.000 | 0.083 | 0.000 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `dtc_hysteresis_baseline`
 - `dtc_svm_baseline`
@@ -258,7 +258,7 @@ Pareto front:
 ### field_weakening
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 180.772 | 1.273 | 24.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 180.772 | 1.273 | 24.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 180.521 | 2.431 | 7.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 180.604 | 1.392 | 24.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 182.288 | 0.305 | 66.000 | 1.000 | 0.000 | 0 |
@@ -282,7 +282,7 @@ Pareto front:
 ### overload
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.583 | 1.269 | 29.000 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.583 | 1.269 | 29.000 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.189 | 2.258 | 10.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.469 | 1.222 | 22.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.560 | 0.301 | 72.000 | 1.000 | 0.000 | 0 |
@@ -294,7 +294,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 86.331 | 2.676 | 12.000 | 1.000 | 14.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -306,7 +306,7 @@ Pareto front:
 ### dc_sag
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.492 | 1.140 | 17.667 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.492 | 1.140 | 17.667 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.430 | 2.247 | 10.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.355 | 1.436 | 23.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.486 | 0.771 | 43.000 | 1.000 | 0.000 | 0 |
@@ -328,7 +328,7 @@ Pareto front:
 ### motor_heating
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.609 | 1.145 | 24.000 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.609 | 1.145 | 24.000 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.144 | 2.301 | 8.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.427 | 1.435 | 24.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.547 | 0.299 | 72.000 | 1.000 | 0.000 | 0 |
@@ -340,7 +340,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 86.344 | 2.714 | 12.000 | 1.000 | 15.000 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -352,7 +352,7 @@ Pareto front:
 ### inverter_heating
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.744 | 1.176 | 27.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.744 | 1.176 | 27.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 85.955 | 2.537 | 7.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.423 | 1.472 | 22.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.518 | 0.302 | 72.000 | 1.000 | 0.000 | 0 |
@@ -376,7 +376,7 @@ Pareto front:
 ### rs_error
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.297 | 1.133 | 18.667 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.297 | 1.133 | 18.667 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.905 | 2.291 | 9.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.038 | 1.187 | 23.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.173 | 0.300 | 72.000 | 1.000 | 0.000 | 0 |
@@ -388,7 +388,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 76.994 | 1.919 | 22.000 | 0.867 | 4.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -401,7 +401,7 @@ Pareto front:
 ### rr_error
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.393 | 1.113 | 18.333 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.393 | 1.113 | 18.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 77.091 | 1.605 | 13.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.049 | 1.997 | 25.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.236 | 0.295 | 72.000 | 1.000 | 0.000 | 0 |
@@ -413,7 +413,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 77.021 | 2.439 | 21.000 | 0.867 | 9.333 | 1 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -427,7 +427,7 @@ Pareto front:
 ### lm_error
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.112 | 1.129 | 22.333 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.112 | 1.129 | 22.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.901 | 2.516 | 8.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.014 | 1.387 | 22.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 78.179 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
@@ -439,7 +439,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 74.393 | 2.518 | 16.667 | 0.867 | 13.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -452,7 +452,7 @@ Pareto front:
 ### j_error
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.060 | 1.235 | 27.000 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.060 | 1.235 | 27.000 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.999 | 2.149 | 9.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.025 | 1.654 | 21.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.097 | 0.299 | 72.000 | 1.000 | 0.000 | 0 |
@@ -464,7 +464,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 76.578 | 2.643 | 13.333 | 0.867 | 14.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -478,7 +478,7 @@ Pareto front:
 ### random_load
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.543 | 1.180 | 22.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.543 | 1.180 | 22.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.333 | 2.438 | 8.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.391 | 1.360 | 23.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.494 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
@@ -500,7 +500,7 @@ Pareto front:
 ### periodic_load
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.506 | 1.160 | 26.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.506 | 1.160 | 26.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 86.289 | 2.513 | 7.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.372 | 1.494 | 21.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.502 | 0.298 | 72.000 | 1.000 | 0.000 | 0 |
@@ -524,7 +524,7 @@ Pareto front:
 ### shock_load
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 86.490 | 1.225 | 25.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 86.490 | 1.225 | 25.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 85.647 | 2.228 | 9.667 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 86.332 | 1.387 | 22.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 86.459 | 0.298 | 72.000 | 1.000 | 0.000 | 0 |
@@ -547,7 +547,7 @@ Pareto front:
 ### two_mass_proxy
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 78.595 | 1.164 | 24.333 | 1.000 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 78.595 | 1.164 | 24.333 | 1.000 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 78.586 | 2.116 | 10.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 78.536 | 1.640 | 22.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 78.691 | 0.299 | 72.000 | 1.000 | 0.000 | 0 |
@@ -559,7 +559,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 78.524 | 2.455 | 16.667 | 1.000 | 7.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -571,7 +571,7 @@ Pareto front:
 ### current_sensor_noise
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.155 | 1.266 | 24.333 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.155 | 1.266 | 24.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.659 | 2.517 | 8.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.027 | 1.210 | 20.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.111 | 0.297 | 72.000 | 1.000 | 0.000 | 0 |
@@ -583,7 +583,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 76.944 | 2.698 | 15.333 | 0.867 | 15.000 | 1 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -597,7 +597,7 @@ Pareto front:
 ### speed_sensor_noise
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.213 | 1.152 | 21.333 | 0.989 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.213 | 1.152 | 21.333 | 0.989 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 77.026 | 2.081 | 11.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.032 | 1.329 | 22.333 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.087 | 0.296 | 72.000 | 1.000 | 0.000 | 0 |
@@ -609,7 +609,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 76.959 | 2.741 | 16.333 | 0.867 | 25.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -623,7 +623,7 @@ Pareto front:
 ### sensor_delay
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.001 | 1.654 | 21.333 | 0.267 | 3.333 | 0 |
+| protected_ai_pwm_h1_baseline | 77.001 | 1.654 | 21.333 | 0.267 | 3.333 | 0 |
 | fcs_mpc_one_step_baseline | 75.752 | 2.988 | 10.000 | 0.383 | 0.000 | 0 |
 | foc_svm_key_baseline | 76.773 | 2.164 | 14.667 | 0.383 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.104 | 0.299 | 72.000 | 0.383 | 0.000 | 0 |
@@ -635,7 +635,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 77.154 | 2.154 | 19.667 | 0.133 | 19.000 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -649,7 +649,7 @@ Pareto front:
 ### speed_sensor_failure
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.116 | 1.180 | 24.667 | 0.267 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.116 | 1.180 | 24.667 | 0.267 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 75.767 | 2.255 | 9.333 | 0.383 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.030 | 1.280 | 21.333 | 0.383 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.234 | 0.301 | 72.000 | 0.383 | 0.000 | 0 |
@@ -661,7 +661,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 76.671 | 2.703 | 11.000 | 0.133 | 25.000 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -675,7 +675,7 @@ Pareto front:
 ### current_sensor_failure
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.359 | 1.259 | 21.333 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.359 | 1.259 | 21.333 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.364 | 2.503 | 7.000 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.016 | 1.393 | 20.667 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.112 | 0.298 | 72.333 | 1.000 | 0.000 | 0 |
@@ -687,7 +687,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 76.990 | 2.619 | 17.667 | 0.867 | 12.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -700,7 +700,7 @@ Pareto front:
 ### ood
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.094 | 1.149 | 17.667 | 0.983 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.094 | 1.149 | 17.667 | 0.983 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 77.130 | 1.625 | 13.333 | 1.000 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.066 | 1.963 | 26.000 | 1.000 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.105 | 0.302 | 72.667 | 1.000 | 0.333 | 0 |
@@ -712,7 +712,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 77.068 | 1.461 | 35.333 | 0.867 | 0.333 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
 - `dtc_svm_baseline`
@@ -724,7 +724,7 @@ Pareto front:
 ### fault_injection_runtime
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.101 | 0.957 | 12.000 | 0.983 | 30.000 | 3 |
+| protected_ai_pwm_h1_baseline | 77.101 | 0.957 | 12.000 | 0.983 | 30.000 | 3 |
 | fcs_mpc_one_step_baseline | 76.806 | 1.592 | 8.000 | 1.000 | 30.000 | 3 |
 | foc_svm_key_baseline | 77.035 | 1.107 | 12.667 | 1.000 | 30.000 | 3 |
 | dtc_hysteresis_baseline | 77.194 | 0.238 | 38.000 | 1.000 | 30.000 | 3 |
@@ -736,7 +736,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 77.035 | 1.519 | 14.000 | 0.867 | 30.000 | 3 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`
@@ -749,7 +749,7 @@ Pareto front:
 ### sensor_dropout
 | controller | speed_err | current | switches | feedback | fallback | failures |
 |---|---|---|---|---|---|---|
-| protected_ai_pwm_h1_proxy | 77.101 | 1.138 | 21.667 | 0.267 | 0.000 | 0 |
+| protected_ai_pwm_h1_baseline | 77.101 | 1.138 | 21.667 | 0.267 | 0.000 | 0 |
 | fcs_mpc_one_step_baseline | 76.954 | 2.293 | 9.000 | 0.383 | 0.000 | 0 |
 | foc_svm_key_baseline | 77.022 | 1.334 | 22.333 | 0.383 | 0.000 | 0 |
 | dtc_hysteresis_baseline | 77.106 | 0.298 | 72.000 | 0.383 | 0.000 | 0 |
@@ -761,7 +761,7 @@ Pareto front:
 | safe_neural_horizon_pwm_h4_sparse | 74.413 | 2.739 | 15.000 | 0.133 | 21.667 | 0 |
 
 Pareto front:
-- `protected_ai_pwm_h1_proxy`
+- `protected_ai_pwm_h1_baseline`
 - `fcs_mpc_one_step_baseline`
 - `foc_svm_key_baseline`
 - `dtc_hysteresis_baseline`

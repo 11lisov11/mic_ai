@@ -78,7 +78,7 @@ def build_report(payload: Dict[str, Any]) -> str:
     lines.append("## Scope")
     lines.append("")
     lines.append("This is a host-level simulation report. It is not MCU, HIL, or bench evidence.")
-    lines.append("Controller names ending with `_proxy` are lightweight comparison proxies, not final strong baselines.")
+    lines.append("The comparison matrix uses named host baselines; none of those rows is hardware, HIL, or publication-tuned evidence.")
     lines.append("")
 
     if "controllers" in payload:

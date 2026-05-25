@@ -16,7 +16,7 @@ from tools.run_safe_neural_horizon_pwm_study import DEFAULT_SCENARIOS
 
 ALLOWED_FAULT_LATCH_SCENARIOS = {"fault_injection_runtime"}
 REQUIRED_CONTROLLERS = {
-    "protected_ai_pwm_h1_proxy",
+    "protected_ai_pwm_h1_baseline",
     "fcs_mpc_one_step_baseline",
     "foc_svm_key_baseline",
     "dtc_hysteresis_baseline",
@@ -233,6 +233,9 @@ def analyze_release(path: Path) -> Dict[str, Any]:
     )
     checks["sensorless_adaptive_foc_baseline_ready"] = bool(scenarios) and all(
         "sensorless_adaptive_foc_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
+    )
+    checks["protected_ai_pwm_h1_baseline_ready"] = bool(scenarios) and all(
+        "protected_ai_pwm_h1_baseline" in dict(matrix.get(scenario, {})) for scenario in scenarios
     )
     checks["strong_baselines_ready"] = False
     warnings.append(

@@ -348,7 +348,7 @@ Scope:
 - short host simulation only
 - parameter randomization: Rs, Rr, Lm, J, B
 - compared rows:
-  - `protected_ai_pwm_h1_proxy`
+  - `protected_ai_pwm_h1_baseline`
   - `fcs_mpc_one_step_baseline`
   - `foc_svm_key_baseline`
   - `dtc_hysteresis_baseline`
@@ -375,7 +375,7 @@ python tools/package_safe_neural_horizon_pwm_release.py --input-json .tmp_pytest
 
 | Controller | Mean speed error | Mean current | Max current mean | Switch events mean | Feedback usage | Fallback mean | Fault latch mean | Safety violations | Failure count |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| protected_ai_pwm_h1_proxy | 84.322 | 1.532 | 2.576 | 42.11 | 0.983 | 3.40 | 0.00 | 0 | 0 |
+| protected_ai_pwm_h1_baseline | 84.322 | 1.532 | 2.576 | 42.11 | 0.983 | 3.40 | 0.00 | 0 | 0 |
 | fcs_mpc_one_step_baseline | 82.544 | 2.547 | 3.355 | 22.36 | 1.000 | 0.01 | 0.00 | 0 | 0 |
 | foc_svm_key_baseline | 83.844 | 1.011 | 2.568 | 37.38 | 1.000 | 0.00 | 0.00 | 0 | 0 |
 | dtc_hysteresis_baseline | 84.791 | 0.309 | 0.683 | 142.76 | 1.000 | 0.45 | 0.00 | 0 | 0 |
@@ -441,6 +441,7 @@ Scope:
   - `fault_injection_runtime`
   - `sensor_dropout`
 - comparison baselines:
+  - `protected_ai_pwm_h1_baseline` (separate host prior protected AI-PWM H1 baseline; previous one-step protected architecture, not final publication tuned)
   - `foc_svm_key_baseline` (separate host key-level PI/current/SVM baseline; not final publication tuned)
   - `fcs_mpc_one_step_baseline` (separate host one-step current/torque/flux FCS-MPC baseline; not final publication tuned)
   - `dtc_hysteresis_baseline` (separate host torque/flux hysteresis DTC baseline; not final publication tuned)
@@ -450,8 +451,7 @@ Scope:
 
 Important limitation:
 
-- FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are now separate host baselines, but not yet tuned publication-grade baselines.
-- The protected H1 comparison row is still a host-level prior-model proxy used to expose trade-offs against the new horizon architecture.
+- The prior protected AI-PWM H1, FOC-SVM, one-step FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current control, and sensorless/adaptive FOC are now separate host baselines, but not yet tuned publication-grade baselines.
 
 Tracked release package:
 
@@ -503,6 +503,7 @@ Observed pattern in the host matrix:
 - `dtc_svm_baseline` is now a separate host DTC-SVM baseline: torque and flux PI loops synthesize a stator-flux-frame voltage reference, then nearest legal-vector SVM selection is passed through the same Safety Gateway.
 - `deadbeat_current_baseline` is now a separate host deadbeat predictive current-control baseline: dq current references are projected to alpha-beta, a one-step deadbeat voltage is estimated, and legal-vector selection is constrained by the same Safety Gateway.
 - `sensorless_adaptive_foc_baseline` is now a separate host sensorless/adaptive FOC baseline: it avoids measured speed feedback, estimates speed from flux-angle movement, adapts Rs from current residuals, and uses nearest legal-vector SVM through the same Safety Gateway.
+- `protected_ai_pwm_h1_baseline` is now a separate host prior protected AI-PWM H1 baseline: it fixes the previous one-step protected architecture explicitly, so release matrices no longer rely on a generic proxy-named controller.
 - `safe_neural_horizon_pwm_h2` is safer than the current H4 sparse variant in this short matrix; it avoids the H4 current/fallback issue but does not dominate every metric.
 - Fault-injection summary reports `all_gateway_cases_no_shoot_through = true`; the raw shoot-through detector triggers on deliberately illegal raw gate emulation; the dead-time path detector distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths.
 
@@ -523,7 +524,7 @@ Required next baselines:
 - tune and stress-test `dtc_svm_baseline` into a publication-grade DTC-SVM baseline
 - tune and stress-test `deadbeat_current_baseline` into a publication-grade deadbeat predictive current-control baseline
 - tune and stress-test `sensorless_adaptive_foc_baseline` into a publication-grade MRAS/EKF/adaptive FOC baseline
-- current protected AI-PWM release model
+- strengthen `protected_ai_pwm_h1_baseline` if it is used as the official prior-model comparison row in a paper table
 
 ## Robust Tests Status
 
@@ -543,7 +544,7 @@ Still not publication-grade:
 - tuned strong classical baselines;
 - publication-scale MC `N=500..1000`;
 - full thermal/spectral ablations;
-- final Pareto fronts after tuning the host classical baselines and replacing/strengthening the protected H1 prior-model proxy if needed;
+- final Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed;
 - MCU/HIL/bench timing evidence.
 
 ## MCU/HIL/Bench Status

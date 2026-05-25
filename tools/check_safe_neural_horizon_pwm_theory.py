@@ -162,7 +162,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
 
     comparison_matrix = _matrix_has_required_controllers(payload)
     checks["comparison_matrix"] = comparison_matrix
-    checks["proxy_comparison_matrix"] = comparison_matrix
+    checks["named_baseline_comparison_matrix"] = comparison_matrix
     _criterion(
         criteria,
         "comparison_matrix",
@@ -262,6 +262,10 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
         ROOT / "control" / "sensorless_adaptive_foc_baseline.py",
         ["SensorlessAdaptiveFocBaselineController", "_mras_speed_update", "_adapt_rs", "omega_hat"],
     ) and comparison_matrix
+    protected_ai_pwm_h1_baseline_ready = _source_contains(
+        ROOT / "control" / "protected_ai_pwm_h1_baseline.py",
+        ["ProtectedAiPwmH1BaselineController", "protected_h1_config", "horizon=1"],
+    ) and comparison_matrix
     trained_twin_ready = False
     publication_mc_ready = bool(mc100_payload and int(mc100_payload.get("mc_trials", 0)) >= 500)
     publication_plots_ready = False
@@ -271,6 +275,7 @@ def analyze_theory(path: Path) -> Dict[str, Any]:
     checks["dtc_svm_baseline_ready"] = dtc_svm_baseline_ready
     checks["deadbeat_current_baseline_ready"] = deadbeat_current_baseline_ready
     checks["sensorless_adaptive_foc_baseline_ready"] = sensorless_adaptive_foc_baseline_ready
+    checks["protected_ai_pwm_h1_baseline_ready"] = protected_ai_pwm_h1_baseline_ready
     checks["strong_baselines_ready"] = strong_baselines_ready
     checks["trained_domain_randomized_twin_ready"] = trained_twin_ready
     checks["publication_mc500_ready"] = publication_mc_ready

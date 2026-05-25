@@ -132,7 +132,7 @@ Status on `2026-05-22`:
 - MC=100 smoke runs and records zero safety waveform violations for the new H=2 variant
 - MC=5 scenario matrix runs across start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout host scenarios
 - full host matrix release runs across `31` scenarios: the 30-scenario TZ set plus an explicit `sensor_dropout` stress case
-- host-level comparison baselines exist; FOC-SVM is now a separate key-level PI/current/SVM baseline, FCS-MPC is now a separate one-step predictive current/torque/flux baseline, DTC hysteresis is now a separate torque/flux hysteresis baseline, DTC-SVM is now a separate torque/flux voltage-reference/SVM baseline, deadbeat current control is now a separate predictive current baseline, and sensorless/adaptive FOC is now a separate MRAS-like observer/Rs-adaptive FOC baseline
+- host-level comparison baselines exist; the prior protected AI-PWM H1 model is now a separate named one-step protected baseline, FOC-SVM is now a separate key-level PI/current/SVM baseline, FCS-MPC is now a separate one-step predictive current/torque/flux baseline, DTC hysteresis is now a separate torque/flux hysteresis baseline, DTC-SVM is now a separate torque/flux voltage-reference/SVM baseline, deadbeat current control is now a separate predictive current baseline, and sensorless/adaptive FOC is now a separate MRAS-like observer/Rs-adaptive FOC baseline
 - ablation and Pareto smoke extraction are implemented
 - host-level fault-injection summary is implemented and reports no shoot-through
 - host-level dead-time path detector is implemented and distinguishes direct HIGH/LOW transitions from valid BOTH_OFF paths
@@ -141,7 +141,7 @@ Status on `2026-05-22`:
 - novelty claim scope is machine-checkable and currently passes with `host_novelty_claim_supported = true`; this supports only the distinct host-level architecture claim, not tuned-baseline superiority or hardware readiness
 - theory completion scope is machine-checkable and currently passes host scaffold criteria with `host_theory_scaffold_ready = true`, while keeping `publication_theory_complete = false`
 - fixed bug classes include pre-step current reporting, missing flux-building cost, manifest/acceptance ordering, required release artifact validation, applied-vs-planned loss accounting, dead-time path detection, and incomplete serial-frame timeout/fallback behavior
-- strong key-level baselines, full robust matrix, final ablation, Pareto, HIL, and bench work are still open
+- publication-tuned baseline calibration, final ablation, publication-grade Pareto/trace evidence, HIL, and bench work are still open
 
 ## Active Rework Plan After 2026-05-09 Audit
 
@@ -266,6 +266,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Replace the old weight-tuned `dtc_svm_proxy` with a separate host DTC-SVM baseline using torque/flux PI voltage synthesis, nearest legal vector selection, and the same Safety Gateway.
 - [x] Replace the old weight-tuned `deadbeat_current_proxy` with a separate host deadbeat predictive current-control baseline using dq current references, deadbeat voltage estimate, nearest legal vector selection, and the same Safety Gateway.
 - [x] Replace the old weight-tuned `sensorless_adaptive_foc_proxy` with a separate host sensorless/adaptive FOC baseline using MRAS-like flux-angle speed observation, Rs adaptation, nearest legal vector selection, and the same Safety Gateway.
+- [x] Replace the old `protected_ai_pwm_h1_proxy` row with a separate prior protected AI-PWM H1 baseline that explicitly fixes the previous one-step protected architecture.
 - [x] Add scenario matrix smoke for start/no-load, start/load, load-step, load-shed, reverse, low-speed, DC-sag, and sensor-dropout cases.
 - [x] Expand scenario matrix to the full TZ host set plus explicit `sensor_dropout` stress case.
 - [x] Add ablation smoke variants for horizon, feedback density, switching penalty, and current penalty.
@@ -286,7 +287,7 @@ This checklist tracks what is still not complete after the research release. It 
 - [x] Expand robust host scenario matrix to the full 30-scenario research TZ plus one explicit dropout stress case.
 - [x] Expand fault-injection matrix to include raw shoot-through request emulation, no-dead-time transition emulation, and hardware-like desat/UVLO cases.
 - [ ] Run full ablation: gateway/current shield/confidence/switching budget/min-pulse/horizon/thermal/spectral/twin/randomization/feedback variants with publication-scale MC.
-- [ ] Generate publication-grade Pareto fronts after tuning the host classical baselines and replacing/strengthening the protected H1 prior-model proxy if needed.
+- [ ] Generate publication-grade Pareto fronts after tuning the host classical baselines and strengthening the named protected H1 prior baseline if needed.
 - [ ] Generate publication-grade time-series plots for speed, torque, currents, gates, switching events, feedback events, confidence, losses, temperature, FFT, and Pareto after trace logging is added.
 - [x] Prepare host-level article draft; clearly mark MCU/HIL/bench as not done.
 

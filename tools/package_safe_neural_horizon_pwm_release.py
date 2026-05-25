@@ -112,7 +112,7 @@ def _article_draft(payload: Dict[str, Any]) -> str:
     lines.append("- H2 is the safer current research candidate than the sparse H4 variant in the short host matrix.")
     lines.append("- Sparse H4 can reduce feedback and switching, but current stress and fallback events increase in several scenarios.")
     lines.append("- The FCS-MPC comparison is now a separate one-step current/torque/flux predictive baseline.")
-    lines.append("- The FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current, and sensorless/adaptive FOC comparisons are now separate host baselines.")
+    lines.append("- The prior protected AI-PWM H1, FOC-SVM, FCS-MPC, DTC hysteresis, DTC-SVM, deadbeat current, and sensorless/adaptive FOC comparisons are now separate host baselines.")
     lines.append("- The new FOC-SVM/FCS-MPC/DTC/DTC-SVM/deadbeat/sensorless baselines are competitive, so SNH-PWM cannot claim classical-control superiority yet.")
     lines.append("")
     lines.append("## Limitations")
